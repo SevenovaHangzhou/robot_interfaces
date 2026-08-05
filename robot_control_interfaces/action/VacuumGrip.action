@@ -1,0 +1,30 @@
+# R-IN-05 /vacuum/grip。Motion ⇄ RT-Control。
+# 通道同数量、同集、同序。
+# GRIP：每通道新鲜表压 <= -50 kPa 才算成功。
+# RELEASE：物理释放结果永远 UNVERIFIED，不以压力判定。
+# 失败、超时或通信未知时不得自动重放。
+
+# command 取值
+uint8 GRIP=0
+uint8 RELEASE=1
+
+uint8 command
+
+# 目标通道，顺序即 Result 中的通道顺序。
+uint8[] channels
+
+# 版本化吸取参数档位名。物理命令预算只取本档位定义，
+# 父 Action deadline 独立且不得短于本档位预算。
+string grip_profile
+---
+# 全通道达到判定阈值才为 true。双箱任一侧未验证则整体失败。
+bool ok
+
+# 与 Goal channels 同数量、同集、同序。
+VacuumChannelResult[] channels
+
+robot_system_interfaces/ErrorInfo error
+---
+# feedback 静默超过 1 s 只告警，不触发取消、失败或重试。
+uint8 channel
+float32 gauge_pressure_kpa

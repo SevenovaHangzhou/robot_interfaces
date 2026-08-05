@@ -1,0 +1,21 @@
+# R-IN-03 /control/set_enabled。维护/生命周期工具 → RT-Control。
+# 不复位急停、安全继电器或 STO，不属于箱级任务流程。
+# Autonomy 不得调用本服务。
+
+bool enable
+---
+bool ok
+
+# 失败批次序号，-1 表示不适用。
+int8 failed_batch
+
+# 失败关节名，空表示不适用。
+string failed_joint
+
+# 现场总线状态字。
+uint16 status_word
+
+# 失败阶段标识，仅用于诊断。
+string stage
+
+robot_system_interfaces/ErrorInfo error

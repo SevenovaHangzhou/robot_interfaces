@@ -1,0 +1,12 @@
+# R-IN-04 /vacuum/pump/set_enabled。维护工具或 RT 内部管理器 → RT-Control。
+# 活动真空命令或可能持箱时拒绝普通停泵。
+# Autonomy 不得调用本服务；活动 G-01 期间调用 enable=false 的次数必须为零。
+
+bool enable
+
+# 维护场景强制停泵。可能持箱时使用会导致掉箱，需现场授权。
+bool force
+---
+bool accepted
+
+robot_system_interfaces/ErrorInfo error
