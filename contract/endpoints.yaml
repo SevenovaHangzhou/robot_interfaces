@@ -1,0 +1,305 @@
+# 跨域 endpoint 注册表。
+#
+# 本文是 robot_system/docs/cross-domain-interfaces.md 接口总表的机器可读版本，
+# 由 tools/contract_gate.py 做双向闭合校验：
+#   - 本仓库每个 .msg/.srv/.action 必须被至少一个 endpoint 引用
+#   - 每个 endpoint 的 type 必须真实存在于本仓库或声明为外部标准类型
+#
+# 不在本表中的跨域 endpoint 视为未授权。
+# 域取值：rt_control / perception / motion / autonomy / external
+
+version: "0.4.0"
+
+domains: [rt_control, perception, motion, autonomy, external]
+
+qos_profiles: [Q_CONTROL, Q_FAST_STATE, Q_STATE, Q_LATCHED, Q_DIAGNOSTIC, Q_DEFAULT]
+
+endpoints:
+  - id: G-01
+    ros_name: /autonomy/execute_demo_task
+    kind: action
+    type: robot_task_interfaces/action/ExecuteDemoTask
+    producer: autonomy
+    consumers: [external]
+    qos: Q_DEFAULT
+
+  - id: P-01
+    ros_name: /perception/build_wall_task_plan
+    kind: action
+    type: robot_task_interfaces/action/BuildWallTaskPlan
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+
+  - id: P-02
+    ros_name: /perception/refine_sequence_poses
+    kind: action
+    type: robot_task_interfaces/action/RefineSequencePoses
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+
+  - id: P-03
+    ros_name: /perception/obstacle_cloud
+    kind: topic
+    type: robot_perception_interfaces/msg/ObstacleCloud
+    producer: perception
+    consumers: [motion]
+    qos: Q_STATE
+    reserved: true
+
+  - id: P-04
+    ros_name: /perception/readiness
+    kind: topic
+    type: robot_system_interfaces/msg/DomainReadiness
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_LATCHED
+    rate_hz: [1, 1]
+
+  - id: P-NAV-01
+    ros_name: /odom
+    kind: topic
+    type: nav_msgs/msg/Odometry
+    producer: perception
+    consumers: [motion, autonomy]
+    qos: Q_FAST_STATE
+    rate_hz: [50, 50]
+    max_age_ms: 200
+    external_type: true
+
+  - id: P-NAV-02
+    ros_name: /tf
+    kind: topic
+    type: tf2_msgs/msg/TFMessage
+    producer: perception
+    consumers: [rt_control, motion, autonomy]
+    qos: Q_DEFAULT
+    external_type: true
+    note: map → odom，唯一发布者为 Perception
+
+  - id: N-01
+    ros_name: /navigation/navigate_to_pose
+    kind: action
+    type: robot_navigation_interfaces/action/NavigateToPoseTask
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+
+  - id: N-04
+    ros_name: /cmd_vel_safe
+    kind: topic
+    type: geometry_msgs/msg/Twist
+    producer: motion
+    consumers: [rt_control]
+    qos: Q_CONTROL
+    rate_hz: [20, 50]
+    watchdog_ms: 500
+    external_type: true
+    note: Twist 无 header；看门狗只用本地接收间隔，不得推导 stamp 或 frame
+
+  - id: N-05
+    ros_name: /navigation/localization/status
+    kind: topic
+    type: robot_navigation_interfaces/msg/LocalizationStatus
+    producer: perception
+    consumers: [motion, autonomy]
+    qos: Q_STATE
+    rate_hz: [10, 20]
+    max_age_ms: 200
+
+  - id: N-07
+    ros_name: /map
+    kind: topic
+    type: nav_msgs/msg/OccupancyGrid
+    producer: perception
+    consumers: [motion]
+    qos: Q_LATCHED
+    external_type: true
+
+  - id: N-09
+    ros_name: /navigation/scan
+    kind: topic
+    type: sensor_msgs/msg/LaserScan
+    producer: perception
+    consumers: [motion]
+    qos: Q_FAST_STATE
+    external_type: true
+
+  - id: M-01
+    ros_name: /motion/move_to_camera_view_pose
+    kind: action
+    type: robot_task_interfaces/action/MoveToCameraViewPose
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+
+  - id: M-02
+    ros_name: /motion/plan_and_execute_pick
+    kind: action
+    type: robot_task_interfaces/action/PlanAndExecutePick
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+
+  - id: M-03
+    ros_name: /motion/plan_and_execute_place
+    kind: action
+    type: robot_task_interfaces/action/PlanAndExecutePlace
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+
+  - id: M-06
+    ros_name: /motion/readiness
+    kind: topic
+    type: robot_system_interfaces/msg/DomainReadiness
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_LATCHED
+    rate_hz: [1, 1]
+
+  - id: N-06
+    ros_name: /navigation/readiness
+    kind: topic
+    type: robot_system_interfaces/msg/DomainReadiness
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_LATCHED
+    rate_hz: [1, 1]
+
+  - id: R-IN-02
+    ros_name: /whole_body_jtc/follow_joint_trajectory
+    kind: action
+    type: control_msgs/action/FollowJointTrajectory
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    external_type: true
+    note: 完整 14 轴；allow_partial_joints_goal=false
+
+  - id: R-IN-03
+    ros_name: /control/set_enabled
+    kind: service
+    type: robot_control_interfaces/srv/SetControlEnabled
+    producer: rt_control
+    consumers: [external]
+    qos: Q_DEFAULT
+
+  - id: R-IN-04
+    ros_name: /vacuum/pump/set_enabled
+    kind: service
+    type: robot_control_interfaces/srv/SetPumpEnabled
+    producer: rt_control
+    consumers: [external]
+    qos: Q_DEFAULT
+
+  - id: R-IN-05
+    ros_name: /vacuum/grip
+    kind: action
+    type: robot_control_interfaces/action/VacuumGrip
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+
+  - id: R-OUT-02
+    ros_name: /wheel/odom
+    kind: topic
+    type: nav_msgs/msg/Odometry
+    producer: rt_control
+    consumers: [perception]
+    qos: Q_FAST_STATE
+    rate_hz: [50, 50]
+    max_age_ms: 200
+    external_type: true
+    note: frame_id=odom，child_frame_id=base_footprint；rt-control 不发 odom→base_footprint TF
+
+  - id: R-OUT-03
+    ros_name: /joint_states
+    kind: topic
+    type: sensor_msgs/msg/JointState
+    producer: rt_control
+    consumers: [motion, perception, autonomy]
+    qos: Q_FAST_STATE
+    rate_hz: [50, 50]
+    note: 只含 14 个 EtherCAT 机械轴，不含履带控制关节
+    max_age_ms: 200
+    external_type: true
+
+  - id: R-OUT-04
+    ros_name: /battery_state
+    kind: topic
+    type: sensor_msgs/msg/BatteryState
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_STATE
+    rate_hz: [0.2, 0.2]
+    note: BMS 周期 5 s；只读，不作为业务控制入口
+    external_type: true
+
+  - id: R-OUT-05
+    ros_name: /vacuum/state
+    kind: topic
+    type: robot_control_interfaces/msg/VacuumState
+    producer: rt_control
+    consumers: [motion, autonomy]
+    qos: Q_STATE
+    rate_hz: [20, 50]
+
+  - id: R-OUT-06
+    ros_name: /control/safety_state
+    kind: topic
+    type: robot_control_interfaces/msg/SafetyState
+    producer: rt_control
+    consumers: [perception, motion, autonomy]
+    qos: Q_STATE
+    rate_hz: [10, 50]
+    max_age_ms: 200
+
+  - id: R-OUT-09
+    ros_name: /rt_control/readiness
+    kind: topic
+    type: robot_system_interfaces/msg/DomainReadiness
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_LATCHED
+    rate_hz: [1, 1]
+
+  - id: R-OUT-10
+    ros_name: /diagnostics
+    kind: topic
+    type: diagnostic_msgs/msg/DiagnosticArray
+    producer: rt_control
+    consumers: [external]
+    qos: Q_DIAGNOSTIC
+    external_type: true
+    note: 不得替代 Action Result、readiness 或 SafetyState 证据
+
+# 成员类型：被上述 endpoint 的载荷间接引用，不单独出现在 ROS graph。
+member_types:
+  - robot_system_interfaces/msg/ErrorCode
+  - robot_system_interfaces/msg/ErrorInfo
+  - robot_control_interfaces/msg/VacuumChannelState
+  - robot_control_interfaces/msg/VacuumChannelResult
+  - robot_task_interfaces/msg/BoxPose
+  - robot_task_interfaces/msg/CameraViewPose
+  - robot_task_interfaces/msg/PickSequence
+  - robot_task_interfaces/msg/WallTaskPlan
+
+# 禁止的通信边。各域 CI 与联调 ros2 node info 复核。
+forbidden_edges:
+  - {from: autonomy, to: /cmd_vel_safe}
+  - {from: autonomy, to: /whole_body_jtc/follow_joint_trajectory}
+  - {from: autonomy, to: /control/set_enabled}
+  - {from: autonomy, to: /vacuum/pump/set_enabled}
+  - {from: autonomy, to: /vacuum/grip}
+  - {from: perception, to: /navigation/navigate_to_pose}
+
+# 已删除的 endpoint。出现在 ROS graph 中即为违约。
+# 底盘与手臂互斥是 Motion 域内不变量，不得重新做成跨域接口。
+removed_endpoints:
+  - /navigation/set_base_motion_inhibit
+  - /robot_model/info
+  - /calibration/info
+  - /navigation/base_motion_gate_state
+  - /motion/base_travel_readiness
