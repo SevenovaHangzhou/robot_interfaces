@@ -1,0 +1,20 @@
+# M-03 /motion/plan_and_execute_place。Autonomy ⇄ Motion。
+#
+# 固定放置配置；每序列一次；不可重放。
+# 物理释放结果永远记为 UNVERIFIED，不以压力判定释放成功。
+# 释放命令可能已执行时不得发送重复释放，现场转人工处置。
+
+uint16 sequence_index
+
+# 放置配置标识，版本化固定配置。
+string place_profile
+---
+bool ok
+
+# 各通道释放结果，verification_level 恒为 DETACH_UNVERIFIED。
+robot_control_interfaces/VacuumChannelResult[] channels
+
+robot_system_interfaces/ErrorInfo error
+---
+# feedback 静默超过 1 s 只告警。
+string stage

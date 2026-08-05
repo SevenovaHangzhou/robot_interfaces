@@ -1,0 +1,14 @@
+# P-01 /perception/build_wall_task_plan。Autonomy ⇄ Perception。
+#
+# 真实单次同步采集，不得返回缓存或推测计划。
+# 必须输出完整 25 箱、13～15 序列，每个序列含非空可执行 station_nav_pose(map)。
+# 每个 G-01 只调用一次；严格成功语义，任一序列缺失即失败。
+---
+bool ok
+
+WallTaskPlan plan
+
+robot_system_interfaces/ErrorInfo error
+---
+# feedback 静默超过 1 s 只告警。
+string stage

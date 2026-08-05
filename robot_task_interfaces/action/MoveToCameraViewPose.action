@@ -1,0 +1,17 @@
+# M-01 /motion/move_to_camera_view_pose。Autonomy ⇄ Motion。
+#
+# 重拍位由 P-01 随计划产出并绑定到具体臂，Motion 直接执行，不重新解算观测位姿。
+# 1～2 个目标，与本序列箱同集同序。
+# 每序列只调用一次；失败不重放，也不为再次 Pick 重跑本 Action。
+
+uint16 sequence_index
+
+# 来自 PickSequence.camera_view_poses，1～2 项，原样转发。
+CameraViewPose[] camera_view_poses
+---
+bool ok
+
+robot_system_interfaces/ErrorInfo error
+---
+# feedback 静默超过 1 s 只告警。
+string stage

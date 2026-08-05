@@ -1,0 +1,52 @@
+# G-01 /autonomy/execute_demo_task。本地 CLI/HMI ⇄ Autonomy。
+#
+# 同时只接受一个活动 Goal，第二个在 Goal 响应阶段 reject。
+# Autonomy 是唯一任务编排、取消、恢复和重试计数责任域，
+# 但不直接控制 RT-Control。
+# 外部任务只能经此入口进入，不得绕过直达 Motion / RT-Control。
+
+# 空 Goal：Demo 任务无外部参数。
+---
+# final_state 三选一
+uint8 COMPLETED_UNVERIFIED=0
+uint8 FAILED=1
+uint8 CANCELED=2
+
+# verification_level 取值
+uint8 VERIFICATION_UNKNOWN=0
+uint8 PICK_VERIFIED_RELEASE_UNVERIFIED=1
+
+uint8 final_state
+
+# final_state=COMPLETED_UNVERIFIED 时必须为
+# PICK_VERIFIED_RELEASE_UNVERIFIED。
+uint8 verification_level
+
+# 已 Commit 的序列数。
+uint16 sequences_committed
+
+robot_system_interfaces/ErrorInfo error
+---
+# task_phase 冻结常量 0～14。顺序与命名不得改动。
+uint8 UNKNOWN=0
+uint8 STARTING=1
+uint8 GATING_OBSERVATION=2
+uint8 BUILDING_PLAN=3
+uint8 RELEASING_OBSERVATION_GATE=4
+uint8 NAVIGATING=5
+uint8 ACQUIRING_SEQUENCE_GATE=6
+uint8 POSITIONING_CAMERA=7
+uint8 LOCALIZING=8
+uint8 PICKING=9
+uint8 PLACING=10
+uint8 COMMITTING=11
+uint8 RELEASING_SEQUENCE_GATE=12
+uint8 FINALIZING=13
+uint8 CANCELING=14
+
+# 只使用上列冻结常量。feedback 静默超过 1 s 只告警，
+# 不单独触发取消、失败或重试。
+uint8 task_phase
+
+uint16 current_sequence_index
+uint16 sequences_committed

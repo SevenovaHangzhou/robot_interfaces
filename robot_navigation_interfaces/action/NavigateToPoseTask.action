@@ -1,0 +1,23 @@
+# N-01 /navigation/navigate_to_pose。Autonomy ⇄ Motion。
+#
+# station_nav_pose 来自 P-01，map 坐标系；Motion 不解析语义地图。
+# 真实调用 Nav2；当前到站步骤最多三次总尝试（含第一次）。
+# SUCCEEDED 要求底盘实际到达、误差满足约定、形成稳定到位证据。
+# 目标非法、地图/定位不可用或 Nav2 无法到达时必须明确失败。
+
+# 来自 PickSequence.station_nav_pose，原样转发。frame 必须为 map，非空。
+geometry_msgs/PoseStamped station_nav_pose
+
+# 到位判定容差。由调用方给出；为 0 时服务端用自身默认值。
+float64 xy_tolerance_m
+float64 yaw_tolerance_rad
+---
+bool ok
+
+# 最终停稳位姿，frame 为 map，取自 P-NAV-01 /odom 证据。
+geometry_msgs/PoseStamped final_pose
+
+robot_system_interfaces/ErrorInfo error
+---
+# feedback 静默超过 1 s 只告警。
+float64 distance_remaining_m
