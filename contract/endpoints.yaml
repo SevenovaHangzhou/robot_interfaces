@@ -1,14 +1,14 @@
 # 跨域 endpoint 注册表。
 #
-# 本文是 robot_system/docs/cross-domain-interfaces.md 接口总表的机器可读版本，
+# 本文是 endpoint、类型、生产者、消费者、QoS 与关键约束的唯一注册表，
 # 由 tools/contract_gate.py 做双向闭合校验：
 #   - 本仓库每个 .msg/.srv/.action 必须被至少一个 endpoint 引用
 #   - 每个 endpoint 的 type 必须真实存在于本仓库或声明为外部标准类型
 #
-# 不在本表中的跨域 endpoint 视为未授权。
+# Wire schema 由本仓库对应 IDL 定义。不在本表中的跨域 endpoint 视为未授权。
 # 域取值：rt_control / perception / motion / autonomy / external
 
-version: "0.4.0"
+version: "0.5.0"
 
 domains: [rt_control, perception, motion, autonomy, external]
 
@@ -79,7 +79,7 @@ endpoints:
     kind: topic
     type: tf2_msgs/msg/TFMessage
     producer: perception
-    consumers: [rt_control, motion, autonomy]
+    consumers: [motion, autonomy]
     qos: Q_DEFAULT
     external_type: true
     note: map → odom，唯一发布者为 Perception
@@ -222,7 +222,7 @@ endpoints:
     producer: rt_control
     consumers: [motion]
     qos: Q_DEFAULT
-    constraint: "通道同数量/同集/同序；GRIP 每通道新鲜表压 `<= -50 kPa`；RELEASE 仍 `UNVERIFIED`"
+    constraint: "通道固定 `left/right` 且同数量/同集/同序；当前只接受 `grip_profile_id=default`；GRIP 每通道新鲜 `attached=true`；RELEASE 仍 `UNVERIFIED`"
 
   - id: R-OUT-01
     ros_name: /tf
@@ -232,9 +232,20 @@ endpoints:
     consumers: [perception, motion, autonomy]
     qos: Q_DEFAULT
     external_type: true
-    note: robot_state_publisher 发布本体动态与静态 TF（含 /tf_static）
-    constraint: "本体坐标边唯一；静态/动态发布责任不重复；`map→odom` 不由本域发布"
+    note: robot_state_publisher 发布本体动态 TF
+    constraint: "本体动态坐标边唯一；`map→odom` 与 `odom→base_footprint` 不由本域发布"
     multi_producer: true  # /tf 按坐标边判唯一性，见契约 6.11
+
+  - id: R-OUT-01S
+    ros_name: /tf_static
+    kind: topic
+    type: tf2_msgs/msg/TFMessage
+    producer: rt_control
+    consumers: [perception, motion, autonomy]
+    qos: Q_LATCHED
+    external_type: true
+    note: robot_state_publisher 发布本体固定坐标边
+    constraint: "本体固定坐标边唯一；`Q_LATCHED`；与 `/tf` 分开登记"
 
   - id: R-OUT-02
     ros_name: /wheel/odom
@@ -256,11 +267,11 @@ endpoints:
     producer: rt_control
     consumers: [motion, perception, autonomy]
     qos: Q_FAST_STATE
-    rate_hz: [50, 50]
+    rate_hz: [100, 100]
     note: 只含 14 个 EtherCAT 机械轴，不含履带控制关节
     max_age_ms: 200
     external_type: true
-    constraint: "只含 14 个 EtherCAT 机械轴，不含履带关节；`Q_FAST_STATE`；50 Hz"
+    constraint: "只含 14 个 EtherCAT 机械轴，不含履带关节；仅 position；`Q_FAST_STATE`；100 Hz"
 
   - id: R-OUT-04
     ros_name: /battery_state
@@ -279,10 +290,10 @@ endpoints:
     kind: topic
     type: robot_control_interfaces/msg/VacuumState
     producer: rt_control
-    consumers: [motion, autonomy]
+    consumers: [autonomy]
     qos: Q_STATE
     rate_hz: [20, 50]
-    constraint: "`Q_STATE`；20～50 Hz；只 RT-Control 用于 GRIP 判定，其他域不自行计算成功"
+    constraint: "`Q_STATE`；20～50 Hz；发布 `left/right` 新鲜 `attached` 布尔状态；只 RT-Control 用于 GRIP 判定；Motion 不订阅"
 
   - id: R-OUT-06
     ros_name: /control/safety_state
@@ -293,7 +304,7 @@ endpoints:
     qos: Q_STATE
     rate_hz: [10, 50]
     max_age_ms: 200
-    constraint: "**软件可观测摘要，不含硬安全链状态**；`Q_STATE`；10～50 Hz；最大年龄 200 ms；deny 或过期时禁止新动作"
+    constraint: "**软件可观测摘要，不含硬安全链状态**；`Q_STATE`；10～50 Hz；最大年龄 200 ms；`safe_to_start_motion=false` 或过期时禁止新动作"
 
   - id: R-OUT-09
     ros_name: /rt_control/readiness
@@ -322,6 +333,7 @@ member_types:
   - robot_system_interfaces/msg/ErrorInfo
   - robot_control_interfaces/msg/VacuumChannelState
   - robot_control_interfaces/msg/VacuumChannelResult
+  - robot_control_interfaces/msg/VacuumChannelFeedback
   - robot_task_interfaces/msg/BoxPose
   - robot_task_interfaces/msg/CameraViewPose
   - robot_task_interfaces/msg/PickSequence

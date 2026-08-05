@@ -1,21 +1,16 @@
-# R-IN-03 /control/set_enabled。维护/生命周期工具 → RT-Control。
-# 不复位急停、安全继电器或 STO，不属于箱级任务流程。
-# Autonomy 不得调用本服务。
-
-bool enable
+bool enabled
+string reason
 ---
-bool ok
+uint16 OK=0
+uint16 RT_SERVICE_UNAVAILABLE=1
+uint16 ENABLE_MANAGER_NOT_READY=2
+uint16 RESET_FAILED=3
+uint16 ENABLE_FAILED=4
+uint16 DISABLE_FAILED=5
+uint16 OPERATION_IN_PROGRESS=6
+uint16 RESTART_REQUIRED=7
 
-# 失败批次序号，-1 表示不适用。
-int8 failed_batch
-
-# 失败关节名，空表示不适用。
-string failed_joint
-
-# 现场总线状态字。
-uint16 status_word
-
-# 失败阶段标识，仅用于诊断。
-string stage
-
-robot_system_interfaces/ErrorInfo error
+bool accepted
+bool enabled
+uint16 error_code
+string message

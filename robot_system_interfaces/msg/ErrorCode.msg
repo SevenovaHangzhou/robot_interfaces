@@ -74,7 +74,7 @@ uint32 RT_INTERNAL_ERROR=1090
 uint32 RT_FIELDBUS_OFFLINE=1120
 # /cmd_vel_safe 超 500 ms 未更新，已本地停车；上游恢复发布即恢复。
 uint32 RT_CMD_VEL_STALE=1130
-# 表压未达 -50 kPa；可再次尝试吸取（但物理动作重试受契约 6.5 约束）。
+# 任一目标通道的新鲜 attached 状态未建立；物理动作重试仍受契约 6.5 约束。
 uint32 RT_VACUUM_NOT_ESTABLISHED=1160
 
 # ---------- 2 Perception · 不可自主恢复（2000~2099） ----------

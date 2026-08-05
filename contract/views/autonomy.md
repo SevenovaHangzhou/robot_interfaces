@@ -2,9 +2,9 @@
 
 # Autonomy 域接口视图
 
-> 契约版本：0.4.0
+> 契约版本：0.5.0
 > 事实源：`contract/endpoints.yaml`
-> 权威语义：`robot_system/docs/cross-domain-interfaces.md`
+> Wire schema：本仓库对应的 `robot_*_interfaces` IDL
 
 本文只列 Autonomy 域**产出**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
@@ -15,7 +15,7 @@
 | --- | --- | --- | --- | --- | --- |
 | G-01 | `/autonomy/execute_demo_task` | Action | `robot_task_interfaces/action/ExecuteDemoTask` | 外部/本地入口 | — |
 
-## 本域消费（18 条）
+## 本域消费（19 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 生产方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -31,8 +31,9 @@
 | M-03 | `/motion/plan_and_execute_place` | Action | `robot_task_interfaces/action/PlanAndExecutePlace` | Motion | — |
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
-| R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态与静态 TF（含 /tf_static） |
-| R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；只含 14 个 EtherCAT 机械轴，不含履带控制关节 |
+| R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
+| R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
+| R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 200 ms；ROS 标准类型；只含 14 个 EtherCAT 机械轴，不含履带控制关节 |
 | R-OUT-04 | `/battery_state` | Topic | `sensor_msgs/msg/BatteryState` | RT-Control | Q_STATE；0.2 Hz；ROS 标准类型；BMS 周期 5 s；只读，不作为业务控制入口 |
 | R-OUT-05 | `/vacuum/state` | Topic | `robot_control_interfaces/msg/VacuumState` | RT-Control | Q_STATE；20～50 Hz |
 | R-OUT-06 | `/control/safety_state` | Topic | `robot_control_interfaces/msg/SafetyState` | RT-Control | Q_STATE；10～50 Hz；最大年龄 200 ms |

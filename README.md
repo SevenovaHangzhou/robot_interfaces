@@ -2,8 +2,9 @@
 
 半人形拆码垛机器人的**跨域公共契约**。本仓库是四域之间通信的可编译事实源。
 
-对应文档：`robot_system/docs/cross-domain-interfaces.md`（接口总表）。
-文档描述语义，本仓库提供 IDL；两者由 CI 保证一致。
+`contract/endpoints.yaml` 是 endpoint、类型、生产者、消费者、QoS 与关键约束的
+唯一注册表；IDL 是 wire schema。`contract/interface-table.md` 和四份分域视图均由
+注册表生成并由 CI 校验，不再依赖其他仓库中的手工接口总表。
 
 ## 只收域间接口
 
@@ -24,7 +25,7 @@
 
 | 包 | 内容 | 对应 ID |
 | --- | --- | --- |
-| `robot_system_interfaces` | 就绪心跳、错误载荷、模型与标定版本 | P-04、M-06、N-06、R-OUT-07～09 |
+| `robot_system_interfaces` | 就绪心跳、错误载荷 | P-04、M-06、N-06、R-OUT-09 |
 | `robot_task_interfaces` | 任务级 Action 与载荷 | G-01、P-01、P-02、M-01～M-03 |
 | `robot_navigation_interfaces` | 导航任务、定位状态 | N-01、N-05 |
 | `robot_control_interfaces` | 使能、真空、安全状态 | R-IN-03～05、R-OUT-05、R-OUT-06 |
@@ -34,7 +35,8 @@
 一个仓库多个包：`source-lock.yaml` 锁单个 SHA 即一次原子升级，同时各域只
 `<depend>` 用得到的包，避免一个字段变更触发全量重编。
 
-依赖方向：`system` ← `control` / `navigation` ← `task`。无环。
+依赖方向：`navigation` 依赖 `system`；`task` 依赖 `system` 与 `control`；
+`system`、`control` 相互独立。无环。
 
 底盘与手臂互斥是 Motion 域内不变量，用 Action Goal 拒绝表达，无对应公共类型。
 

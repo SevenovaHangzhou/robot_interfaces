@@ -89,7 +89,7 @@ def render(domain: str, doc: dict) -> str:
         "",
         f"> 契约版本：{doc.get('version', '未标注')}",
         "> 事实源：`contract/endpoints.yaml`",
-        "> 权威语义：`robot_system/docs/cross-domain-interfaces.md`",
+        "> Wire schema：本仓库对应的 `robot_*_interfaces` IDL",
         "",
         f"本文只列 {label} 域**产出**与**消费**的跨域 endpoint，用于分域阅读。",
         "语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。",

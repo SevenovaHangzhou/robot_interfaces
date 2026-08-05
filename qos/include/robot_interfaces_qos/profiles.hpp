@@ -1,8 +1,7 @@
 // 跨域通信的命名 QoS 剖面。
 //
 // 跨域通信只使用本文件提供的剖面，不得逐条自定义。
-// 数值与 contract/endpoints.yaml 的 qos_profiles 及
-// robot_system/docs/cross-domain-interfaces.md 第 4 节一致。
+// 数值与 contract/endpoints.yaml 的 qos_profiles 一致。
 
 #ifndef ROBOT_INTERFACES_QOS__PROFILES_HPP_
 #define ROBOT_INTERFACES_QOS__PROFILES_HPP_

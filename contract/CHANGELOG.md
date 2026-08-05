@@ -39,16 +39,32 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
-### 新增：补回漏登记的 R-OUT-01 本体 TF，并允许 TF 类多生产者
+### 破坏性：RT-Control 公共 IDL 以 `robot_driver main` 的已实现语义收敛
 
-- **接口**：`endpoints.yaml` 新增 R-OUT-01 `/tf`（rt_control 的 `robot_state_publisher`
-  发布本体动态与静态 TF）；R-OUT-01 与 P-NAV-02 标记 `multi_producer: true`
+- **接口**：R-IN-03 `SetControlEnabled`、R-IN-04 `SetPumpEnabled`、R-IN-05
+  `VacuumGrip`、R-OUT-05 `VacuumState`、R-OUT-06 `SafetyState`、R-OUT-09
+  `DomainReadiness` 及三个真空成员类型；新增 `VacuumChannelFeedback`
+- **原因**：契约草案引入了未在 RT-Control 实机链路中存在的压力值、数字通道、强制停泵、
+  UUID/schema hash 和 `ErrorInfo` 字段，已部署的 `robot_driver main` 则使用 PLC 离散量
+  `left/right attached`、字符串通道及现有服务错误码。域间契约必须描述真实生产者能够填写
+  的 wire 数据，不能另造一套“更理想”但没有实现的数据模型；本次以 main 为最终裁决。
+- **提出人**：@kkozia（rt_control / 契约）
+- **影响域**：rt_control（全部生产者）、motion（VacuumGrip 客户端）、perception、motion、
+  autonomy（SafetyState 消费者）及 autonomy（VacuumState、DomainReadiness 消费者）。
+  **不原子升级的后果**：同名 endpoint 的类型字段和常量值不同，ROS 2 两侧节点仍可启动，
+  但服务、Action 或 Topic 无法匹配/反序列化；四域必须使用同一个接口仓库 SHA 原子升级。
+
+### 新增：分别登记 R-OUT-01 `/tf` 与 R-OUT-01S `/tf_static`
+
+- **接口**：`endpoints.yaml` 新增 R-OUT-01 `/tf` 与 R-OUT-01S `/tf_static`；
+  R-OUT-01 与 P-NAV-02 标记 `multi_producer: true`，`/tf_static` 使用 `Q_LATCHED`
 - **原因**：R-OUT-01 在契约总表里一直存在，但注册表漏登记 —— 把总表改为从
   `endpoints.yaml` 生成时才暴露：若不补，生成会**静默丢掉一个 endpoint**。
   补入后 `contract_gate.py` 报出 `/tf` 有两个生产者。这不是错误：`/tf` 天生是多
   发布者 topic，Perception 发 `map → odom`，RT-Control 发本体边，契约 6.11 的措辞
   是"每一条**坐标关系**只允许一个权威发布者"—— 唯一性按边判定而非按 topic 判定。
-  是门禁规则写窄了，故加 `multi_producer` 标记而非放宽契约。
+  是门禁规则写窄了，故加 `multi_producer` 标记而非放宽契约。`/tf_static` 是独立 ROS
+  Topic 和独立 QoS，埋在 `/tf` 的备注中无法被机器门禁识别，因此单独登记。
 - **提出人**：@kkozia（任务规划 / 契约）
 - **影响域**：无（补登记既有 endpoint，实现未变）。
 
@@ -67,38 +83,19 @@
 - **影响域**：无（文档生成方式变更，wire 格式与字段不变）。
   各域改看 `contract/interface-table.md` 或自己域的 `contract/views/<域>.md`。
 
-### 破坏性：`SafetyState` 拆分总线字段并删除三项无法填写的字段
-
-- **接口**：`robot_control_interfaces/msg/SafetyState` —— `bool fieldbus_online`
-  拆为 `bool ethercat_online` + `bool canopen_online`；删除 `air_pressure_ok`、
-  `emergency_stop`、`protective_stop`、`safe_torque_off`
-- **原因**：拆总线是因为 rt-control 实际有两条独立总线（EtherCAT 承载 14 个机械轴、
-  CANopen 承载履带），故障后果不同 —— EtherCAT 掉线手臂不能动，CANopen 掉线底盘不能动，
-  单个布尔无法表达"一条通一条不通"，消费方只能一律停。删除四个字段是因为实机
-  **填不出真值**：`air_pressure_ok` 无对应传感器；三个硬安全链状态（急停、安全继电器、
-  STO）未接入软件可读通路。保留填不出的字段比删掉更危险 —— 消费方看到
-  `emergency_stop=false` 会读成"急停未触发"，而实际含义是"不知道"。
-- **提出人**：@kkozia（任务规划 / 契约）；字段删除范围由 rt-control 实现确定
-- **影响域**：rt_control（发布方）、perception、motion、autonomy（订阅方）。
-  **不原子升级的后果**：字段增删改变 wire 格式，版本不一致时 `SafetyState`
-  无法反序列化，订阅方收不到安全状态；按 fail-closed 语义会禁止一切新动作。
-  **已登记风险**：`SafetyState` 现在只是**软件可观测摘要，不含硬安全链状态**。
-  消费方不得从本消息推断急停/安全继电器/STO 是否触发。硬安全链仍由硬件回路保证
-  （契约 3.1：不得由软件层代替），但软件侧失去了这三项的可观测性。
-
 ### 非破坏性：`/joint_states` 与 `/battery_state` 频率按实机对齐
 
-- **接口**：R-OUT-03 `/joint_states` 100 Hz → **50 Hz**（并注明只含 14 个 EtherCAT
+- **接口**：R-OUT-03 `/joint_states` 草案 50 Hz → **100 Hz**（并注明只含 14 个 EtherCAT
   机械轴，不含履带关节）；R-OUT-04 `/battery_state` 1 Hz → **0.2 Hz**（BMS 周期 5 s）；
   R-OUT-02 `/wheel/odom` 补注 `frame_id=odom`、`child_frame_id=base_footprint`
-- **原因**：契约这三处的数值是设计阶段写的，与实机不符 ——
-  `joint_state_broadcaster.update_rate` 实为 50，BMS 上报周期实为 5 s。
+- **原因**：契约这三处的数值必须以当前 `robot_driver main` 的可执行配置为准 ——
+  `joint_state_broadcaster.update_rate` 固定为 100，BMS 上报周期实为 5 s。
   契约里的频率是各域做时序预算和新鲜度判断的依据，写错会导致消费方按不存在的
   频率设置超时。同时 rt-control 明确 `enable_odom_tf=false`，只发 `/wheel/odom`
   消息而不发 `odom → base_footprint` TF，该 TF 归属此前是契约空洞，一并补进 6.11。
 - **提出人**：@kkozia（任务规划 / 契约）；实测值由 rt-control 提供
 - **影响域**：无（仅频率与说明修正，字段与 wire 格式不变）。
-  各域若曾按 100 Hz / 1 Hz 设置超时阈值需相应放宽。
+  Motion、Perception、Autonomy 应按 100 Hz 数据源和最大年龄 200 ms 设置新鲜度检查。
 
 ### 破坏性：删除 R-OUT-07 / R-OUT-08，模型版本一致性改为靠仓库引用
 
@@ -117,8 +114,18 @@
   **不原子升级的后果**：`WallTaskPlan` 是 P-01 Result 的载荷，删字段改变 wire 格式，
   Perception 与 Autonomy 版本不一致时 P-01 Result 无法反序列化，计划阶段即失败。
   **已登记风险**：删除运行期校验后，若某域部署了与 source-lock 不一致的镜像，
-  运行期无法发现，发布纪律成为唯一防线。`DomainReadiness.contract_version`
-  只覆盖接口 schema，不覆盖模型与标定。
+  运行期无法发现，发布纪律成为唯一防线。`DomainReadiness.version`
+  只描述域实现版本，不覆盖模型与标定。
+
+### 非破坏性：修正 RT-Control 的消费关系与真空状态订阅方
+
+- **接口**：P-NAV-02 `/tf` 的消费者删除 rt_control；R-OUT-05 `/vacuum/state` 的消费者
+  删除 motion，仅保留 autonomy；R-OUT-01S `/tf_static` 由 RT-Control 发布给三域
+- **原因**：`robot_driver main` 没有 TF subscription 或 `TransformListener`，RT-Control 不消费
+  Perception 的 `map → odom`；Motion 通过 VacuumGrip Result 获取抓取终态，不订阅真空状态，
+  `/vacuum/state` 按既有裁决只交给 Autonomy。错误登记会制造不存在的运行依赖。
+- **提出人**：@kkozia（rt_control / 契约）
+- **影响域**：rt_control、motion、autonomy；wire 格式不变，只删除错误依赖边。
 
 ### 新增：错误码落地为集中常量 `ErrorCode.msg`，采用 DREE 四位编码
 
@@ -254,13 +261,3 @@
   互相猜字段。本次将总表条目逐条落为 IDL，并加 CI 双向闭合校验防止再次漂移。
 - **提出人**：@kkozia（system）
 - **影响域**：四域全部。首次落地，无存量消费者需要迁移。
-
-### 非破坏性：`DomainReadiness` 新增 `producer_instance_id` 与 `contract_version`
-
-- **接口**：`robot_system_interfaces/msg/DomainReadiness`
-- **原因**：`producer_instance_id` 用于区分"DDS 抖动"与"进程重启" —— 1 s 内由同一
-  实例恢复视为抖动可享受宽限，实例 ID 改变即进程重启，新实例不得加入旧 G-01。
-  `contract_version` 用于运行期发现新旧 schema 混跑，此前契约要求
-  "版本/hash 不匹配不享受宽限"，但这个 hash 在 IDL 里并不存在，无法执行。
-- **提出人**：@kkozia（system）
-- **影响域**：四域全部（各域均发布 readiness）。随本次首批落地一并生效。
