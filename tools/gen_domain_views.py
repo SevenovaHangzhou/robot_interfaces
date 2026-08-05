@@ -132,10 +132,61 @@ def render(domain: str, doc: dict) -> str:
     return "\n".join(out) + "\n"
 
 
+SECTIONS = [
+    ("5.1 任务入口（Autonomy 提供）", lambda e: e["producer"] == "autonomy"),
+    ("5.2 Perception 提供", lambda e: e["producer"] == "perception"),
+    ("5.3 Motion 提供", lambda e: e["producer"] == "motion"),
+    ("5.4 RT-Control 输入", lambda e: e["producer"] == "rt_control"
+        and e["id"].startswith("R-IN")),
+    ("5.5 RT-Control 输出", lambda e: e["producer"] == "rt_control"
+        and not e["id"].startswith("R-IN")),
+]
+
+KIND_FORM = {"topic": "Topic", "service": "Service", "action": "Action"}
+
+
+def render_master_table(doc: dict) -> str:
+    """生成 cross-domain-interfaces.md 第 5 节接口总表。"""
+    endpoints = doc.get("endpoints") or []
+    out = [
+        BANNER.replace("本文", "本节"),
+        "",
+        "## 5. 接口总表",
+        "",
+        "ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，"
+        "`N` = 导航能力（Motion 或 Perception 提供），`M` = Motion 提供，"
+        "`R-IN` = RT-Control 输入，`R-OUT` = RT-Control 输出。",
+        "",
+    ]
+    for title, pred in SECTIONS:
+        rows = [e for e in endpoints if pred(e)]
+        if not rows:
+            continue
+        out += [f"### {title}", "", "| ID | ROS 名称 | 形式 / 类型 | 方向 | 关键约束 |",
+                "| --- | --- | --- | --- | --- |"]
+        for e in rows:
+            cons = "、".join(DOMAIN_LABEL.get(c, c) for c in e.get("consumers") or [])
+            prod = DOMAIN_LABEL.get(e["producer"], e["producer"])
+            arrow = " ⇄ " if e["kind"] in ("action", "service") else " → "
+            direction = (cons + arrow + prod) if e["kind"] in ("action", "service") \
+                else (prod + arrow + cons)
+            out.append(
+                f"| {e['id']} | `{e['ros_name']}` | "
+                f"{KIND_FORM[e['kind']]} / `{e['type']}` | {direction} | "
+                f"{e.get('constraint', '—')} |"
+            )
+        out.append("")
+    return "\n".join(out)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--check", action="store_true", help="只校验视图是否与 endpoints.yaml 一致"
+    )
+    parser.add_argument(
+        "--master-table", metavar="PATH",
+        help="额外生成接口总表到指定路径（供 robot_system 契约引用）",
     )
     args = parser.parse_args(argv)
 
@@ -158,6 +209,19 @@ def main(argv: list[str] | None = None) -> int:
         else:
             VIEW_DIR.mkdir(parents=True, exist_ok=True)
             path.write_text(content, encoding="utf-8")
+
+    if args.master_table:
+        mt = Path(args.master_table)
+        content = render_master_table(doc)
+        if args.check:
+            if not mt.is_file():
+                stale.append(f"{mt}: 缺失")
+            elif mt.read_text(encoding="utf-8") != content:
+                stale.append(f"{mt}: 与 endpoints.yaml 不一致")
+        else:
+            mt.parent.mkdir(parents=True, exist_ok=True)
+            mt.write_text(content, encoding="utf-8")
+            print(f"已生成接口总表到 {mt}")
 
     if args.check:
         if stale:

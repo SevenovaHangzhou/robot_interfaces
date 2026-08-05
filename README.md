@@ -46,6 +46,9 @@
 CI 校验其与契约一致，因此不可能出现"分域文档与权威契约不一致"的漂移。
 语义约束、成功判定、重试规则和错误码只在权威契约里定义，视图不重复。
 
+接口总表同样是生成的：`contract/interface-table.md`。`robot_system` 的
+`cross-domain-interfaces.md` 第 5 节已改为指向这里，只保留不可机器化的语义规则。
+
 > 桌面上人工维护的《拆垛机器人五域接口规范》已退役，被本目录取代。
 
 ## 改接口的流程
@@ -69,7 +72,8 @@ CI 校验其与契约一致，因此不可能出现"分域文档与权威契约�
 python3 tools/contract_gate.py        # endpoints.yaml 与 IDL 双向闭合
 python3 tools/error_code_gate.py      # 错误码 DREE 编码规则
 python3 tools/changelog_gate.py       # CHANGELOG 格式与四要素
-python3 tools/gen_domain_views.py     # 重新生成分域视图（--check 只校验）
+python3 tools/gen_domain_views.py --master-table contract/interface-table.md
+                                      # 重新生成分域视图与接口总表（--check 只校验）
 python3 -m unittest discover -s tools/tests -p 'test_*.py'
 colcon build                          # 全部包可编译
 ```

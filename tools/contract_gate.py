@@ -91,13 +91,18 @@ def validate(document: dict) -> list[str]:
         if qos and qos not in profiles:
             findings.append(f"{eid}: qos={qos!r} 不是已声明的命名剖面")
 
-        # 同一 ros_name 只允许一个权威生产者
+        # 同一 ros_name 只允许一个权威生产者。
+        # 例外：TF 的唯一性按坐标边判定而非按 topic 判定（契约 6.11），
+        # /tf 天生是多发布者 topic —— Perception 发 map→odom，
+        # RT-Control 的 robot_state_publisher 发本体边。标 multi_producer: true
+        # 表示已在契约中逐条指定了每条边的权威发布者。
         ros_name = entry.get("ros_name")
-        if ros_name:
+        if ros_name and not entry.get("multi_producer"):
             if ros_name in seen_names and seen_names[ros_name] != producer:
                 findings.append(
                     f"{eid}: {ros_name} 已由 {seen_names[ros_name]} 生产，"
                     "同一名称不得有两个权威生产者"
+                    "（TF 一类按边判定唯一性的可标 multi_producer: true）"
                 )
             seen_names.setdefault(ros_name, producer)
 

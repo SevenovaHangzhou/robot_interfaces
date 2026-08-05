@@ -23,10 +23,11 @@
 | N-07 | `/map` | Topic | `nav_msgs/msg/OccupancyGrid` | Motion | Q_LATCHED；ROS 标准类型 |
 | N-09 | `/navigation/scan` | Topic | `sensor_msgs/msg/LaserScan` | Motion | Q_FAST_STATE；ROS 标准类型 |
 
-## 本域消费（3 条）
+## 本域消费（4 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 生产方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
+| R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态与静态 TF（含 /tf_static） |
 | R-OUT-02 | `/wheel/odom` | Topic | `nav_msgs/msg/Odometry` | RT-Control | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；frame_id=odom，child_frame_id=base_footprint；rt-control 不发 odom→base_footprint TF |
 | R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；只含 14 个 EtherCAT 机械轴，不含履带控制关节 |
 | R-OUT-06 | `/control/safety_state` | Topic | `robot_control_interfaces/msg/SafetyState` | RT-Control | Q_STATE；10～50 Hz；最大年龄 200 ms |

@@ -39,6 +39,34 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：补回漏登记的 R-OUT-01 本体 TF，并允许 TF 类多生产者
+
+- **接口**：`endpoints.yaml` 新增 R-OUT-01 `/tf`（rt_control 的 `robot_state_publisher`
+  发布本体动态与静态 TF）；R-OUT-01 与 P-NAV-02 标记 `multi_producer: true`
+- **原因**：R-OUT-01 在契约总表里一直存在，但注册表漏登记 —— 把总表改为从
+  `endpoints.yaml` 生成时才暴露：若不补，生成会**静默丢掉一个 endpoint**。
+  补入后 `contract_gate.py` 报出 `/tf` 有两个生产者。这不是错误：`/tf` 天生是多
+  发布者 topic，Perception 发 `map → odom`，RT-Control 发本体边，契约 6.11 的措辞
+  是"每一条**坐标关系**只允许一个权威发布者"—— 唯一性按边判定而非按 topic 判定。
+  是门禁规则写窄了，故加 `multi_producer` 标记而非放宽契约。
+- **提出人**：@kkozia（任务规划 / 契约）
+- **影响域**：无（补登记既有 endpoint，实现未变）。
+
+### 新增：接口总表改为从 endpoints.yaml 生成
+
+- **接口**：`endpoints.yaml` 每个 endpoint 新增 `constraint` 字段（29 条）；
+  新增生成产物 `contract/interface-table.md`；`gen_domain_views.py` 增
+  `--master-table` 参数并纳入 CI 校验
+- **原因**：`cross-domain-interfaces.md` 第 5 节的 59 行表格与 `endpoints.yaml`
+  是同一份事实的两处副本，必须人工保持同步而没有强制机制 —— 正是"单一事实源"
+  原则要消除的形态。改为生成后契约文档只保留不可机器化的部分（调用方向、
+  QoS 定义、运行规则、错误码规则、TaskPhase 常量、验收清单），第 5 节从 59 行
+  缩为 17 行指针。表格里的"关键约束"列此前只存在于 Markdown，已搬进
+  `constraint` 字段，否则生成会丢语义。
+- **提出人**：@kkozia（任务规划 / 契约）
+- **影响域**：无（文档生成方式变更，wire 格式与字段不变）。
+  各域改看 `contract/interface-table.md` 或自己域的 `contract/views/<域>.md`。
+
 ### 破坏性：`SafetyState` 拆分总线字段并删除三项无法填写的字段
 
 - **接口**：`robot_control_interfaces/msg/SafetyState` —— `bool fieldbus_online`

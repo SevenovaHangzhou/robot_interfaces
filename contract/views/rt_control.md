@@ -9,7 +9,7 @@
 本文只列 RT-Control 域**产出**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域产出（11 条）
+## 本域产出（12 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -17,6 +17,7 @@
 | R-IN-03 | `/control/set_enabled` | Service | `robot_control_interfaces/srv/SetControlEnabled` | 外部/本地入口 | — |
 | R-IN-04 | `/vacuum/pump/set_enabled` | Service | `robot_control_interfaces/srv/SetPumpEnabled` | 外部/本地入口 | — |
 | R-IN-05 | `/vacuum/grip` | Action | `robot_control_interfaces/action/VacuumGrip` | Motion | — |
+| R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Perception、Motion、Autonomy | ROS 标准类型；robot_state_publisher 发布本体动态与静态 TF（含 /tf_static） |
 | R-OUT-02 | `/wheel/odom` | Topic | `nav_msgs/msg/Odometry` | Perception | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；frame_id=odom，child_frame_id=base_footprint；rt-control 不发 odom→base_footprint TF |
 | R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | Motion、Perception、Autonomy | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；只含 14 个 EtherCAT 机械轴，不含履带控制关节 |
 | R-OUT-04 | `/battery_state` | Topic | `sensor_msgs/msg/BatteryState` | Autonomy | Q_STATE；0.2 Hz；ROS 标准类型；BMS 周期 5 s；只读，不作为业务控制入口 |

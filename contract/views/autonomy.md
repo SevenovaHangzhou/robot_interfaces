@@ -15,7 +15,7 @@
 | --- | --- | --- | --- | --- | --- |
 | G-01 | `/autonomy/execute_demo_task` | Action | `robot_task_interfaces/action/ExecuteDemoTask` | 外部/本地入口 | — |
 
-## 本域消费（17 条）
+## 本域消费（18 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 生产方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -31,6 +31,7 @@
 | M-03 | `/motion/plan_and_execute_place` | Action | `robot_task_interfaces/action/PlanAndExecutePlace` | Motion | — |
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
+| R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态与静态 TF（含 /tf_static） |
 | R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；只含 14 个 EtherCAT 机械轴，不含履带控制关节 |
 | R-OUT-04 | `/battery_state` | Topic | `sensor_msgs/msg/BatteryState` | RT-Control | Q_STATE；0.2 Hz；ROS 标准类型；BMS 周期 5 s；只读，不作为业务控制入口 |
 | R-OUT-05 | `/vacuum/state` | Topic | `robot_control_interfaces/msg/VacuumState` | RT-Control | Q_STATE；20～50 Hz |

@@ -21,7 +21,7 @@
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 
-## 本域消费（11 条）
+## 本域消费（12 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 生产方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -33,6 +33,7 @@
 | N-09 | `/navigation/scan` | Topic | `sensor_msgs/msg/LaserScan` | Perception | Q_FAST_STATE；ROS 标准类型 |
 | R-IN-02 | `/whole_body_jtc/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | RT-Control | ROS 标准类型；完整 14 轴；allow_partial_joints_goal=false |
 | R-IN-05 | `/vacuum/grip` | Action | `robot_control_interfaces/action/VacuumGrip` | RT-Control | — |
+| R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态与静态 TF（含 /tf_static） |
 | R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；只含 14 个 EtherCAT 机械轴，不含履带控制关节 |
 | R-OUT-05 | `/vacuum/state` | Topic | `robot_control_interfaces/msg/VacuumState` | RT-Control | Q_STATE；20～50 Hz |
 | R-OUT-06 | `/control/safety_state` | Topic | `robot_control_interfaces/msg/SafetyState` | RT-Control | Q_STATE；10～50 Hz；最大年龄 200 ms |
