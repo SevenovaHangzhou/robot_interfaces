@@ -1,0 +1,22 @@
+# 接口所有权。配合 branch protection 使用：
+# 破坏性变更需要接口所有者与全部受影响消费域签字。
+#
+# TODO: 把占位的 @kkozia 换成各域实际负责人的 GitHub 账号。
+
+# 默认：任何契约变更都要接口所有者过一遍
+*                                   @kkozia
+
+# 跨域基础类型：改动影响四域全部，需最广评审
+/robot_system_interfaces/           @kkozia
+
+# 域专有的域间接口：所有者 + 消费域
+/robot_control_interfaces/          @kkozia
+/robot_navigation_interfaces/       @kkozia
+/robot_motion_interfaces/           @kkozia
+/robot_perception_interfaces/       @kkozia
+/robot_task_interfaces/             @kkozia
+
+# 注册表与变更日志：治理面，不可绕过
+/contract/                          @kkozia
+/tools/                             @kkozia
+/.github/                           @kkozia
