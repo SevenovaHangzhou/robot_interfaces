@@ -1,6 +1,6 @@
 # 跨域 endpoint 注册表。
 #
-# 本文是 endpoint、类型、生产者、消费者、QoS 与关键约束的唯一注册表，
+# 本文是 endpoint、类型、提供方、消费方、QoS 与关键约束的唯一注册表，
 # 由 tools/contract_gate.py 做双向闭合校验：
 #   - 本仓库每个 .msg/.srv/.action 必须被至少一个 endpoint 引用
 #   - 每个 endpoint 的 type 必须真实存在于本仓库或声明为外部标准类型
@@ -8,9 +8,18 @@
 # Wire schema 由本仓库对应 IDL 定义。不在本表中的跨域 endpoint 视为未授权。
 # 域取值：rt_control / perception / motion / autonomy / external
 
-version: "0.5.0"
+version: "0.6.0"
 
 domains: [rt_control, perception, motion, autonomy, external]
+
+# 自定义 IDL 按 endpoint 提供方所属域唯一归档。shared 只承载四域共用
+# 的基础载荷，不代表第五个业务域。消费域直接依赖提供方包，不复制 IDL。
+package_owners:
+  robot_system_interfaces: shared
+  robot_rt_control_interfaces: rt_control
+  robot_perception_interfaces: perception
+  robot_motion_interfaces: motion
+  robot_autonomy_interfaces: autonomy
 
 qos_profiles: [Q_CONTROL, Q_FAST_STATE, Q_STATE, Q_LATCHED, Q_DIAGNOSTIC, Q_DEFAULT]
 
@@ -18,7 +27,7 @@ endpoints:
   - id: G-01
     ros_name: /autonomy/execute_demo_task
     kind: action
-    type: robot_task_interfaces/action/ExecuteDemoTask
+    type: robot_autonomy_interfaces/action/ExecuteDemoTask
     producer: autonomy
     consumers: [external]
     qos: Q_DEFAULT
@@ -27,7 +36,7 @@ endpoints:
   - id: P-01
     ros_name: /perception/build_wall_task_plan
     kind: action
-    type: robot_task_interfaces/action/BuildWallTaskPlan
+    type: robot_perception_interfaces/action/BuildWallTaskPlan
     producer: perception
     consumers: [autonomy]
     qos: Q_DEFAULT
@@ -36,7 +45,7 @@ endpoints:
   - id: P-02
     ros_name: /perception/refine_sequence_poses
     kind: action
-    type: robot_task_interfaces/action/RefineSequencePoses
+    type: robot_perception_interfaces/action/RefineSequencePoses
     producer: perception
     consumers: [autonomy]
     qos: Q_DEFAULT
@@ -89,7 +98,7 @@ endpoints:
   - id: N-01
     ros_name: /navigation/navigate_to_pose
     kind: action
-    type: robot_navigation_interfaces/action/NavigateToPoseTask
+    type: robot_motion_interfaces/action/NavigateToPoseTask
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
@@ -111,7 +120,7 @@ endpoints:
   - id: N-05
     ros_name: /navigation/localization/status
     kind: topic
-    type: robot_navigation_interfaces/msg/LocalizationStatus
+    type: robot_perception_interfaces/msg/LocalizationStatus
     producer: perception
     consumers: [motion, autonomy]
     qos: Q_STATE
@@ -142,7 +151,7 @@ endpoints:
   - id: M-01
     ros_name: /motion/move_to_camera_view_pose
     kind: action
-    type: robot_task_interfaces/action/MoveToCameraViewPose
+    type: robot_motion_interfaces/action/MoveToCameraViewPose
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
@@ -151,7 +160,7 @@ endpoints:
   - id: M-02
     ros_name: /motion/plan_and_execute_pick
     kind: action
-    type: robot_task_interfaces/action/PlanAndExecutePick
+    type: robot_motion_interfaces/action/PlanAndExecutePick
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
@@ -160,7 +169,7 @@ endpoints:
   - id: M-03
     ros_name: /motion/plan_and_execute_place
     kind: action
-    type: robot_task_interfaces/action/PlanAndExecutePlace
+    type: robot_motion_interfaces/action/PlanAndExecutePlace
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
@@ -200,7 +209,7 @@ endpoints:
   - id: R-IN-03
     ros_name: /control/set_enabled
     kind: service
-    type: robot_control_interfaces/srv/SetControlEnabled
+    type: robot_rt_control_interfaces/srv/SetControlEnabled
     producer: rt_control
     consumers: [external]
     qos: Q_DEFAULT
@@ -209,7 +218,7 @@ endpoints:
   - id: R-IN-04
     ros_name: /vacuum/pump/set_enabled
     kind: service
-    type: robot_control_interfaces/srv/SetPumpEnabled
+    type: robot_rt_control_interfaces/srv/SetPumpEnabled
     producer: rt_control
     consumers: [external]
     qos: Q_DEFAULT
@@ -218,7 +227,7 @@ endpoints:
   - id: R-IN-05
     ros_name: /vacuum/grip
     kind: action
-    type: robot_control_interfaces/action/VacuumGrip
+    type: robot_rt_control_interfaces/action/VacuumGrip
     producer: rt_control
     consumers: [motion]
     qos: Q_DEFAULT
@@ -288,7 +297,7 @@ endpoints:
   - id: R-OUT-05
     ros_name: /vacuum/state
     kind: topic
-    type: robot_control_interfaces/msg/VacuumState
+    type: robot_rt_control_interfaces/msg/VacuumState
     producer: rt_control
     consumers: [autonomy]
     qos: Q_STATE
@@ -298,7 +307,7 @@ endpoints:
   - id: R-OUT-06
     ros_name: /control/safety_state
     kind: topic
-    type: robot_control_interfaces/msg/SafetyState
+    type: robot_rt_control_interfaces/msg/SafetyState
     producer: rt_control
     consumers: [perception, motion, autonomy]
     qos: Q_STATE
@@ -331,13 +340,13 @@ endpoints:
 member_types:
   - robot_system_interfaces/msg/ErrorCode
   - robot_system_interfaces/msg/ErrorInfo
-  - robot_control_interfaces/msg/VacuumChannelState
-  - robot_control_interfaces/msg/VacuumChannelResult
-  - robot_control_interfaces/msg/VacuumChannelFeedback
-  - robot_task_interfaces/msg/BoxPose
-  - robot_task_interfaces/msg/CameraViewPose
-  - robot_task_interfaces/msg/PickSequence
-  - robot_task_interfaces/msg/WallTaskPlan
+  - robot_rt_control_interfaces/msg/VacuumChannelState
+  - robot_rt_control_interfaces/msg/VacuumChannelResult
+  - robot_rt_control_interfaces/msg/VacuumChannelFeedback
+  - robot_perception_interfaces/msg/BoxPose
+  - robot_perception_interfaces/msg/CameraViewPose
+  - robot_perception_interfaces/msg/PickSequence
+  - robot_perception_interfaces/msg/WallTaskPlan
 
 # 禁止的通信边。各域 CI 与联调 ros2 node info 复核。
 forbidden_edges:

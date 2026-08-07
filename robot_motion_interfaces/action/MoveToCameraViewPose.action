@@ -7,7 +7,7 @@
 uint16 sequence_index
 
 # 来自 PickSequence.camera_view_poses，1～2 项，原样转发。
-CameraViewPose[] camera_view_poses
+robot_perception_interfaces/CameraViewPose[] camera_view_poses
 ---
 bool ok
 

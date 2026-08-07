@@ -91,7 +91,7 @@ class ValidateRecordedTest(unittest.TestCase):
 
     def test_rejects_interface_change_without_changelog_edit(self) -> None:
         findings = gate.validate_recorded(
-            entry(), ["robot_task_interfaces/msg/BoxPose.msg"]
+            entry(), ["robot_perception_interfaces/msg/BoxPose.msg"]
         )
         self.assertTrue(any("未更新" in f for f in findings))
 
@@ -99,16 +99,22 @@ class ValidateRecordedTest(unittest.TestCase):
         text = "## [Unreleased]\n\n<!-- 注释不算内容 -->\n\n## [0.1.0] - 2026-01-01\n"
         findings = gate.validate_recorded(
             text,
-            ["robot_task_interfaces/msg/BoxPose.msg", "contract/CHANGELOG.md"],
+            ["robot_perception_interfaces/msg/BoxPose.msg", "contract/CHANGELOG.md"],
         )
         self.assertTrue(any("为空" in f for f in findings))
 
     def test_accepts_interface_change_with_unreleased_entry(self) -> None:
         findings = gate.validate_recorded(
             entry(),
-            ["robot_task_interfaces/msg/BoxPose.msg", "contract/CHANGELOG.md"],
+            ["robot_perception_interfaces/msg/BoxPose.msg", "contract/CHANGELOG.md"],
         )
         self.assertEqual(findings, [])
+
+    def test_watches_multiword_domain_package(self) -> None:
+        findings = gate.validate_recorded(
+            entry(), ["robot_rt_control_interfaces/msg/SafetyState.msg"]
+        )
+        self.assertTrue(any("未更新" in f for f in findings))
 
     def test_endpoints_change_also_requires_changelog(self) -> None:
         findings = gate.validate_recorded(entry(), ["contract/endpoints.yaml"])

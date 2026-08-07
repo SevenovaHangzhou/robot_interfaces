@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """从 contract/endpoints.yaml 生成分域可读视图。
 
-替代人工维护的五域规范：每个域只看自己产出和消费的 endpoint，
+替代人工维护的分域规范：每个域只看自己提供和消费的 endpoint，
 但事实源唯一，不可能与权威契约不一致。
 
   tools/gen_domain_views.py            # 写入 contract/views/
@@ -59,9 +59,9 @@ def constraints(entry: dict) -> str:
 
 
 def _table(entries: list[dict], peer_key: str) -> list[str]:
-    """peer_key: 'consumers' 显示消费方，'producer' 显示生产方。"""
+    """peer_key: 'consumers' 显示消费方，'producer' 显示提供方。"""
     lines = [
-        "| ID | ROS 名称 | 形式 | 类型 | " + ("消费方" if peer_key == "consumers" else "生产方") + " | 约束 |",
+        "| ID | ROS 名称 | 形式 | 类型 | " + ("消费方" if peer_key == "consumers" else "提供方") + " | 约束 |",
         "| --- | --- | --- | --- | --- | --- |",
     ]
     for e in entries:
@@ -78,7 +78,7 @@ def _table(entries: list[dict], peer_key: str) -> list[str]:
 
 def render(domain: str, doc: dict) -> str:
     endpoints = doc.get("endpoints") or []
-    produced = [e for e in endpoints if e.get("producer") == domain]
+    provided = [e for e in endpoints if e.get("producer") == domain]
     consumed = [e for e in endpoints if domain in (e.get("consumers") or [])]
 
     label = DOMAIN_LABEL.get(domain, domain)
@@ -91,17 +91,17 @@ def render(domain: str, doc: dict) -> str:
         "> 事实源：`contract/endpoints.yaml`",
         "> Wire schema：本仓库对应的 `robot_*_interfaces` IDL",
         "",
-        f"本文只列 {label} 域**产出**与**消费**的跨域 endpoint，用于分域阅读。",
+        f"本文只列 {label} 域**提供**与**消费**的跨域 endpoint，用于分域阅读。",
         "语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。",
         "",
-        f"## 本域产出（{len(produced)} 条）",
+        f"## 本域提供（{len(provided)} 条）",
         "",
     ]
 
-    if produced:
-        out += _table(produced, "consumers")
+    if provided:
+        out += _table(provided, "consumers")
     else:
-        out.append("本域不产出跨域 endpoint。")
+        out.append("本域不提供跨域 endpoint。")
 
     out += ["", f"## 本域消费（{len(consumed)} 条）", ""]
 

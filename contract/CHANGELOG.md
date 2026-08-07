@@ -39,15 +39,40 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
-### 破坏性：RT-Control 公共 IDL 以 `robot_driver main` 的已实现语义收敛
+### 破坏性：公共 IDL 改为按 endpoint 提供方所属域归档
+
+- **接口**：G-01 迁入 `robot_autonomy_interfaces`；P-01、P-02、P-03、N-05
+  及感知载荷迁入 `robot_perception_interfaces`；N-01、M-01～M-03 迁入
+  `robot_motion_interfaces`；R-IN-03～05、R-OUT-05、R-OUT-06 及真空成员类型
+  由 `robot_control_interfaces` 改名为 `robot_rt_control_interfaces`；删除
+  `robot_task_interfaces` 与 `robot_navigation_interfaces`。`robot_system_interfaces`
+  继续作为四域共享基础类型包。
+- **原因**：原 `robot_task_interfaces` 同时容纳 Autonomy、Perception 和 Motion
+  的 Action，`robot_navigation_interfaces` 又同时容纳 Motion 提供的导航 Action
+  与 Perception 提供的定位状态。包名无法回答“谁对 schema 负责”，
+  还会诱导消费域复制同一 IDL。改为提供方唯一归档后，包目录表达
+  schema 所有权，`endpoints.yaml` 和生成的分域视图表达完整生产/消费关系。
+- **提出人**：@kkozia（rt_control / 契约）
+- **影响域**：rt_control、perception、motion、autonomy 及所有外部调用方。
+  **不原子升级的后果**：ROS 2 类型全名包含 package，只更新一端时，节点仍能正常
+  启动但 Topic、Service 和 Action 无法匹配。四域必须在同一发布窗口更新
+  import/include、`package.xml` 与 `source-lock.yaml` 的契约 SHA。
+
+### 破坏性：RT-Control 公共 IDL 收敛真实 IO 并统一 `ErrorInfo` 错误载荷
 
 - **接口**：R-IN-03 `SetControlEnabled`、R-IN-04 `SetPumpEnabled`、R-IN-05
   `VacuumGrip`、R-OUT-05 `VacuumState`、R-OUT-06 `SafetyState`、R-OUT-09
-  `DomainReadiness` 及三个真空成员类型；新增 `VacuumChannelFeedback`
-- **原因**：契约草案引入了未在 RT-Control 实机链路中存在的压力值、数字通道、强制停泵、
-  UUID/schema hash 和 `ErrorInfo` 字段，已部署的 `robot_driver main` 则使用 PLC 离散量
-  `left/right attached`、字符串通道及现有服务错误码。域间契约必须描述真实生产者能够填写
-  的 wire 数据，不能另造一套“更理想”但没有实现的数据模型；本次以 main 为最终裁决。
+  `DomainReadiness` 及三个真空成员类型；新增 `VacuumChannelFeedback`。
+  `SetControlEnabled.Response`、`SetPumpEnabled.Response` 和 `VacuumGrip.Result`
+  的顶层失败载荷统一为 `robot_system_interfaces/ErrorInfo`。
+- **原因**：真空与状态字段继续以 `robot_driver main` 能够填写的 PLC 离散量
+  `left/right attached`、字符串通道和已实现安全摘要为准，不引入压力值、
+  UUID、schema hash 或硬安全链推测。但把同一 RT-Control 失败分别表达成
+  service 内嵌枚举、`uint16 error_code + string message` 和 Action 的纯字符串
+  `error`，会迫使 Motion/运维对每个 endpoint 编写不同转换，也无法统一表达
+  `retryable`。最终裁决是公共边界统一 `ErrorInfo`，RT-Control 在非实时
+  `control_api_adapter` 中将现有域内结果映射为 DREE 错误码；不修改 enable manager、
+  PLC 或 250 Hz 控制环的内部语义。
 - **提出人**：@kkozia（rt_control / 契约）
 - **影响域**：rt_control（全部生产者）、motion（VacuumGrip 客户端）、perception、motion、
   autonomy（SafetyState 消费者）及 autonomy（VacuumState、DomainReadiness 消费者）。
@@ -129,11 +154,13 @@
 
 ### 新增：错误码落地为集中常量 `ErrorCode.msg`，采用 DREE 四位编码
 
-- **接口**：新增 `robot_system_interfaces/msg/ErrorCode`，46 个常量。
+- **接口**：新增 `robot_system_interfaces/msg/ErrorCode`，55 个常量。
   四位编码 **D R E E**：D=域归属（0 通用 / 1 RT-Control / 2 Perception / 3 Motion /
   4 Autonomy），R=是否可机器自主恢复（0/1），EE=事件分类（00 通信 / 10 配置 /
   20 硬件 / 30 环境 / 40 数据 / 50 求解 / 60 执行 / 70 安全 / 80 任务 / 90 内部）。
-  配套 `tools/error_code_gate.py` 在 CI 校验编码规则
+  其中 9 个 RT-Control 增量码覆盖 reset/disable/restart、泵命令拒绝、可能持箱、
+  内部服务暂不可用、enable manager 未就绪、操作进行中与 PLC 暂不可用。
+  配套 `tools/error_code_gate.py` 在 CI 校验编码规则。
 - **原因**：契约此前只写"错误码按域分段，具体分段表随统一 interfaces package 落地"，
   但分段表从未落地 —— `ErrorInfo.code` 是个无取值来源的 `uint32`，各域只能各自编号，
   必然冲突。更关键的是**只有分段规则、没有段内分类规则**，加码时无依据可循。

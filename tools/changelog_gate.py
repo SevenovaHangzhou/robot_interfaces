@@ -18,7 +18,7 @@ CHANGELOG = Path("contract/CHANGELOG.md")
 ENDPOINTS = Path("contract/endpoints.yaml")
 
 # 触发必须记日志的路径
-WATCHED = (re.compile(r"^robot_[a-z]+_interfaces/.+\.(msg|srv|action)$"),
+WATCHED = (re.compile(r"^robot_[a-z_]+_interfaces/.+\.(msg|srv|action)$"),
            re.compile(r"^contract/endpoints\.yaml$"))
 
 ENTRY_TYPES = ("新增", "非破坏性", "破坏性")

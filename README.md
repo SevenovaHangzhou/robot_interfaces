@@ -2,15 +2,18 @@
 
 半人形拆码垛机器人的**跨域公共契约**。本仓库是四域之间通信的可编译事实源。
 
-`contract/endpoints.yaml` 是 endpoint、类型、生产者、消费者、QoS 与关键约束的
+`contract/endpoints.yaml` 是 endpoint、类型、提供方、消费方、QoS 与关键约束的
 唯一注册表；IDL 是 wire schema。`contract/interface-table.md` 和四份分域视图均由
 注册表生成并由 CI 校验，不再依赖其他仓库中的手工接口总表。
+
+`producer` 字段表示 endpoint 提供方：Topic 的 Publisher，或
+Service / Action 的 Server。
 
 ## 只收域间接口
 
 四条收录判据，**全部满足**才收：
 
-1. 生产者与消费者跨越 RT-Control / Perception / Motion / Autonomy 的域边界
+1. 提供方与消费方跨越 RT-Control / Perception / Motion / Autonomy 的域边界
    （Gateway 是部署边界，不计入业务域）
 2. 在接口总表中有 ID（`G` / `P` / `N` / `M` / `R-IN` / `R-OUT`）
 3. ROS 标准类型无法直接表达（`/cmd_vel_safe` 用 `geometry_msgs/Twist`、
@@ -23,26 +26,43 @@
 
 ## 包结构
 
-| 包 | 内容 | 对应 ID |
-| --- | --- | --- |
-| `robot_system_interfaces` | 就绪心跳、错误载荷 | P-04、M-06、N-06、R-OUT-09 |
-| `robot_task_interfaces` | 任务级 Action 与载荷 | G-01、P-01、P-02、M-01～M-03 |
-| `robot_navigation_interfaces` | 导航任务、定位状态 | N-01、N-05 |
-| `robot_control_interfaces` | 使能、真空、安全状态 | R-IN-03～05、R-OUT-05、R-OUT-06 |
-| `robot_perception_interfaces` | 障碍点云（产品预留） | P-03 |
-| `robot_interfaces_qos` | 命名 QoS 剖面（C++ / Python） | 第 4 节全部剖面 |
+IDL 按 endpoint **提供方所属域**唯一归档，包名即责任边界：
+
+| 归属 | 包 | 内容 | 对应 ID |
+| --- | --- | --- | --- |
+| Autonomy | `robot_autonomy_interfaces` | 外部任务入口与终态 | G-01 |
+| Perception | `robot_perception_interfaces` | 箱墙计划、精定位、定位状态、障碍点云 | P-01～03、N-05 |
+| Motion | `robot_motion_interfaces` | 导航执行、观测位执行、抓取与放置 | N-01、M-01～03 |
+| RT-Control | `robot_rt_control_interfaces` | 使能、真空、安全状态 | R-IN-03～05、R-OUT-05、R-OUT-06 |
+| 四域共享 | `robot_system_interfaces` | 就绪心跳、统一错误载荷 | P-04、M-06、N-06、R-OUT-09 |
+| 四域共享 | `robot_interfaces_qos` | 命名 QoS 剖面（C++ / Python） | 全部命名剖面 |
+
+消费域直接依赖提供方的包，**不在自己包内复制 IDL**。例如
+`LocalizationStatus` 由 Perception 发布，因此只在
+`robot_perception_interfaces` 定义；Motion 依赖该包消费它。
+
+ROS 标准类型不会为了目录对称而包装一层。`/cmd_vel_safe`、`/odom`、
+`/joint_states` 等 endpoint 只在注册表和分域视图中出现。
 
 一个仓库多个包：`source-lock.yaml` 锁单个 SHA 即一次原子升级，同时各域只
 `<depend>` 用得到的包，避免一个字段变更触发全量重编。
 
-依赖方向：`navigation` 依赖 `system`；`task` 依赖 `system` 与 `control`；
-`system`、`control` 相互独立。无环。
+依赖方向：`autonomy` 依赖 `system`；`perception` 依赖 `system`；
+`rt_control` 依赖 `system`；`motion` 依赖 `system`、`perception`、
+`rt_control`。依赖无环，只表示 schema 引用，不替代 endpoint 运行方向。
 
 底盘与手臂互斥是 Motion 域内不变量，用 Action Goal 拒绝表达，无对应公共类型。
 
 ## 分域视图
 
-各部门只需读自己域的视图：`contract/views/{rt_control,perception,motion,autonomy}.md`。
+各部门只需读自己域的视图：
+
+- [RT-Control](contract/views/rt_control.md)
+- [Perception](contract/views/perception.md)
+- [Motion](contract/views/motion.md)
+- [Autonomy](contract/views/autonomy.md)
+
+每份视图分别列出“本域提供”与“本域消费”，这里才是查看完整运行依赖的入口。
 
 这些文件由 `tools/gen_domain_views.py` 从 `endpoints.yaml` **生成**，不要手工编辑 ——
 CI 校验其与契约一致，因此不可能出现"分域文档与权威契约不一致"的漂移。
@@ -80,5 +100,6 @@ python3 -m unittest discover -s tools/tests -p 'test_*.py'
 colcon build                          # 全部包可编译
 ```
 
-`contract_gate.py` 拦三类漂移：注册表点名的类型不存在、仓库里有类型但无
-endpoint 引用、文件存在但漏写进 `CMakeLists.txt`。
+`contract_gate.py` 拦四类漂移：注册表点名的类型不存在、仓库里有类型但无
+endpoint 引用、文件存在但漏写进 `CMakeLists.txt`、自定义 endpoint 类型不在
+提供方所属域包中（`robot_system_interfaces` 共享基础类型除外）。

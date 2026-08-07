@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>robot_perception_interfaces</name>
-  <version>0.2.0</version>
+  <version>0.6.0</version>
   <description>
-    Perception 域专有的域间接口。当前只有 P-03 产品预留接口。
-    箱墙任务计划与精定位 Action（P-01/P-02）在 robot_task_interfaces。
+    Perception 域提供的跨域公共接口：任务计划、精定位、定位状态与障碍点云。
+    对应 P-01～P-03 与 N-05；P-04 使用共享的 DomainReadiness。
   </description>
   <maintainer email="kkozia188@gmail.com">kkozia</maintainer>
   <license>Apache-2.0</license>
@@ -14,6 +14,9 @@
 
   <depend>std_msgs</depend>
   <depend>sensor_msgs</depend>
+  <depend>builtin_interfaces</depend>
+  <depend>geometry_msgs</depend>
+  <depend>robot_system_interfaces</depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>

@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """校验 contract/endpoints.yaml 与仓库内 IDL 文件双向闭合。
 
-杀掉两类漂移：
+杀掉四类漂移：
   - 注册表点名的类型不存在（历史上 alfa_* 六个包全组织零命中就是这一类）
   - 仓库里有类型但没有任何 endpoint 引用（无主孤儿类型）
+  - IDL 文件存在但没有列入 CMakeLists.txt（不会生成代码）
+  - 自定义 endpoint 类型没有归档到提供方所属域包
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ REQUIRED_KEYS = ("id", "ros_name", "kind", "type", "producer", "consumers", "qos
 
 
 def local_idl_types() -> set[str]:
-    """仓库内全部 IDL 类型的全名，如 robot_task_interfaces/msg/BoxPose。"""
+    """仓库内全部 IDL 类型的全名，如 robot_perception_interfaces/msg/BoxPose。"""
     found: set[str] = set()
     for pkg in sorted(Path(".").glob("robot_*_interfaces")):
         for sub, ext in (("msg", ".msg"), ("srv", ".srv"), ("action", ".action")):
@@ -49,6 +51,7 @@ def validate(document: dict) -> list[str]:
     findings: list[str] = []
 
     domains = set(document.get("domains") or [])
+    package_owners = document.get("package_owners") or {}
     profiles = set(document.get("qos_profiles") or [])
     endpoints = document.get("endpoints") or []
     member_types = set(document.get("member_types") or [])
@@ -57,9 +60,33 @@ def validate(document: dict) -> list[str]:
         return ["endpoints.yaml: endpoints 为空"]
 
     local = local_idl_types()
+    local_packages = {type_name.split("/", 1)[0] for type_name in local}
     referenced: set[str] = set(member_types)
     seen_ids: set[str] = set()
     seen_names: dict[str, str] = {}
+
+    if not package_owners:
+        findings.append("endpoints.yaml: 缺少 package_owners，无法校验 IDL 域归属")
+
+    valid_owners = (domains - {"external"}) | {"shared"}
+    for package in sorted(local_packages - set(package_owners)):
+        findings.append(f"{package}: 未在 package_owners 声明归属")
+    for package in sorted(set(package_owners) - local_packages):
+        findings.append(f"package_owners: {package} 在仓库中不存在")
+    for package, owner in sorted(package_owners.items()):
+        if owner not in valid_owners:
+            findings.append(
+                f"package_owners: {package} 的 owner={owner!r} 非法，"
+                "必须是已声明业务域或 shared"
+            )
+            continue
+        if owner != "shared":
+            expected_package = f"robot_{owner}_interfaces"
+            if package != expected_package:
+                findings.append(
+                    f"package_owners: {package} 归属 {owner!r}，"
+                    f"域包必须命名为 {expected_package}"
+                )
 
     for entry in endpoints:
         eid = entry.get("id", "<无 id>")
@@ -128,6 +155,15 @@ def validate(document: dict) -> list[str]:
         if type_name not in local:
             findings.append(f"{eid}: type={type_name} 在仓库中不存在")
             continue
+
+        package = type_name.split("/", 1)[0]
+        package_owner = package_owners.get(package)
+        if package_owner not in (producer, "shared"):
+            findings.append(
+                f"{eid}: type={type_name} 归属 {package_owner!r}，"
+                f"但 endpoint 提供方是 {producer!r}；"
+                "自定义 IDL 必须放在提供方域包中（shared 基础类型除外）"
+            )
 
         expected_dir = KIND_DIR.get(kind)
         if expected_dir and f"/{expected_dir}/" not in type_name:
