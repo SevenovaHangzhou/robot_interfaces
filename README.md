@@ -9,6 +9,13 @@
 `producer` 字段表示 endpoint 提供方：Topic 的 Publisher，或
 Service / Action 的 Server。
 
+## AI 辅助接口变更
+
+使用 AI 新增、修改或删除公共接口时，必须遵循
+[`docs/robot_interfaces_ai_change_playbook.md`](docs/robot_interfaces_ai_change_playbook.md)。
+根目录 [`AGENTS.md`](AGENTS.md) 要求代理在任务开始和 commit、push、创建 PR 前重新检查
+该规约，并在完成后主动提示评审、发布、下游 SHA 升级和联调等下一步操作。
+
 ## 只收域间接口
 
 四条收录判据，**全部满足**才收：
