@@ -10,6 +10,7 @@ builtin_interfaces/Time source_stamp
 
 # 完整 25 箱、15 个序列。任一序列缺失即 P-01 失败。
 # 每个序列自带工位、到站导航位姿和按臂绑定的重拍位，下游只消费不重算。
+# 序列中的 BoxPose.pose 均为吸取表面接触位姿；到站导航位统一按 0.74 m 退避生成。
 PickSequence[] sequences
 
 # 模型与标定版本一致性不在运行期消息中校验：四域通过 release/source-lock.yaml

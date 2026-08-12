@@ -39,6 +39,24 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 破坏性：统一 P-01 退避距离并明确 P-01/P-02 位姿语义
+
+- **接口**：P-01 `robot_perception_interfaces/action/BuildWallTaskPlan`、P-02
+  `robot_perception_interfaces/action/RefineSequencePoses`，以及成员类型 `BoxPose`、
+  `PickSequence`、`WallTaskPlan`。P-01 固定为 25 箱、15 序列；所有箱墙排统一使用
+  `station_standoff_m=0.74 m`；P-01/P-02 的 `BoxPose.pose` 明确为吸取表面接触位姿。
+- **原因**：旧契约同时出现“13～15 序列”和“固定 15 序列”，历史退避表使用
+  0.70/0.90 m，而已验收的感知策略统一使用 0.74 m；`BoxPose.pose` 也未明确区分箱体
+  几何中心与吸取接触点。这些差异会导致 Autonomy/Motion 对同一合法消息产生不同解释。
+- **提出人**：@kkozia（perception / 契约）
+- **影响域**：perception（按 0.74 m 生成计划和接触位姿）、autonomy（固定消费 15 序列并
+  原样转发位姿）、motion（不得重算退避或把接触位姿解释为箱体中心）。三域必须升级到
+  同一 `robot_interfaces` SHA。**不原子升级的后果**：wire schema 虽可反序列化，但旧
+  消费方会按 0.70/0.90 m 或箱体中心解释新计划，产生错误导航位置或抓取目标。
+- **迁移与回滚**：合并后先更新 Perception 生产者，再在同一部署窗口更新 Autonomy 和
+  Motion 消费者；跨域 smoke test 必须核对 15 序列、0.74 m 和接触位姿。回滚时三域统一
+  回到本变更前的同一仓库 SHA，禁止只回滚单域。
+
 ### 破坏性：公共 IDL 改为按 endpoint 提供方所属域归档
 
 - **接口**：G-01 迁入 `robot_autonomy_interfaces`；P-01、P-02、P-03、N-05

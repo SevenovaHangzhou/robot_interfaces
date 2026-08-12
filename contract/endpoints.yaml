@@ -40,7 +40,7 @@ endpoints:
     producer: perception
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "真实单次同步采集；25 箱；15 序列；每序列自带 `station_id`、`station_nav_pose`、按臂绑定重拍位；每个 G-01 只调用一次；严格成功"
+    constraint: "真实单次同步采集；25 箱；固定 15 序列；箱 pose 为吸取表面接触位姿；每序列自带 `station_id`、统一 0.74 m 退避的 `station_nav_pose(map)`、按臂绑定重拍位；每个 G-01 只调用一次；严格成功"
 
   - id: P-02
     ros_name: /perception/refine_sequence_poses
@@ -49,7 +49,7 @@ endpoints:
     producer: perception
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "同箱同序；`base_link`；stamp=真实曝光时刻；底盘静止、TF、标定不变"
+    constraint: "同箱同序；返回吸取表面接触位姿；`base_link`；stamp=真实曝光时刻；底盘静止、TF、标定不变"
 
   - id: P-03
     ros_name: /perception/obstacle_cloud

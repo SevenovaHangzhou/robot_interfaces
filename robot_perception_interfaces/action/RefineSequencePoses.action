@@ -1,6 +1,7 @@
 # P-02 /perception/refine_sequence_poses。Autonomy ⇄ Perception。
 #
 # 结果必须是当时、当地、当前箱的精位姿。
+# BoxPose.pose 表达吸取表面接触位姿，不是箱体几何中心。
 # 前置条件：底盘静止、TF 与标定不变。
 # 当前序列最多三次总尝试（含第一次）。
 

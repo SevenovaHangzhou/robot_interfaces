@@ -144,7 +144,9 @@ def validate_recorded(text: str, files: list[str]) -> list[str]:
     if not touched:
         return []
 
-    if str(CHANGELOG) not in files:
+    # Git and the repository fixtures report paths with POSIX separators even
+    # when the gate itself runs on Windows.
+    if CHANGELOG.as_posix() not in files:
         return [
             f"改动了 {len(touched)} 个接口文件但未更新 {CHANGELOG}："
             + "、".join(touched[:5])
