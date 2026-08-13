@@ -1,0 +1,12 @@
+string map_version
+string caller_id
+string name
+string type
+string description
+int32 tag_id
+bool navigable
+---
+bool success
+string used_map_version
+robot_motion_interfaces/Landmark landmark
+robot_system_interfaces/ErrorInfo error

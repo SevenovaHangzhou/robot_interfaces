@@ -3,6 +3,8 @@
   <name>robot_motion_interfaces</name>
   <version>0.6.0</version>
   <description>
+    Motion 域提供的跨域公共接口：导航执行、语义地图、定位状态、
+    观测位执行、抓取与放置。对应 N-01、N-05、N-10～N-16 与 M-01～M-03。
     Motion 域提供的跨域公共接口：导航执行与五阶段机械运动。
     对应 N-01、M-08。
   </description>
@@ -13,6 +15,7 @@
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
   <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>robot_system_interfaces</depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
