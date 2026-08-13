@@ -39,7 +39,7 @@ IDL 按 endpoint **提供方所属域**唯一归档，包名即责任边界：
 | --- | --- | --- | --- |
 | Autonomy | `robot_autonomy_interfaces` | 外部任务入口与终态 | G-01 |
 | Perception | `robot_perception_interfaces` | 箱墙计划、精定位、定位状态、障碍点云 | P-01～03、N-05 |
-| Motion | `robot_motion_interfaces` | 导航执行、观测位执行、抓取与放置 | N-01、M-01～03 |
+| Motion | `robot_motion_interfaces` | 导航执行、五阶段机械运动 | N-01、M-08 |
 | RT-Control | `robot_rt_control_interfaces` | 使能、真空、安全状态 | R-IN-03～05、R-OUT-05、R-OUT-06 |
 | 四域共享 | `robot_system_interfaces` | 就绪心跳、统一错误载荷 | P-04、M-06、N-06、R-OUT-09 |
 | 四域共享 | `robot_interfaces_qos` | 命名 QoS 剖面（C++ / Python） | 全部命名剖面 |

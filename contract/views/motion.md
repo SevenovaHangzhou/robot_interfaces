@@ -9,19 +9,17 @@
 本文只列 Motion 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（7 条）
+## 本域提供（5 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
 | N-01 | `/navigation/navigate_to_pose` | Action | `robot_motion_interfaces/action/NavigateToPoseTask` | Autonomy | — |
 | N-04 | `/cmd_vel_safe` | Topic | `geometry_msgs/msg/Twist` | RT-Control | Q_CONTROL；20～50 Hz；看门狗 500 ms；ROS 标准类型；Twist 无 header；看门狗只用本地接收间隔，不得推导 stamp 或 frame |
-| M-01 | `/motion/move_to_camera_view_pose` | Action | `robot_motion_interfaces/action/MoveToCameraViewPose` | Autonomy | — |
-| M-02 | `/motion/plan_and_execute_pick` | Action | `robot_motion_interfaces/action/PlanAndExecutePick` | Autonomy | — |
-| M-03 | `/motion/plan_and_execute_place` | Action | `robot_motion_interfaces/action/PlanAndExecutePlace` | Autonomy | — |
+| M-08 | `/motion/execute_stage` | Action | `robot_motion_interfaces/action/ExecuteMotionStage` | Autonomy | Pose 固定为 base_link 下的目标吸附面中心；真空吸放由 Autonomy 编排 RT-Control |
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 
-## 本域消费（12 条）
+## 本域消费（11 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -32,11 +30,14 @@
 | N-07 | `/map` | Topic | `nav_msgs/msg/OccupancyGrid` | Perception | Q_LATCHED；ROS 标准类型 |
 | N-09 | `/navigation/scan` | Topic | `sensor_msgs/msg/LaserScan` | Perception | Q_FAST_STATE；ROS 标准类型 |
 | R-IN-02 | `/whole_body_jtc/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | RT-Control | ROS 标准类型；完整 14 轴；allow_partial_joints_goal=false |
-| R-IN-05 | `/vacuum/grip` | Action | `robot_rt_control_interfaces/action/VacuumGrip` | RT-Control | — |
 | R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
 | R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
 | R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 200 ms；ROS 标准类型；只含 14 个 EtherCAT 机械轴，不含履带控制关节 |
 | R-OUT-06 | `/control/safety_state` | Topic | `robot_rt_control_interfaces/msg/SafetyState` | RT-Control | Q_STATE；10～50 Hz；最大年龄 200 ms |
+
+## 本域禁止的通信边
+
+- 不得访问 `/vacuum/grip`
 
 ## 已删除的 endpoint
 
@@ -47,3 +48,6 @@
 - `/calibration/info`
 - `/navigation/base_motion_gate_state`
 - `/motion/base_travel_readiness`
+- `/motion/move_to_camera_view_pose`
+- `/motion/plan_and_execute_pick`
+- `/motion/plan_and_execute_place`

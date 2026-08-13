@@ -55,6 +55,37 @@ class ContractGateTest(unittest.TestCase):
             findings,
         )
 
+    def test_motion_stage_contract_replaces_legacy_motion_actions(self) -> None:
+        endpoints = {
+            endpoint["id"]: endpoint for endpoint in self.document["endpoints"]
+        }
+        motion_stage = endpoints["M-08"]
+
+        self.assertEqual(motion_stage["ros_name"], "/motion/execute_stage")
+        self.assertEqual(
+            motion_stage["type"],
+            "robot_motion_interfaces/action/ExecuteMotionStage",
+        )
+        self.assertEqual(motion_stage["producer"], "motion")
+        self.assertEqual(motion_stage["consumers"], ["autonomy"])
+        self.assertIn("CAMERA_VIEW 可选", motion_stage["constraint"])
+
+        vacuum_grip = endpoints["R-IN-05"]
+        self.assertEqual(vacuum_grip["consumers"], ["autonomy"])
+        self.assertIn(
+            {"from": "motion", "to": "/vacuum/grip"},
+            self.document["forbidden_edges"],
+        )
+
+        removed_endpoints = set(self.document["removed_endpoints"])
+        self.assertTrue(
+            {
+                "/motion/move_to_camera_view_pose",
+                "/motion/plan_and_execute_pick",
+                "/motion/plan_and_execute_place",
+            }.issubset(removed_endpoints)
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

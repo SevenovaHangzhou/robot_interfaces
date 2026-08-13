@@ -116,6 +116,8 @@ uint32 PERC_POSE_UNRELIABLE=2142
 uint32 PERC_LOCALIZATION_LOST=2150
 
 # ---------- 3 Motion · 不可自主恢复（3000~3099） ----------
+# 阶段顺序错误、阶段重放或当前活动流程与请求不一致。
+uint32 MOTION_STAGE_SEQUENCE_INVALID=3004
 # 目标超出可达域；指向标定或退避表配置，不是规划器问题。
 uint32 MOTION_TARGET_UNREACHABLE=3010
 # 手臂未在行走包络内，或存在活动手臂 goal（契约 6.7）。
@@ -123,15 +125,25 @@ uint32 MOTION_ARM_NOT_STOWED=3070
 # 底盘未静止，或存在活动导航 goal（契约 6.7）。
 uint32 MOTION_BASE_IN_MOTION=3071
 uint32 MOTION_EXECUTION_FAILED=3060
+# 生成轨迹不满足完整关节集、时间单调、速度或连续性约束。
+uint32 MOTION_TRAJECTORY_INVALID=3061
+# RT-Control 拒绝轨迹 Goal，且原请求不允许直接重放。
+uint32 MOTION_EXECUTION_REJECTED=3062
+# 控制器返回成功前或收敛检查中发现跟踪误差超限。
+uint32 MOTION_TRACKING_FAILED=3063
 uint32 MOTION_INTERNAL_ERROR=3090
 
 # ---------- 3 Motion · 可自主恢复（3100~3199） ----------
+# 关节状态、TF 或场景事实暂时缺失/过期。
+uint32 MOTION_STATE_UNAVAILABLE=3130
 # 取箱位姿超过 max_pose_age，重新精定位后可再试。
 uint32 MOTION_POSE_STALE=3140
 # 规划失败（含 IK 无解）；换目标或重规划可能成功。
 uint32 MOTION_PLANNING_FAILED=3150
 # 碰撞检出，需重规划。
 uint32 MOTION_COLLISION_DETECTED=3151
+# 目标位姿当前没有满足约束的逆解。
+uint32 MOTION_IK_NO_SOLUTION=3152
 # Nav2 本次未到达，属 N-01 三次预算内可重试。
 uint32 MOTION_NAV_FAILED=3160
 

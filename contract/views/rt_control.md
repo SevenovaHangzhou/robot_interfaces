@@ -16,7 +16,7 @@
 | R-IN-02 | `/whole_body_jtc/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | Motion | ROS 标准类型；完整 14 轴；allow_partial_joints_goal=false |
 | R-IN-03 | `/control/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetControlEnabled` | 外部/本地入口 | — |
 | R-IN-04 | `/vacuum/pump/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetPumpEnabled` | 外部/本地入口 | — |
-| R-IN-05 | `/vacuum/grip` | Action | `robot_rt_control_interfaces/action/VacuumGrip` | Motion | — |
+| R-IN-05 | `/vacuum/grip` | Action | `robot_rt_control_interfaces/action/VacuumGrip` | Autonomy | — |
 | R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Perception、Motion、Autonomy | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
 | R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | Perception、Motion、Autonomy | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
 | R-OUT-02 | `/wheel/odom` | Topic | `nav_msgs/msg/Odometry` | Perception | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；frame_id=odom，child_frame_id=base_footprint；rt-control 不发 odom→base_footprint TF |
@@ -42,3 +42,6 @@
 - `/calibration/info`
 - `/navigation/base_motion_gate_state`
 - `/motion/base_travel_readiness`
+- `/motion/move_to_camera_view_pose`
+- `/motion/plan_and_execute_pick`
+- `/motion/plan_and_execute_place`
