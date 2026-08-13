@@ -1,0 +1,32 @@
+# M-08 /motion/execute_stage。Autonomy ⇄ Motion。
+#
+# 单一阶段 Action。正常顺序为 CAMERA_VIEW → PREGRASP → APPROACH → PLACE → HOME；
+# 无重拍任务允许从当前机器人真实状态直接以 PREGRASP 开始新流程。
+# 同一时刻只接受一个 Goal；除上述可选 CAMERA_VIEW 外，禁止跳步和阶段重放。
+# 本 Action 只规划和执行机械轨迹，不控制真空泵或电磁阀。
+
+uint8 EXECUTION_STAGE_UNSPECIFIED=0
+uint8 EXECUTION_STAGE_CAMERA_VIEW=1
+uint8 EXECUTION_STAGE_PREGRASP=2
+uint8 EXECUTION_STAGE_APPROACH=3
+uint8 EXECUTION_STAGE_PLACE=4
+uint8 EXECUTION_STAGE_HOME=5
+
+uint8 execution_stage
+robot_motion_interfaces/DualArmPoseTargets targets
+---
+# 与 ROS Action 终态一致；SUCCEEDED 时必须为 true，ABORTED/CANCELED 时必须为 false。
+bool ok
+
+# 结构化终态。成功时 code=SUCCESS；失败时使用 Motion 或全域错误码。
+robot_system_interfaces/ErrorInfo error
+
+# 仅供现场诊断，不得被调用方解析后参与控制分支。
+string diagnostic
+---
+uint8 MOTION_STATE_UNSPECIFIED=0
+uint8 MOTION_STATE_PLANNING=1
+uint8 MOTION_STATE_EXECUTING=2
+uint8 MOTION_STATE_SETTLING=3
+
+uint8 motion_state

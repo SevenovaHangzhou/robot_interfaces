@@ -32,8 +32,11 @@
 | M-01 | `/motion/move_to_camera_view_pose` | Action | `robot_motion_interfaces/action/MoveToCameraViewPose` | Motion | — |
 | M-02 | `/motion/plan_and_execute_pick` | Action | `robot_motion_interfaces/action/PlanAndExecutePick` | Motion | — |
 | M-03 | `/motion/plan_and_execute_place` | Action | `robot_motion_interfaces/action/PlanAndExecutePlace` | Motion | — |
+| N-05 | `/navigation/localization/status` | Topic | `robot_perception_interfaces/msg/LocalizationStatus` | Perception | Q_STATE；10～20 Hz；最大年龄 200 ms |
+| M-08 | `/motion/execute_stage` | Action | `robot_motion_interfaces/action/ExecuteMotionStage` | Motion | Pose 固定为 base_link 下的目标吸附面中心；真空吸放由 Autonomy 编排 RT-Control |
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
+| R-IN-05 | `/vacuum/grip` | Action | `robot_rt_control_interfaces/action/VacuumGrip` | RT-Control | — |
 | R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
 | R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
 | R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 200 ms；ROS 标准类型；只含 14 个 EtherCAT 机械轴，不含履带控制关节 |
@@ -48,7 +51,6 @@
 - 不得访问 `/whole_body_jtc/follow_joint_trajectory`
 - 不得访问 `/control/set_enabled`
 - 不得访问 `/vacuum/pump/set_enabled`
-- 不得访问 `/vacuum/grip`
 
 ## 已删除的 endpoint
 
@@ -61,3 +63,6 @@
 - `/motion/base_travel_readiness`
 - `/map`
 - `/navigation/scan`
+- `/motion/move_to_camera_view_pose`
+- `/motion/plan_and_execute_pick`
+- `/motion/plan_and_execute_place`

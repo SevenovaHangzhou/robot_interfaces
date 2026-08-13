@@ -60,6 +60,26 @@
   **不原子升级的后果**：ROS 2 Action/Service 类型全名或字段不同，节点可启动但 goal/service
   调用无法匹配；即使名称相同，旧消费方发送 `station_nav_pose` 与新服务端期待
   `target_name + map_version` 也会失败。相关域必须使用同一 `robot_interfaces` SHA。
+### 破坏性：Motion 收口为单一五阶段动作并移交真空编排职责
+
+- **接口**：新增 M-08 `/motion/execute_stage`
+  `robot_motion_interfaces/action/ExecuteMotionStage` 及成员类型
+  `DualArmPoseTargets`；删除 M-01 `/motion/move_to_camera_view_pose`、M-02
+  `/motion/plan_and_execute_pick`、M-03 `/motion/plan_and_execute_place`；R-IN-05
+  `/vacuum/grip` 的消费方由 Motion 改为 Autonomy；补充 Motion 阶段、状态、IK、轨迹和
+  跟踪错误码。
+- **原因**：运控实现已经按可选 CAMERA_VIEW 及 PREGRASP、APPROACH、PLACE、HOME 五个可独立
+  确认的机械阶段运行，旧接口却把接近、吸附、抽离、放置和释放封装进三个粗粒度 Action，
+  导致 Autonomy 无法在机械阶段之间编排真空，也迫使 Motion 接收箱号和感知内部载荷。
+- **提出人**：@kkozia（motion / 契约）
+- **影响域**：motion 迁移到 M-08 并停止调用真空接口；autonomy 改为顺序调用 M-08，且在
+  APPROACH/PLACE 边界调用 R-IN-05；rt_control 保持 R-IN-05 服务端但更新授权消费者。
+  **不原子升级的后果**：旧 Autonomy 仍查找已删除的三个 Action，新 Motion 只提供 M-08，
+  ROS 2 节点虽可启动但动作端点无法发现；真空职责只升级一端还会造成无人发送吸放命令或
+  Motion 与 Autonomy 重复发送物理命令。
+- **迁移与回滚**：在同一部署窗口先停止 Autonomy 与 Motion，再升级公共接口、Motion、
+  Autonomy，最后核对 RT-Control 授权边界并执行五阶段 smoke test；回滚时三域统一回到本
+  变更前的同一仓库 SHA，禁止只恢复旧 Action 客户端或服务端。
 
 ### 破坏性：统一 P-01 退避距离并明确 P-01/P-02 位姿语义
 

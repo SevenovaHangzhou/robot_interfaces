@@ -191,32 +191,15 @@ endpoints:
     qos: Q_DEFAULT
     constraint: "查询指定 map_version 下全部语义地标"
 
-  - id: M-01
-    ros_name: /motion/move_to_camera_view_pose
+  - id: M-08
+    ros_name: /motion/execute_stage
     kind: action
-    type: robot_motion_interfaces/action/MoveToCameraViewPose
+    type: robot_motion_interfaces/action/ExecuteMotionStage
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "转发 P-01 的重拍位，Motion 不重新解算；1～2 目标；同集同序；每序列只调用一次"
-
-  - id: M-02
-    ros_name: /motion/plan_and_execute_pick
-    kind: action
-    type: robot_motion_interfaces/action/PlanAndExecutePick
-    producer: motion
-    consumers: [autonomy]
-    qos: Q_DEFAULT
-    constraint: "精位姿必须新鲜；每序列一次；Result 载荷等级 `UNVERIFIED`"
-
-  - id: M-03
-    ros_name: /motion/plan_and_execute_place
-    kind: action
-    type: robot_motion_interfaces/action/PlanAndExecutePlace
-    producer: motion
-    consumers: [autonomy]
-    qos: Q_DEFAULT
-    constraint: "固定放置配置；每序列一次；**不可重放**；Result 载荷等级 `UNVERIFIED`"
+    note: "Pose 固定为 base_link 下的目标吸附面中心；真空吸放由 Autonomy 编排 RT-Control"
+    constraint: "单一串行阶段 Action；CAMERA_VIEW 可选，其余固定 PREGRASP→APPROACH→PLACE→HOME；禁止并发、非法跳步和阶段重放"
 
   - id: M-06
     ros_name: /motion/readiness
@@ -272,9 +255,9 @@ endpoints:
     kind: action
     type: robot_rt_control_interfaces/action/VacuumGrip
     producer: rt_control
-    consumers: [motion]
+    consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "通道固定 `left/right` 且同数量/同集/同序；当前只接受 `grip_profile_id=default`；GRIP 每通道新鲜 `attached=true`；RELEASE 仍 `UNVERIFIED`"
+    constraint: "Autonomy 在 M-08 阶段之间编排；通道固定 `left/right` 且同数量/同集/同序；当前只接受 `grip_profile_id=default`；GRIP 每通道新鲜 `attached=true`；RELEASE 仍 `UNVERIFIED`"
 
   - id: R-OUT-01
     ros_name: /tf
@@ -384,6 +367,7 @@ member_types:
   - robot_system_interfaces/msg/ErrorCode
   - robot_system_interfaces/msg/ErrorInfo
   - robot_motion_interfaces/msg/Landmark
+  - robot_motion_interfaces/msg/DualArmPoseTargets
   - robot_rt_control_interfaces/msg/VacuumChannelState
   - robot_rt_control_interfaces/msg/VacuumChannelResult
   - robot_rt_control_interfaces/msg/VacuumChannelFeedback
@@ -398,7 +382,7 @@ forbidden_edges:
   - {from: autonomy, to: /whole_body_jtc/follow_joint_trajectory}
   - {from: autonomy, to: /control/set_enabled}
   - {from: autonomy, to: /vacuum/pump/set_enabled}
-  - {from: autonomy, to: /vacuum/grip}
+  - {from: motion, to: /vacuum/grip}
   - {from: perception, to: /navigation/navigate_to_pose}
 
 # 已删除的 endpoint。出现在 ROS graph 中即为违约。
@@ -411,3 +395,6 @@ removed_endpoints:
   - /motion/base_travel_readiness
   - /map
   - /navigation/scan
+  - /motion/move_to_camera_view_pose
+  - /motion/plan_and_execute_pick
+  - /motion/plan_and_execute_place

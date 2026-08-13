@@ -52,3 +52,6 @@
 - `/motion/base_travel_readiness`
 - `/map`
 - `/navigation/scan`
+- `/motion/move_to_camera_view_pose`
+- `/motion/plan_and_execute_pick`
+- `/motion/plan_and_execute_place`
