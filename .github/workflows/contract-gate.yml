@@ -1,0 +1,58 @@
+name: contract-gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Contract closure gate
+        run: python3 tools/contract_gate.py
+
+      - name: Error code encoding gate
+        run: python3 tools/error_code_gate.py
+
+      - name: Domain view freshness gate
+        run: python3 tools/gen_domain_views.py --check --master-table contract/interface-table.md
+
+      - name: Changelog gate
+        run: |
+          python3 tools/changelog_gate.py \
+            --base "origin/${{ github.event.pull_request.base.ref || 'main' }}"
+
+      - name: Gate unit tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_*.py'
+
+  build:
+    runs-on: ubuntu-latest
+    container: ros:humble-ros-base
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src/robot_interfaces
+
+      - name: Resolve dependencies
+        run: |
+          apt-get update
+          rosdep update
+          rosdep install --from-paths src --ignore-src -y
+
+      - name: Build all packages
+        shell: bash
+        run: |
+          source /opt/ros/humble/setup.bash
+          colcon build --event-handlers console_direct+

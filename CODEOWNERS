@@ -1,0 +1,12 @@
+# 跨域公共契约 —— 全员共管
+#
+# 不按域、不按部门分割 owner：本仓库的每个 IDL 都是跨域契约，任何改动都可能
+# 影响其他域。一人提出、全员同意，避免"某个域自己改了自己那块"造成的单边变更。
+#
+# GitHub 语义：同一路径的多个 owner 是 OR（任一人 approve 即满足）。要实现
+# "全部同意"必须配 branch protection —— 在仓库 Settings → Branches 对 main
+# 设 Require review from Code Owners，并把 Required approvals 设为 owner 人数。
+# 不配的话本文件只是通知机制，不是强制门禁。
+
+# 全部内容：IDL、注册表、变更日志、门禁、分域视图、CI
+*  @kkozia188 @Carbine-P @Edols22 @231055558

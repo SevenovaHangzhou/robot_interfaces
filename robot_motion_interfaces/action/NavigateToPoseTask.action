@@ -1,0 +1,13 @@
+string target_name
+string map_version
+---
+string reached_target_name
+geometry_msgs/PoseStamped final_base_pose
+float32 arrival_error_m
+float32 yaw_error_rad
+string used_map_version
+robot_system_interfaces/ErrorInfo error
+---
+string stage
+float32 remaining_distance_m
+float32 remaining_yaw_error_rad
