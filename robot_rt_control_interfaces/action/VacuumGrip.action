@@ -1,4 +1,5 @@
-# R-IN-05 /vacuum/grip。Motion ⇄ RT-Control。
+# R-IN-05 /vacuum/grip。Autonomy ⇄ RT-Control。
+# Autonomy 只在 M-08 阶段边界调用；Motion 不得直接控制真空。
 # 通道固定为字符串 left/right；GRIP 以 RT-Control 发布的新鲜 attached=true 判定。
 # RELEASE 只证明阀命令完成，物理释放结果保持 UNVERIFIED。
 

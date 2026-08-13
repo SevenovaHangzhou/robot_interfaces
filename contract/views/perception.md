@@ -46,3 +46,6 @@
 - `/calibration/info`
 - `/navigation/base_motion_gate_state`
 - `/motion/base_travel_readiness`
+- `/motion/move_to_camera_view_pose`
+- `/motion/plan_and_execute_pick`
+- `/motion/plan_and_execute_place`

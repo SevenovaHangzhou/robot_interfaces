@@ -30,9 +30,7 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | --- | --- | --- | --- | --- |
 | N-01 | `/navigation/navigate_to_pose` | Action / `robot_motion_interfaces/action/NavigateToPoseTask` | Autonomy ⇄ Motion | `station_nav_pose(map)` 来自 P-01；真实调用 Nav2；最多总调用三次 |
 | N-04 | `/cmd_vel_safe` | Topic / `geometry_msgs/msg/Twist` | Motion → RT-Control | 见 R-IN-01；Motion 是唯一生产者 |
-| M-01 | `/motion/move_to_camera_view_pose` | Action / `robot_motion_interfaces/action/MoveToCameraViewPose` | Autonomy ⇄ Motion | 转发 P-01 的重拍位，Motion 不重新解算；1～2 目标；同集同序；每序列只调用一次 |
-| M-02 | `/motion/plan_and_execute_pick` | Action / `robot_motion_interfaces/action/PlanAndExecutePick` | Autonomy ⇄ Motion | 精位姿必须新鲜；每序列一次；Result 载荷等级 `UNVERIFIED` |
-| M-03 | `/motion/plan_and_execute_place` | Action / `robot_motion_interfaces/action/PlanAndExecutePlace` | Autonomy ⇄ Motion | 固定放置配置；每序列一次；**不可重放**；Result 载荷等级 `UNVERIFIED` |
+| M-08 | `/motion/execute_stage` | Action / `robot_motion_interfaces/action/ExecuteMotionStage` | Autonomy ⇄ Motion | 单一串行阶段 Action；CAMERA_VIEW 可选，其余固定 PREGRASP→APPROACH→PLACE→HOME；禁止并发、非法跳步和阶段重放 |
 | M-06 | `/motion/readiness` | Topic / `robot_system_interfaces/msg/DomainReadiness` | Motion → Autonomy | 机械能力准入；变化立即发；稳定 1 Hz |
 | N-06 | `/navigation/readiness` | Topic / `robot_system_interfaces/msg/DomainReadiness` | Motion → Autonomy | 导航执行能力准入；变化立即发；稳定 1 Hz |
 
@@ -43,7 +41,7 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | R-IN-02 | `/whole_body_jtc/follow_joint_trajectory` | Action / `control_msgs/action/FollowJointTrajectory` | Motion ⇄ RT-Control | 完整 14 轴；`allow_partial_joints_goal=false`；整组取消 |
 | R-IN-03 | `/control/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetControlEnabled` | 外部/本地入口 ⇄ RT-Control | 不复位急停、安全继电器或 STO；不属于箱级任务流程 |
 | R-IN-04 | `/vacuum/pump/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetPumpEnabled` | 外部/本地入口 ⇄ RT-Control | 活动真空命令或可能持箱时拒绝普通停泵 |
-| R-IN-05 | `/vacuum/grip` | Action / `robot_rt_control_interfaces/action/VacuumGrip` | Motion ⇄ RT-Control | 通道固定 `left/right` 且同数量/同集/同序；当前只接受 `grip_profile_id=default`；GRIP 每通道新鲜 `attached=true`；RELEASE 仍 `UNVERIFIED` |
+| R-IN-05 | `/vacuum/grip` | Action / `robot_rt_control_interfaces/action/VacuumGrip` | Autonomy ⇄ RT-Control | Autonomy 在 M-08 阶段之间编排；通道固定 `left/right` 且同数量/同集/同序；当前只接受 `grip_profile_id=default`；GRIP 每通道新鲜 `attached=true`；RELEASE 仍 `UNVERIFIED` |
 
 ### 5.5 RT-Control 输出
 
