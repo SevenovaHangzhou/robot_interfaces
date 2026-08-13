@@ -75,24 +75,24 @@ endpoints:
     ros_name: /odom
     kind: topic
     type: nav_msgs/msg/Odometry
-    producer: perception
-    consumers: [motion, autonomy]
+    producer: motion
+    consumers: [perception, autonomy]
     qos: Q_FAST_STATE
     rate_hz: [50, 50]
     max_age_ms: 200
     external_type: true
-    constraint: "融合里程计；50 Hz；最大年龄 200 ms；**最终停稳证据**"
+    constraint: "Navigation/Motion 发布融合里程计；50 Hz；最大年龄 200 ms；Perception 可用于定位/视觉时空对齐；**最终停稳证据**"
 
   - id: P-NAV-02
     ros_name: /tf
     kind: topic
     type: tf2_msgs/msg/TFMessage
-    producer: perception
-    consumers: [motion, autonomy]
+    producer: motion
+    consumers: [perception, autonomy]
     qos: Q_DEFAULT
     external_type: true
-    note: map → odom，唯一发布者为 Perception
-    constraint: "唯一发布者"
+    note: map → odom 由 Navigation/Motion 发布；Perception 通过 TF 查询 map→odom
+    constraint: "map→odom 定位边唯一发布者为 Navigation/Motion；/tf 按坐标边判唯一性"
     multi_producer: true  # /tf 按坐标边判唯一性，见契约 6.11
 
   - id: N-01
@@ -102,7 +102,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "`station_nav_pose(map)` 来自 P-01；真实调用 Nav2；最多总调用三次"
+    constraint: "`target_name + map_version` 由 Motion 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次"
 
   - id: N-04
     ros_name: /cmd_vel_safe
@@ -120,33 +120,76 @@ endpoints:
   - id: N-05
     ros_name: /navigation/localization/status
     kind: topic
-    type: robot_perception_interfaces/msg/LocalizationStatus
-    producer: perception
-    consumers: [motion, autonomy]
+    type: robot_motion_interfaces/msg/LocalizationStatus
+    producer: motion
+    consumers: [autonomy]
     qos: Q_STATE
     rate_hz: [10, 20]
     max_age_ms: 200
     constraint: "发布者唯一；10～20 Hz；最大年龄 200 ms"
 
-  - id: N-07
-    ros_name: /map
+  - id: N-10
+    ros_name: /navigation/semanticmap/landmark_array
     kind: topic
-    type: nav_msgs/msg/OccupancyGrid
-    producer: perception
-    consumers: [motion]
-    qos: Q_LATCHED
-    external_type: true
-    constraint: "`map` frame；`Q_LATCHED`"
+    type: robot_motion_interfaces/msg/LandmarkArray
+    producer: motion
+    consumers: [perception, autonomy, external]
+    qos: Q_STATE
+    constraint: "当前语义地图地标列表；按 map_version 区分地图版本"
 
-  - id: N-09
-    ros_name: /navigation/scan
-    kind: topic
-    type: sensor_msgs/msg/LaserScan
-    producer: perception
-    consumers: [motion]
-    qos: Q_FAST_STATE
-    external_type: true
-    constraint: "Nav2 local costmap 输入；frame/stamp 新鲜；过期时 Motion 不输出非零速度"
+  - id: N-11
+    ros_name: /navigation/semanticmap/add_landmark
+    kind: service
+    type: robot_motion_interfaces/srv/AddLandmark
+    producer: motion
+    consumers: [perception, external]
+    qos: Q_DEFAULT
+    constraint: "按指定位姿新增语义地标；返回 used_map_version 与最终地标"
+
+  - id: N-12
+    ros_name: /navigation/semanticmap/add_current_landmark
+    kind: service
+    type: robot_motion_interfaces/srv/AddCurrentLandmark
+    producer: motion
+    consumers: [perception, external]
+    qos: Q_DEFAULT
+    constraint: "以当前 base_footprint 位姿新增语义地标；返回 used_map_version 与最终地标"
+
+  - id: N-13
+    ros_name: /navigation/semanticmap/update_landmark
+    kind: service
+    type: robot_motion_interfaces/srv/UpdateLandmark
+    producer: motion
+    consumers: [perception, external]
+    qos: Q_DEFAULT
+    constraint: "更新语义地标属性和位姿；返回 used_map_version 与最终地标"
+
+  - id: N-14
+    ros_name: /navigation/semanticmap/remove_landmark
+    kind: service
+    type: robot_motion_interfaces/srv/RemoveLandmark
+    producer: motion
+    consumers: [perception, external]
+    qos: Q_DEFAULT
+    constraint: "按 name 删除指定 map_version 内的语义地标"
+
+  - id: N-15
+    ros_name: /navigation/semanticmap/get_landmark
+    kind: service
+    type: robot_motion_interfaces/srv/GetLandmark
+    producer: motion
+    consumers: [perception, autonomy, external]
+    qos: Q_DEFAULT
+    constraint: "按 target_name 查询语义地标；N-01 服务端用它解析导航目标"
+
+  - id: N-16
+    ros_name: /navigation/semanticmap/get_map
+    kind: service
+    type: robot_motion_interfaces/srv/GetSemanticMap
+    producer: motion
+    consumers: [perception, autonomy, external]
+    qos: Q_DEFAULT
+    constraint: "查询指定 map_version 下全部语义地标"
 
   - id: M-01
     ros_name: /motion/move_to_camera_view_pose
@@ -340,6 +383,7 @@ endpoints:
 member_types:
   - robot_system_interfaces/msg/ErrorCode
   - robot_system_interfaces/msg/ErrorInfo
+  - robot_motion_interfaces/msg/Landmark
   - robot_rt_control_interfaces/msg/VacuumChannelState
   - robot_rt_control_interfaces/msg/VacuumChannelResult
   - robot_rt_control_interfaces/msg/VacuumChannelFeedback
@@ -365,3 +409,5 @@ removed_endpoints:
   - /calibration/info
   - /navigation/base_motion_gate_state
   - /motion/base_travel_readiness
+  - /map
+  - /navigation/scan

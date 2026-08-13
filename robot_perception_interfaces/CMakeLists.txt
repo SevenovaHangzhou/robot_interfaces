@@ -11,7 +11,6 @@ find_package(robot_system_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ObstacleCloud.msg"
-  "msg/LocalizationStatus.msg"
   "msg/BoxPose.msg"
   "msg/CameraViewPose.msg"
   "msg/PickSequence.msg"

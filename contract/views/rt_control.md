@@ -42,3 +42,5 @@
 - `/calibration/info`
 - `/navigation/base_motion_gate_state`
 - `/motion/base_travel_readiness`
+- `/map`
+- `/navigation/scan`

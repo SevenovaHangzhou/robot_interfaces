@@ -1,0 +1,7 @@
+string map_version
+string caller_id
+string name
+---
+bool success
+string used_map_version
+robot_system_interfaces/ErrorInfo error

@@ -3,8 +3,8 @@
   <name>robot_perception_interfaces</name>
   <version>0.6.0</version>
   <description>
-    Perception 域提供的跨域公共接口：任务计划、精定位、定位状态与障碍点云。
-    对应 P-01～P-03 与 N-05；P-04 使用共享的 DomainReadiness。
+    Perception 域提供的跨域公共接口：任务计划、精定位与障碍点云。
+    对应 P-01～P-03；P-04 使用共享的 DomainReadiness。
   </description>
   <maintainer email="kkozia188@gmail.com">kkozia</maintainer>
   <license>Apache-2.0</license>

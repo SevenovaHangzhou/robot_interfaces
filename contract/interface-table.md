@@ -18,18 +18,23 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | P-02 | `/perception/refine_sequence_poses` | Action / `robot_perception_interfaces/action/RefineSequencePoses` | Autonomy ⇄ Perception | 同箱同序；返回吸取表面接触位姿；`base_link`；stamp=真实曝光时刻；底盘静止、TF、标定不变 |
 | P-03 | `/perception/obstacle_cloud` | Topic / `robot_perception_interfaces/msg/ObstacleCloud` | Perception → Motion | **产品预留**；Demo 不部署、不订阅、不依赖 |
 | P-04 | `/perception/readiness` | Topic / `robot_system_interfaces/msg/DomainReadiness` | Perception → Autonomy | `Q_LATCHED`；故障立即 `ready=false`；变化立即发；稳定 1 Hz |
-| P-NAV-01 | `/odom` | Topic / `nav_msgs/msg/Odometry` | Perception → Motion、Autonomy | 融合里程计；50 Hz；最大年龄 200 ms；**最终停稳证据** |
-| P-NAV-02 | `/tf` | Topic / `tf2_msgs/msg/TFMessage` | Perception → Motion、Autonomy | 唯一发布者 |
-| N-05 | `/navigation/localization/status` | Topic / `robot_perception_interfaces/msg/LocalizationStatus` | Perception → Motion、Autonomy | 发布者唯一；10～20 Hz；最大年龄 200 ms |
-| N-07 | `/map` | Topic / `nav_msgs/msg/OccupancyGrid` | Perception → Motion | `map` frame；`Q_LATCHED` |
-| N-09 | `/navigation/scan` | Topic / `sensor_msgs/msg/LaserScan` | Perception → Motion | Nav2 local costmap 输入；frame/stamp 新鲜；过期时 Motion 不输出非零速度 |
 
 ### 5.3 Motion 提供
 
 | ID | ROS 名称 | 形式 / 类型 | 方向 | 关键约束 |
 | --- | --- | --- | --- | --- |
-| N-01 | `/navigation/navigate_to_pose` | Action / `robot_motion_interfaces/action/NavigateToPoseTask` | Autonomy ⇄ Motion | `station_nav_pose(map)` 来自 P-01；真实调用 Nav2；最多总调用三次 |
+| P-NAV-01 | `/odom` | Topic / `nav_msgs/msg/Odometry` | Motion → Perception、Autonomy | Navigation/Motion 发布融合里程计；50 Hz；最大年龄 200 ms；Perception 可用于定位/视觉时空对齐；**最终停稳证据** |
+| P-NAV-02 | `/tf` | Topic / `tf2_msgs/msg/TFMessage` | Motion → Perception、Autonomy | map→odom 定位边唯一发布者为 Navigation/Motion；/tf 按坐标边判唯一性 |
+| N-01 | `/navigation/navigate_to_pose` | Action / `robot_motion_interfaces/action/NavigateToPoseTask` | Autonomy ⇄ Motion | `target_name + map_version` 由 Motion 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次 |
 | N-04 | `/cmd_vel_safe` | Topic / `geometry_msgs/msg/Twist` | Motion → RT-Control | 见 R-IN-01；Motion 是唯一生产者 |
+| N-05 | `/navigation/localization/status` | Topic / `robot_motion_interfaces/msg/LocalizationStatus` | Motion → Autonomy | 发布者唯一；10～20 Hz；最大年龄 200 ms |
+| N-10 | `/navigation/semanticmap/landmark_array` | Topic / `robot_motion_interfaces/msg/LandmarkArray` | Motion → Perception、Autonomy、外部/本地入口 | 当前语义地图地标列表；按 map_version 区分地图版本 |
+| N-11 | `/navigation/semanticmap/add_landmark` | Service / `robot_motion_interfaces/srv/AddLandmark` | Perception、外部/本地入口 ⇄ Motion | 按指定位姿新增语义地标；返回 used_map_version 与最终地标 |
+| N-12 | `/navigation/semanticmap/add_current_landmark` | Service / `robot_motion_interfaces/srv/AddCurrentLandmark` | Perception、外部/本地入口 ⇄ Motion | 以当前 base_footprint 位姿新增语义地标；返回 used_map_version 与最终地标 |
+| N-13 | `/navigation/semanticmap/update_landmark` | Service / `robot_motion_interfaces/srv/UpdateLandmark` | Perception、外部/本地入口 ⇄ Motion | 更新语义地标属性和位姿；返回 used_map_version 与最终地标 |
+| N-14 | `/navigation/semanticmap/remove_landmark` | Service / `robot_motion_interfaces/srv/RemoveLandmark` | Perception、外部/本地入口 ⇄ Motion | 按 name 删除指定 map_version 内的语义地标 |
+| N-15 | `/navigation/semanticmap/get_landmark` | Service / `robot_motion_interfaces/srv/GetLandmark` | Perception、Autonomy、外部/本地入口 ⇄ Motion | 按 target_name 查询语义地标；N-01 服务端用它解析导航目标 |
+| N-16 | `/navigation/semanticmap/get_map` | Service / `robot_motion_interfaces/srv/GetSemanticMap` | Perception、Autonomy、外部/本地入口 ⇄ Motion | 查询指定 map_version 下全部语义地标 |
 | M-01 | `/motion/move_to_camera_view_pose` | Action / `robot_motion_interfaces/action/MoveToCameraViewPose` | Autonomy ⇄ Motion | 转发 P-01 的重拍位，Motion 不重新解算；1～2 目标；同集同序；每序列只调用一次 |
 | M-02 | `/motion/plan_and_execute_pick` | Action / `robot_motion_interfaces/action/PlanAndExecutePick` | Autonomy ⇄ Motion | 精位姿必须新鲜；每序列一次；Result 载荷等级 `UNVERIFIED` |
 | M-03 | `/motion/plan_and_execute_place` | Action / `robot_motion_interfaces/action/PlanAndExecutePlace` | Autonomy ⇄ Motion | 固定放置配置；每序列一次；**不可重放**；Result 载荷等级 `UNVERIFIED` |

@@ -3,8 +3,8 @@
   <name>robot_motion_interfaces</name>
   <version>0.6.0</version>
   <description>
-    Motion 域提供的跨域公共接口：导航执行、观测位执行、抓取与放置。
-    对应 N-01 与 M-01～M-03。
+    Motion 域提供的跨域公共接口：导航执行、语义地图、定位状态、
+    观测位执行、抓取与放置。对应 N-01、N-05、N-10～N-16 与 M-01～M-03。
   </description>
   <maintainer email="kkozia188@gmail.com">kkozia</maintainer>
   <license>Apache-2.0</license>
@@ -14,6 +14,7 @@
 
   <depend>builtin_interfaces</depend>
   <depend>geometry_msgs</depend>
+  <depend>std_msgs</depend>
   <depend>robot_system_interfaces</depend>
   <depend>robot_perception_interfaces</depend>
   <depend>robot_rt_control_interfaces</depend>

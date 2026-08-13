@@ -39,6 +39,28 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 破坏性：导航公共接口迁入 Motion 并采用语义地标导航 schema
+
+- **接口**：N-01 `/navigation/navigate_to_pose`
+  `robot_motion_interfaces/action/NavigateToPoseTask` 改为 `target_name + map_version`
+  导航请求；新增 N-10～N-16 语义地图 endpoint 及 `Landmark`、`LandmarkArray`、
+  `AddLandmark`、`AddCurrentLandmark`、`UpdateLandmark`、`RemoveLandmark`、
+  `GetLandmark`、`GetSemanticMap`；N-05 `LocalizationStatus` 迁入
+  `robot_motion_interfaces`。P-NAV-01 `/odom` 与 P-NAV-02 `/tf` 的定位边改由
+  Navigation/Motion 生产并供 Perception 查询；`/navigation/semanticmap/*` 明确供
+  Perception 管理 landmark；删除跨域 N-09 `/navigation/scan`，Nav2 内部扫描使用
+  `/nav/scan`；删除跨域 N-07 `/map`，Motion/Navigation 内部地图使用 `/nav/map`。
+  共享 `ErrorInfo`、`ErrorCode`、`DomainReadiness` 与导航当前错误/readiness schema 对齐。
+- **原因**：导航实现已经以 `robot_navigation_interface` 中的 `target_name + map_version`
+  语义地标接口作为新接口来源，但中央契约仍登记为 `station_nav_pose` 直传接口，并把
+  定位状态与地图归到 Perception。两套 schema 会导致仿真导航和整机集成使用不同
+  Action/Service 类型，联调时 `/navigation/navigate_to_pose` 无法匹配或语义相反。
+- **提出人**：@kkozia（motion / navigation）
+- **影响域**：motion/navigation（生产者）、autonomy 与 external 调用方（消费者）。
+  **不原子升级的后果**：ROS 2 Action/Service 类型全名或字段不同，节点可启动但 goal/service
+  调用无法匹配；即使名称相同，旧消费方发送 `station_nav_pose` 与新服务端期待
+  `target_name + map_version` 也会失败。相关域必须使用同一 `robot_interfaces` SHA。
+
 ### 破坏性：统一 P-01 退避距离并明确 P-01/P-02 位姿语义
 
 - **接口**：P-01 `robot_perception_interfaces/action/BuildWallTaskPlan`、P-02

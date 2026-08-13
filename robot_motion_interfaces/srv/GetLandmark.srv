@@ -1,0 +1,7 @@
+string map_version
+string target_name
+---
+bool success
+string used_map_version
+robot_motion_interfaces/Landmark landmark
+robot_system_interfaces/ErrorInfo error

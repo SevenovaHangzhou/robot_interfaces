@@ -15,17 +15,20 @@
 | --- | --- | --- | --- | --- | --- |
 | G-01 | `/autonomy/execute_demo_task` | Action | `robot_autonomy_interfaces/action/ExecuteDemoTask` | 外部/本地入口 | — |
 
-## 本域消费（19 条）
+## 本域消费（22 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
 | P-01 | `/perception/build_wall_task_plan` | Action | `robot_perception_interfaces/action/BuildWallTaskPlan` | Perception | — |
 | P-02 | `/perception/refine_sequence_poses` | Action | `robot_perception_interfaces/action/RefineSequencePoses` | Perception | — |
 | P-04 | `/perception/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Perception | Q_LATCHED；1 Hz |
-| P-NAV-01 | `/odom` | Topic | `nav_msgs/msg/Odometry` | Perception | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型 |
-| P-NAV-02 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Perception | ROS 标准类型；map → odom，唯一发布者为 Perception |
+| P-NAV-01 | `/odom` | Topic | `nav_msgs/msg/Odometry` | Motion | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型 |
+| P-NAV-02 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Motion | ROS 标准类型；map → odom 由 Navigation/Motion 发布；Perception 通过 TF 查询 map→odom |
 | N-01 | `/navigation/navigate_to_pose` | Action | `robot_motion_interfaces/action/NavigateToPoseTask` | Motion | — |
-| N-05 | `/navigation/localization/status` | Topic | `robot_perception_interfaces/msg/LocalizationStatus` | Perception | Q_STATE；10～20 Hz；最大年龄 200 ms |
+| N-05 | `/navigation/localization/status` | Topic | `robot_motion_interfaces/msg/LocalizationStatus` | Motion | Q_STATE；10～20 Hz；最大年龄 200 ms |
+| N-10 | `/navigation/semanticmap/landmark_array` | Topic | `robot_motion_interfaces/msg/LandmarkArray` | Motion | Q_STATE |
+| N-15 | `/navigation/semanticmap/get_landmark` | Service | `robot_motion_interfaces/srv/GetLandmark` | Motion | — |
+| N-16 | `/navigation/semanticmap/get_map` | Service | `robot_motion_interfaces/srv/GetSemanticMap` | Motion | — |
 | M-01 | `/motion/move_to_camera_view_pose` | Action | `robot_motion_interfaces/action/MoveToCameraViewPose` | Motion | — |
 | M-02 | `/motion/plan_and_execute_pick` | Action | `robot_motion_interfaces/action/PlanAndExecutePick` | Motion | — |
 | M-03 | `/motion/plan_and_execute_place` | Action | `robot_motion_interfaces/action/PlanAndExecutePlace` | Motion | — |
@@ -56,3 +59,5 @@
 - `/calibration/info`
 - `/navigation/base_motion_gate_state`
 - `/motion/base_travel_readiness`
+- `/map`
+- `/navigation/scan`
