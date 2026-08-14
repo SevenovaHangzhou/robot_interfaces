@@ -55,7 +55,7 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | R-OUT-01 | `/tf` | Topic / `tf2_msgs/msg/TFMessage` | RT-Control → Perception、Motion、Autonomy | 本体动态坐标边唯一；`map→odom` 与 `odom→base_footprint` 不由本域发布 |
 | R-OUT-01S | `/tf_static` | Topic / `tf2_msgs/msg/TFMessage` | RT-Control → Perception、Motion、Autonomy | 本体固定坐标边唯一；`Q_LATCHED`；与 `/tf` 分开登记 |
 | R-OUT-02 | `/wheel/odom` | Topic / `nav_msgs/msg/Odometry` | RT-Control → Perception | `frame_id=odom`、`child_frame_id=base_footprint`；`Q_FAST_STATE`；50 Hz；**不作为到站或停稳最终证据** |
-| R-OUT-03 | `/joint_states` | Topic / `sensor_msgs/msg/JointState` | RT-Control → Motion、Perception、Autonomy | 只含 14 个 EtherCAT 机械轴，不含履带关节；仅 position；`Q_FAST_STATE`；100 Hz |
+| R-OUT-03 | `/joint_states` | Topic / `sensor_msgs/msg/JointState` | RT-Control → Motion、Perception、Autonomy | 只含 14 个 EtherCAT 机械轴，不含履带关节；仅 position；`Q_FAST_STATE`；125 Hz |
 | R-OUT-04 | `/battery_state` | Topic / `sensor_msgs/msg/BatteryState` | RT-Control → Autonomy | BMS 周期 5 s（0.2 Hz）；只读，不作为业务控制入口 |
 | R-OUT-05 | `/vacuum/state` | Topic / `robot_rt_control_interfaces/msg/VacuumState` | RT-Control → Autonomy | `Q_STATE`；20～50 Hz；发布 `left/right` 新鲜 `attached` 布尔状态；只 RT-Control 用于 GRIP 判定；Motion 不订阅 |
 | R-OUT-06 | `/control/safety_state` | Topic / `robot_rt_control_interfaces/msg/SafetyState` | RT-Control → Perception、Motion、Autonomy | **软件可观测摘要，不含硬安全链状态**；`Q_STATE`；10～50 Hz；最大年龄 200 ms；`safe_to_start_motion=false` 或过期时禁止新动作 |

@@ -39,6 +39,18 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 非破坏性：`/joint_states` 频率按 RT-Control 实测修正为 125 Hz
+
+- **接口**：R-OUT-03 `/joint_states`，`sensor_msgs/msg/JointState`；发布频率约束由
+  100 Hz 修正为 125 Hz，最大年龄仍为 200 ms，wire schema、QoS 与消息内容不变。
+- **原因**：ELECTRI-77 mock 契约套件在工控机 Domain 142 实测为 125 Hz；RT-Control 的
+  `controller_manager` 以 250 Hz 更新，配置的 100 Hz 不是其因数，运行时会向上量化到
+  125 Hz。契约频率必须描述消费方实际接收的数据率，而不是未生效的配置字面值；
+  `robot_driver` BQ-135 已冻结该实测结论，并要求控制器配置保持不变。
+- **提出人**：@kkozia（rt_control / 契约）
+- **影响域**：Motion、Perception、Autonomy。频率只升不降，按 100 Hz 预算的消费代码
+  不会因本修正失效；各域应以 125 Hz 估算负载，并继续按最大年龄 200 ms 判断新鲜度。
+
 ### 破坏性：导航公共接口迁入 Motion 并采用语义地标导航 schema
 
 - **接口**：N-01 `/navigation/navigate_to_pose`
