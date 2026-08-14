@@ -28,7 +28,7 @@ inline rclcpp::QoS control()
   return qos;
 }
 
-/// 高频状态（/joint_states 100 Hz、/odom、/wheel/odom 50 Hz）。
+/// 高频状态（/joint_states 125 Hz、/odom、/wheel/odom 50 Hz）。
 inline rclcpp::QoS fast_state()
 {
   rclcpp::QoS qos{rclcpp::KeepLast(5)};

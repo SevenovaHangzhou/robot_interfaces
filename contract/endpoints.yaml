@@ -8,7 +8,7 @@
 # Wire schema 由本仓库对应 IDL 定义。不在本表中的跨域 endpoint 视为未授权。
 # 域取值：rt_control / perception / motion / autonomy / external
 
-version: "0.6.0"
+version: "0.6.1"
 
 domains: [rt_control, perception, motion, autonomy, external]
 
@@ -302,11 +302,11 @@ endpoints:
     producer: rt_control
     consumers: [motion, perception, autonomy]
     qos: Q_FAST_STATE
-    rate_hz: [100, 100]
-    note: 只含 14 个 EtherCAT 机械轴，不含履带控制关节
+    rate_hz: [125, 125]
+    note: 只含 14 个 EtherCAT 机械轴，不含履带控制关节；250 Hz controller_manager 将配置的 100 Hz 量化为实测 125 Hz
     max_age_ms: 200
     external_type: true
-    constraint: "只含 14 个 EtherCAT 机械轴，不含履带关节；仅 position；`Q_FAST_STATE`；100 Hz"
+    constraint: "只含 14 个 EtherCAT 机械轴，不含履带关节；仅 position；`Q_FAST_STATE`；125 Hz"
 
   - id: R-OUT-04
     ros_name: /battery_state
