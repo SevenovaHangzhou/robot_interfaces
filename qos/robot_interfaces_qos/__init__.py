@@ -30,7 +30,7 @@ def control() -> QoSProfile:
 
 
 def fast_state() -> QoSProfile:
-    """高频状态（/joint_states 100 Hz、/odom、/wheel/odom 50 Hz）。"""
+    """高频状态（/joint_states 125 Hz、/odom、/wheel/odom 50 Hz）。"""
     return QoSProfile(
         depth=5,
         reliability=ReliabilityPolicy.RELIABLE,
