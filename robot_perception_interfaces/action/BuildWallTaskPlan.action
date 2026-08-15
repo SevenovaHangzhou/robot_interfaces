@@ -4,6 +4,14 @@
 # 必须输出完整 25 箱、固定 15 序列，每个序列含非空可执行 station_nav_pose(map)。
 # station_nav_pose 使用当前统一的 0.74 m 箱墙退避距离。
 # 每个 G-01 只调用一次；严格成功语义，任一序列缺失即失败。
+
+# G-01 分配的任务标识。全零 UUID 非法；Perception 必须原样绑定到本次
+# P-01 生成的内部场景账本，不得自行生成无法由 Autonomy 对账的任务标识。
+unique_identifier_msgs/UUID task_id
+
+# 由发布配置锁定的场景配置名。Perception 只接受与当前加载配置一致的值，
+# 禁止由请求覆盖本域几何、阈值或标定参数。
+string scene_profile_id
 ---
 bool ok
 

@@ -14,8 +14,8 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 
 | ID | ROS 名称 | 形式 / 类型 | 方向 | 关键约束 |
 | --- | --- | --- | --- | --- |
-| P-01 | `/perception/build_wall_task_plan` | Action / `robot_perception_interfaces/action/BuildWallTaskPlan` | Autonomy ⇄ Perception | 真实单次同步采集；25 箱；固定 15 序列；箱 pose 为吸取表面接触位姿；每序列自带 `station_id`、统一 0.74 m 退避的 `station_nav_pose(map)`、按臂绑定重拍位；每个 G-01 只调用一次；严格成功 |
-| P-02 | `/perception/refine_sequence_poses` | Action / `robot_perception_interfaces/action/RefineSequencePoses` | Autonomy ⇄ Perception | 同箱同序；返回吸取表面接触位姿；`base_link`；stamp=真实曝光时刻；底盘静止、TF、标定不变 |
+| P-01 | `/perception/build_wall_task_plan` | Action / `robot_perception_interfaces/action/BuildWallTaskPlan` | Autonomy ⇄ Perception | Goal 携带非零 `task_id` 与锁定 `scene_profile_id`；真实单次同步采集；Result 返回新 `scene_id`；25 箱；固定 15 序列；每箱冻结 arm 与 suction_mode，pose 为吸取表面接触位姿；每序列自带 `station_id`、统一 0.74 m 退避的 `station_nav_pose(map)`、按臂绑定重拍位；每个 G-01 只调用一次；严格成功 |
+| P-02 | `/perception/refine_sequence_poses` | Action / `robot_perception_interfaces/action/RefineSequencePoses` | Autonomy ⇄ Perception | Goal 的 `expected_scene_id`、sequence、box_ids、arms、suction_modes 必须与当前 producer instance 最近一次成功 P-01 完全一致；同箱同序；返回同臂同吸取方式的吸取表面接触位姿；`base_link`；stamp=真实曝光时刻；底盘静止、TF、标定不变 |
 | P-03 | `/perception/obstacle_cloud` | Topic / `robot_perception_interfaces/msg/ObstacleCloud` | Perception → Motion | **产品预留**；Demo 不部署、不订阅、不依赖 |
 | P-04 | `/perception/readiness` | Topic / `robot_system_interfaces/msg/DomainReadiness` | Perception → Autonomy | `Q_LATCHED`；故障立即 `ready=false`；变化立即发；稳定 1 Hz |
 

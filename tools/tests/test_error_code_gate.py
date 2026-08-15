@@ -97,6 +97,16 @@ class RealFileTest(unittest.TestCase):
         consts = gate.parse(path.read_text(encoding="utf-8"))
         self.assertEqual(gate.validate(consts), [])
         self.assertIn(("SUCCESS", 0), consts)
+        for expected in (
+            ("PERC_STANDOFF_TABLE_MISMATCH", 2010),
+            ("PERC_CAMERA_FAULT", 2020),
+            ("PERC_INCOMPLETE_WALL", 2040),
+            ("PERC_INTERNAL_ERROR", 2090),
+            ("PERC_CAPTURE_FAILED", 2140),
+            ("PERC_BOX_NOT_FOUND", 2141),
+            ("PERC_POSE_UNRELIABLE", 2142),
+        ):
+            self.assertIn(expected, consts)
 
 
 if __name__ == "__main__":
