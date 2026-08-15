@@ -2,7 +2,7 @@
 
 # RT-Control 域接口视图
 
-> 契约版本：0.6.1
+> 契约版本：0.7.0
 > 事实源：`contract/endpoints.yaml`
 > Wire schema：本仓库对应的 `robot_*_interfaces` IDL
 

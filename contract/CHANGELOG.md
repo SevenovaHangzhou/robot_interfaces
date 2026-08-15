@@ -39,6 +39,26 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 破坏性：冻结跨域 `ErrorInfo` DREE 与 `DomainReadiness` 一致性语义
+
+- **接口**：全部直接或间接携带 `robot_system_interfaces/msg/ErrorInfo` 的 Action、Service、
+  `LocalizationStatus` 与四个 `DomainReadiness` Topic；`ErrorInfo.code` 从导航内部
+  `string` 改为公共 `uint32 DREE`。`DomainReadiness` 字段集保持不变，冻结
+  `ready/status/blockers/errors/map_version/producer_instance_id` 的一致性规则；契约版本
+  0.6.1 → 0.7.0。
+- **原因**：BQ-137 发现同一共享类型的 IDL 注释把 `code` 声明为导航内部字符串，而
+  `ErrorCode.msg`、RT-Control 三个公共结果和其他域公共 Action/Service 又要求统一 DREE。
+  注释还指向仓库中不存在的 `ErrorReport`，导致同一个 wire 字段没有唯一权威语义。
+  接口所有者已裁决 `ErrorInfo` 是跨域公共错误载荷、`code` 权威采用数值 DREE；导航内部
+  诊断标识留在 Motion/Navigation 域内类型，不进入公共 schema。同时确认当前
+  `DomainReadiness` 是最终共享字段集，非地图能力必须令 `map_version=""`。
+- **提出人**：@kkozia（共享契约 / rt_control）
+- **影响域**：RT-Control、Motion/Navigation、Perception、Autonomy 及 external 调用方。
+  所有生产者和消费者必须锁定同一 `robot_interfaces` SHA 原子升级；若混跑，ROS 2 类型
+  哈希不同，节点可能正常启动但携带 `ErrorInfo` 的 Topic、Service 或 Action 无法通信。
+  升级时先停止四域，统一更新契约及生产者/消费者后执行跨域 smoke；回滚时四域共同回到
+  0.6.1 的 merge SHA `1a60d83d52aa97952c8dbb3baafb50b6a95b9e86`，禁止单域回滚。
+
 ### 非破坏性：`/joint_states` 频率按 RT-Control 实测修正为 125 Hz
 
 - **接口**：R-OUT-03 `/joint_states`，`sensor_msgs/msg/JointState`；发布频率约束由
@@ -211,8 +231,8 @@
   **不原子升级的后果**：`WallTaskPlan` 是 P-01 Result 的载荷，删字段改变 wire 格式，
   Perception 与 Autonomy 版本不一致时 P-01 Result 无法反序列化，计划阶段即失败。
   **已登记风险**：删除运行期校验后，若某域部署了与 source-lock 不一致的镜像，
-  运行期无法发现，发布纪律成为唯一防线。`DomainReadiness.version`
-  只描述域实现版本，不覆盖模型与标定。
+  运行期无法发现，发布纪律成为唯一防线。当前 `DomainReadiness` 不承载契约、模型或标定
+  版本；`map_version` 只在准入依赖语义地图时填写，不能用于替代 source-lock。
 
 ### 非破坏性：修正 RT-Control 的消费关系与真空状态订阅方
 
