@@ -1,4 +1,5 @@
 # Centralized numeric error code constants.
+# These constants are the canonical values for ErrorInfo.code.
 #
 # Encoding: D R EE
 # D: domain ownership, 0=common 1=rt_control 2=perception 3=motion 4=autonomy

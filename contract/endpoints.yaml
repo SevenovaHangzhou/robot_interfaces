@@ -8,7 +8,7 @@
 # Wire schema 由本仓库对应 IDL 定义。不在本表中的跨域 endpoint 视为未授权。
 # 域取值：rt_control / perception / motion / autonomy / external
 
-version: "0.6.1"
+version: "0.7.0"
 
 domains: [rt_control, perception, motion, autonomy, external]
 

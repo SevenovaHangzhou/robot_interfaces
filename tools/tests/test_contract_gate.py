@@ -86,6 +86,37 @@ class ContractGateTest(unittest.TestCase):
             }.issubset(removed_endpoints)
         )
 
+    def test_error_info_is_the_cross_domain_uint32_dree_envelope(self) -> None:
+        schema = Path("robot_system_interfaces/msg/ErrorInfo.msg").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("# Cross-domain error envelope.", schema)
+        self.assertIn("uint32 code", schema)
+        self.assertNotIn("string code", schema)
+        self.assertIn("canonical DREE", schema)
+        self.assertIn("domain-private", schema)
+        self.assertIn("retryable MUST match the R digit", schema)
+
+    def test_domain_readiness_freezes_shared_consistency_rules(self) -> None:
+        schema = Path(
+            "robot_system_interfaces/msg/DomainReadiness.msg"
+        ).read_text(encoding="utf-8")
+
+        required_rules = (
+            "ready is the sole capability-admission verdict",
+            "HEALTHY requires ready=true and empty blockers/errors",
+            "DEGRADED requires ready=true",
+            "error MUST have WARN severity",
+            "UNAVAILABLE requires ready=false",
+            "non-SUCCESS canonical DREE code",
+            "NOT have OK severity",
+            "map_version MUST be empty when readiness does not depend on a map",
+            "producer_instance_id MUST remain stable for one process lifetime",
+        )
+        for rule in required_rules:
+            self.assertIn(rule, schema)
+
 
 if __name__ == "__main__":
     unittest.main()
