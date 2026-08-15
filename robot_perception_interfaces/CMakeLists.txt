@@ -7,6 +7,7 @@ find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(unique_identifier_msgs REQUIRED)
 find_package(robot_system_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -22,6 +23,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
     sensor_msgs
     builtin_interfaces
     geometry_msgs
+    unique_identifier_msgs
     robot_system_interfaces
 )
 

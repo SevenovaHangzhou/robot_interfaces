@@ -1,7 +1,16 @@
 # 单个箱体位姿事实。
 
+uint8 ARM_LEFT=0
+uint8 ARM_RIGHT=1
+uint8 SUCTION_TOP=0
+uint8 SUCTION_SIDE=1
+
 # 箱标识，全任务唯一且稳定。
 string box_id
+
+# P-01 冻结、P-02 原样回传的执行臂与吸取表面类型。
+uint8 arm
+uint8 suction_mode
 
 # 可执行的吸取表面接触位姿，不是箱体几何中心。姿态的工具进给轴指向箱体内部。
 # frame 与 stamp 由生产者按接口约定填写：P-01 使用 map；P-02 使用 base_link，

@@ -8,6 +8,10 @@ std_msgs/Header header
 # 采集时刻，即计划事实的时间基准。
 builtin_interfaces/Time source_stamp
 
+# 本次真实 P-01 采集产生的场景身份。由 Perception 每次成功远拍重新生成；
+# P-02 Goal 必须通过 expected_scene_id 原样带回，进程重启后旧值失效。
+unique_identifier_msgs/UUID scene_id
+
 # 完整 25 箱、15 个序列。任一序列缺失即 P-01 失败。
 # 每个序列自带工位、到站导航位姿和按臂绑定的重拍位，下游只消费不重算。
 # 序列中的 BoxPose.pose 均为吸取表面接触位姿；到站导航位统一按 0.74 m 退避生成。

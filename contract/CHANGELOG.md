@@ -71,6 +71,37 @@
 - **影响域**：Motion、Perception、Autonomy。频率只升不降，按 100 Hz 预算的消费代码
   不会因本修正失效；各域应以 125 Hz 估算负载，并继续按最大年龄 200 ms 判断新鲜度。
 
+### 破坏性：P-01/P-02 在公共 wire 上显式绑定任务、场景、执行臂和吸取方式
+
+- **接口**：P-01 `/perception/build_wall_task_plan`
+  `robot_perception_interfaces/action/BuildWallTaskPlan` Goal 新增 `task_id`、
+  `scene_profile_id`，`WallTaskPlan` 新增 `scene_id`；P-02
+  `/perception/refine_sequence_poses` Goal 新增 `expected_scene_id`、`arms`、
+  `suction_modes`；`BoxPose` 新增 `arm`、`suction_mode` 及对应常量。
+- **原因**：旧 wire 只能靠 Perception 进程内账本把 P-02 的数字箱号还原为 P-01
+  场景、左右臂和吸取表面，Autonomy 无法独立核对请求是否属于当前任务，进程重启或
+  错序请求也缺少可审计的 wire 证据。显式字段使 P-02 能按同任务、同场景、同序、
+  同箱、同臂、同吸取方式失败关闭。
+- **提出人**：@Edols22（perception）
+- **影响域**：perception（生产者）与 autonomy（P-01/P-02 消费者）必须在同一部署窗口
+  使用同一 `robot_interfaces` SHA，并同步更新 Goal/Result 构造和校验。
+  **不原子升级的后果**：Action 类型哈希不同，两侧节点即使正常启动也无法发现或交换
+  Goal/Result。迁移时先停止 Autonomy 与 Perception，升级公共接口，再升级 Perception、
+  Autonomy 并执行 P-01→P-02 smoke test；回滚时两域统一回到本变更前 SHA。
+
+### 非破坏性：补齐 Perception 生产者已经使用的集中 DREE 错误码
+
+- **接口**：`robot_system_interfaces/msg/ErrorCode` 新增
+  `PERC_STANDOFF_TABLE_MISMATCH=2010`、`PERC_CAMERA_FAULT=2020`、
+  `PERC_INCOMPLETE_WALL=2040`、`PERC_INTERNAL_ERROR=2090`、
+  `PERC_CAPTURE_FAILED=2140`、`PERC_BOX_NOT_FOUND=2141`、
+  `PERC_POSE_UNRELIABLE=2142`。
+- **原因**：Perception 的 P-01/P-02 adapter 已按这些数值返回确定错误，但 e826 权威
+  `ErrorCode.msg` 没有对应常量，消费方只能收到无法从公共事实源解释的裸数值。
+- **提出人**：@Edols22（perception）
+- **影响域**：perception 生产者和所有读取公共 `ErrorInfo` 的 autonomy、motion、
+  rt_control 消费方需统一升级仓库 SHA；新增常量不改变 `ErrorInfo` 载荷字段，但禁止
+  长期混用不同契约 SHA。
 ### 破坏性：导航公共接口迁入 Motion 并采用语义地标导航 schema
 
 - **接口**：N-01 `/navigation/navigate_to_pose`
@@ -122,7 +153,7 @@
 - **原因**：旧契约同时出现“13～15 序列”和“固定 15 序列”，历史退避表使用
   0.70/0.90 m，而已验收的感知策略统一使用 0.74 m；`BoxPose.pose` 也未明确区分箱体
   几何中心与吸取接触点。这些差异会导致 Autonomy/Motion 对同一合法消息产生不同解释。
-- **提出人**：@kkozia（perception / 契约）
+- **提出人**：@Edols22（perception / 契约）
 - **影响域**：perception（按 0.74 m 生成计划和接触位姿）、autonomy（固定消费 15 序列并
   原样转发位姿）、motion（不得重算退避或把接触位姿解释为箱体中心）。三域必须升级到
   同一 `robot_interfaces` SHA。**不原子升级的后果**：wire schema 虽可反序列化，但旧
