@@ -75,6 +75,23 @@ class RollingSchemaTest(unittest.TestCase):
         )
         self.assertNotIn("std_msgs/Header", batch)
 
+    def test_protocol_constants_are_generated_at_every_entry_point(self) -> None:
+        expected = (
+            (MOTION_PACKAGE, "msg/RollingJointTargetBatch.msg"),
+            (RT_PACKAGE, "msg/RollingJointControlState.msg"),
+            (RT_PACKAGE, "srv/SetJointControlMode.srv"),
+            (RT_PACKAGE, "srv/OpenRollingJointSession.srv"),
+            (RT_PACKAGE, "srv/CloseRollingJointSession.srv"),
+        )
+
+        for package, relative_path in expected:
+            content = (package / relative_path).read_text(encoding="utf-8")
+            self.assertIn("uint16 PROTOCOL_MAJOR=1", content)
+            self.assertIn("uint16 PROTOCOL_MINOR=0", content)
+
+        batch = motion_schema("msg/RollingJointTargetBatch.msg")
+        self.assertIn("uint16 TRANSPORT_MAX_POINTS=256", batch)
+
     def test_reject_and_stop_codes_are_independent_and_stable(self) -> None:
         reject = constants("msg/RollingRejectCode.msg")
         stop = constants("msg/RollingStopReason.msg")
@@ -150,6 +167,37 @@ class RollingSchemaTest(unittest.TestCase):
             self.assertIn("RollingServiceResult result", service)
             self.assertIn("robot_system_interfaces/ErrorInfo error", service)
 
+    def test_open_reports_the_effective_runtime_contract(self) -> None:
+        service = schema("srv/OpenRollingJointSession.srv")
+
+        for field in (
+            "uint16 buffer_capacity",
+            "uint64 required_initial_horizon_ns",
+            "uint64 max_horizon_ns",
+            "uint64 replace_lead_ns",
+            "uint64 update_timeout_ns",
+            "uint64 nominal_controller_period_ns",
+            "RollingLimitsSource limits_source",
+            "RollingSessionState session_state",
+        ):
+            self.assertIn(field, service)
+
+    def test_mode_result_and_state_expose_switch_evidence(self) -> None:
+        mode_service = schema("srv/SetJointControlMode.srv")
+        state = schema("msg/RollingJointControlState.msg")
+
+        for field in (
+            "bool source_controller_deactivated",
+            "bool target_controller_activated",
+            "bool restart_required",
+        ):
+            self.assertIn(field, mode_service)
+            self.assertIn(field, state)
+
+        self.assertIn("unique_identifier_msgs/UUID last_mode_request_id", state)
+        self.assertIn("bool has_session", state)
+        self.assertIn("bool pending_generation_valid", state)
+
 
 class RollingEndpointTest(unittest.TestCase):
     @classmethod
@@ -220,6 +268,35 @@ class RollingQosSourceTest(unittest.TestCase):
         self.assertIn("inline rclcpp::QoS rolling_state()", cpp)
         self.assertIn("def rolling_command() -> QoSProfile:", python)
         self.assertIn("def rolling_state() -> QoSProfile:", python)
+
+    def test_cpp_and_python_profiles_freeze_the_same_values(self) -> None:
+        cpp = (ROOT / "qos/include/robot_interfaces_qos/profiles.hpp").read_text(
+            encoding="utf-8"
+        )
+        python = (ROOT / "qos/robot_interfaces_qos/__init__.py").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertRegex(
+            cpp,
+            r"(?s)rolling_command\(\).*?KeepLast\(1\).*?best_effort\(\).*?"
+            r"milliseconds\(100\).*?milliseconds\(100\)",
+        )
+        self.assertRegex(
+            cpp,
+            r"(?s)rolling_state\(\).*?KeepLast\(5\).*?reliable\(\).*?"
+            r"milliseconds\(100\).*?milliseconds\(200\)",
+        )
+        self.assertRegex(
+            python,
+            r"(?s)rolling_command\(\).*?depth=1.*?BEST_EFFORT.*?"
+            r"100_000_000.*?100_000_000",
+        )
+        self.assertRegex(
+            python,
+            r"(?s)rolling_state\(\).*?depth=5.*?RELIABLE.*?"
+            r"100_000_000.*?200_000_000",
+        )
 
 
 if __name__ == "__main__":
