@@ -7,7 +7,15 @@
 from rclpy.duration import Duration
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 
-__all__ = ["control", "fast_state", "state", "latched", "diagnostic"]
+__all__ = [
+    "control",
+    "rolling_command",
+    "rolling_state",
+    "fast_state",
+    "state",
+    "latched",
+    "diagnostic",
+]
 
 # /cmd_vel_safe 的看门狗间隔。与 profiles.hpp 及 RT-Control 实现同源。
 CMD_VEL_WATCHDOG_MS = 500
@@ -26,6 +34,28 @@ def control() -> QoSProfile:
         durability=DurabilityPolicy.VOLATILE,
         deadline=Duration(nanoseconds=CMD_VEL_WATCHDOG_MS * 1_000_000),
         lifespan=Duration(nanoseconds=CMD_VEL_WATCHDOG_MS * 1_000_000),
+    )
+
+
+def rolling_command() -> QoSProfile:
+    """ELECTRI-102 最新完整 rolling suffix 命令。"""
+    return QoSProfile(
+        depth=1,
+        reliability=ReliabilityPolicy.BEST_EFFORT,
+        durability=DurabilityPolicy.VOLATILE,
+        deadline=Duration(nanoseconds=100_000_000),
+        lifespan=Duration(nanoseconds=100_000_000),
+    )
+
+
+def rolling_state() -> QoSProfile:
+    """ELECTRI-102 rolling ack、拒绝和控制状态。"""
+    return QoSProfile(
+        depth=5,
+        reliability=ReliabilityPolicy.RELIABLE,
+        durability=DurabilityPolicy.VOLATILE,
+        deadline=Duration(nanoseconds=100_000_000),
+        lifespan=Duration(nanoseconds=200_000_000),
     )
 
 

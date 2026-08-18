@@ -21,7 +21,15 @@ package_owners:
   robot_motion_interfaces: motion
   robot_autonomy_interfaces: autonomy
 
-qos_profiles: [Q_CONTROL, Q_FAST_STATE, Q_STATE, Q_LATCHED, Q_DIAGNOSTIC, Q_DEFAULT]
+qos_profiles:
+  - Q_CONTROL
+  - Q_ROLLING_COMMAND
+  - Q_ROLLING_STATE
+  - Q_FAST_STATE
+  - Q_STATE
+  - Q_LATCHED
+  - Q_DIAGNOSTIC
+  - Q_DEFAULT
 
 endpoints:
   - id: G-01
@@ -201,6 +209,17 @@ endpoints:
     note: "Pose 固定为 base_link 下的目标吸附面中心；真空吸放由 Autonomy 编排 RT-Control"
     constraint: "单一串行阶段 Action；CAMERA_VIEW 可选，其余固定 PREGRASP→APPROACH→PLACE→HOME；禁止并发、非法跳步和阶段重放"
 
+  - id: M-09
+    ros_name: /rt/rolling_joint_control/update
+    kind: topic
+    type: robot_motion_interfaces/msg/RollingJointTargetBatch
+    producer: motion
+    consumers: [rt_control]
+    qos: Q_ROLLING_COMMAND
+    rate_hz: [30, 30]
+    note: "Motion 发布完整权威 future suffix；点间隔由 Motion 决定，本期约 100 ms"
+    constraint: "协议 1.0 精确匹配；固定 14 轴 SI 单位；sequence 非零且严格递增；replace_from_ns 与首点 session-relative 时间完全相等；points 非空且不超过 open 回报 capacity/传输上限 256；best-effort/volatile/keep-last(1)，deadline/lifespan 100 ms；DDS deadline 仅诊断，停止由 accepted-update age 与 low-water 决定"
+
   - id: M-06
     ros_name: /motion/readiness
     kind: topic
@@ -258,6 +277,33 @@ endpoints:
     consumers: [autonomy]
     qos: Q_DEFAULT
     constraint: "Autonomy 在 M-08 阶段之间编排；通道固定 `left/right` 且同数量/同集/同序；当前只接受 `grip_profile_id=default`；GRIP 每通道新鲜 `attached=true`；RELEASE 仍 `UNVERIFIED`"
+
+  - id: R-IN-06
+    ros_name: /rt/joint_control/set_mode
+    kind: service
+    type: robot_rt_control_interfaces/srv/SetJointControlMode
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    constraint: "协议 1.0 精确匹配；expected_mode 是 compare-and-set guard；Motion 在 FJT→rolling 前 cancel 并等待 Action 终态；admission 失败不得调用 controller_manager；同 client/request_id 幂等；STRICT 结果含 source/target controller 证据，歧义进入 RESTART_REQUIRED 且不自动重试"
+
+  - id: R-IN-07
+    ros_name: /rt/rolling_joint_control/open
+    kind: service
+    type: robot_rt_control_interfaces/srv/OpenRollingJointSession
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    constraint: "仅 ROLLING_READY/NONE 可 open；协议、boot、14 轴 axis_set_hash、反馈新鲜度、source hold 与 limits 完整性 fail-closed 校验；同 client/request_id 幂等；返回 session/hold、limits source/version、capacity、horizon、replace lead、update timeout 与名义周期的实际生效值"
+
+  - id: R-IN-09
+    ros_name: /rt/rolling_joint_control/close
+    kind: service
+    type: robot_rt_control_interfaces/srv/CloseRollingJointSession
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    constraint: "协议/boot/session/client 精确匹配；REQUEST_STOP 异步锁存 stopping，完成以 state=HOLDING 为准；HOLDING 后显式 FINALIZE 销毁 session；同 client/request_id 幂等；无公共 abrupt abort，disable/fault 走既有高优先级生命周期"
 
   - id: R-OUT-01
     ros_name: /tf
@@ -341,6 +387,17 @@ endpoints:
     max_age_ms: 200
     constraint: "**软件可观测摘要，不含硬安全链状态**；`Q_STATE`；10～50 Hz；最大年龄 200 ms；`safe_to_start_motion=false` 或过期时禁止新动作"
 
+  - id: R-OUT-07
+    ros_name: /rt/rolling_joint_control/state
+    kind: topic
+    type: robot_rt_control_interfaces/msg/RollingJointControlState
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_ROLLING_STATE
+    rate_hz: [50, 50]
+    max_age_ms: 200
+    constraint: "协议、boot/session/client、mode/session、generation/sequence、execution/replaceable/buffered/age、desired q/qdot、独立 RejectCode/StopReason、switch evidence 与 limits source 全量可观测；reliable/volatile/keep-last(5)，deadline 100 ms、lifespan 200 ms；published_at 仅诊断，不参与命令排序或采样"
+
   - id: R-OUT-09
     ros_name: /rt_control/readiness
     kind: topic
@@ -368,6 +425,13 @@ member_types:
   - robot_system_interfaces/msg/ErrorInfo
   - robot_motion_interfaces/msg/Landmark
   - robot_motion_interfaces/msg/DualArmPoseTargets
+  - robot_motion_interfaces/msg/RollingJointPoint
+  - robot_rt_control_interfaces/msg/JointControlMode
+  - robot_rt_control_interfaces/msg/RollingLimitsSource
+  - robot_rt_control_interfaces/msg/RollingRejectCode
+  - robot_rt_control_interfaces/msg/RollingServiceResult
+  - robot_rt_control_interfaces/msg/RollingSessionState
+  - robot_rt_control_interfaces/msg/RollingStopReason
   - robot_rt_control_interfaces/msg/VacuumChannelState
   - robot_rt_control_interfaces/msg/VacuumChannelResult
   - robot_rt_control_interfaces/msg/VacuumChannelFeedback

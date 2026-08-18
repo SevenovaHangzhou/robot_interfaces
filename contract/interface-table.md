@@ -36,6 +36,7 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | N-15 | `/navigation/semanticmap/get_landmark` | Service / `robot_motion_interfaces/srv/GetLandmark` | Perception、Autonomy、外部/本地入口 ⇄ Motion | 按 target_name 查询语义地标；N-01 服务端用它解析导航目标 |
 | N-16 | `/navigation/semanticmap/get_map` | Service / `robot_motion_interfaces/srv/GetSemanticMap` | Perception、Autonomy、外部/本地入口 ⇄ Motion | 查询指定 map_version 下全部语义地标 |
 | M-08 | `/motion/execute_stage` | Action / `robot_motion_interfaces/action/ExecuteMotionStage` | Autonomy ⇄ Motion | 单一串行阶段 Action；CAMERA_VIEW 可选，其余固定 PREGRASP→APPROACH→PLACE→HOME；禁止并发、非法跳步和阶段重放 |
+| M-09 | `/rt/rolling_joint_control/update` | Topic / `robot_motion_interfaces/msg/RollingJointTargetBatch` | Motion → RT-Control | 协议 1.0 精确匹配；固定 14 轴 SI 单位；sequence 非零且严格递增；replace_from_ns 与首点 session-relative 时间完全相等；points 非空且不超过 open 回报 capacity/传输上限 256；best-effort/volatile/keep-last(1)，deadline/lifespan 100 ms；DDS deadline 仅诊断，停止由 accepted-update age 与 low-water 决定 |
 | M-06 | `/motion/readiness` | Topic / `robot_system_interfaces/msg/DomainReadiness` | Motion → Autonomy | 机械能力准入；变化立即发；稳定 1 Hz |
 | N-06 | `/navigation/readiness` | Topic / `robot_system_interfaces/msg/DomainReadiness` | Motion → Autonomy | 导航执行能力准入；变化立即发；稳定 1 Hz |
 
@@ -47,6 +48,9 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | R-IN-03 | `/control/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetControlEnabled` | 外部/本地入口 ⇄ RT-Control | 不复位急停、安全继电器或 STO；不属于箱级任务流程 |
 | R-IN-04 | `/vacuum/pump/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetPumpEnabled` | 外部/本地入口 ⇄ RT-Control | 活动真空命令或可能持箱时拒绝普通停泵 |
 | R-IN-05 | `/vacuum/grip` | Action / `robot_rt_control_interfaces/action/VacuumGrip` | Autonomy ⇄ RT-Control | Autonomy 在 M-08 阶段之间编排；通道固定 `left/right` 且同数量/同集/同序；当前只接受 `grip_profile_id=default`；GRIP 每通道新鲜 `attached=true`；RELEASE 仍 `UNVERIFIED` |
+| R-IN-06 | `/rt/joint_control/set_mode` | Service / `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion ⇄ RT-Control | 协议 1.0 精确匹配；expected_mode 是 compare-and-set guard；Motion 在 FJT→rolling 前 cancel 并等待 Action 终态；admission 失败不得调用 controller_manager；同 client/request_id 幂等；STRICT 结果含 source/target controller 证据，歧义进入 RESTART_REQUIRED 且不自动重试 |
+| R-IN-07 | `/rt/rolling_joint_control/open` | Service / `robot_rt_control_interfaces/srv/OpenRollingJointSession` | Motion ⇄ RT-Control | 仅 ROLLING_READY/NONE 可 open；协议、boot、14 轴 axis_set_hash、反馈新鲜度、source hold 与 limits 完整性 fail-closed 校验；同 client/request_id 幂等；返回 session/hold、limits source/version、capacity、horizon、replace lead、update timeout 与名义周期的实际生效值 |
+| R-IN-09 | `/rt/rolling_joint_control/close` | Service / `robot_rt_control_interfaces/srv/CloseRollingJointSession` | Motion ⇄ RT-Control | 协议/boot/session/client 精确匹配；REQUEST_STOP 异步锁存 stopping，完成以 state=HOLDING 为准；HOLDING 后显式 FINALIZE 销毁 session；同 client/request_id 幂等；无公共 abrupt abort，disable/fault 走既有高优先级生命周期 |
 
 ### 5.5 RT-Control 输出
 
@@ -59,5 +63,6 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | R-OUT-04 | `/battery_state` | Topic / `sensor_msgs/msg/BatteryState` | RT-Control → Autonomy | BMS 周期 5 s（0.2 Hz）；只读，不作为业务控制入口 |
 | R-OUT-05 | `/vacuum/state` | Topic / `robot_rt_control_interfaces/msg/VacuumState` | RT-Control → Autonomy | `Q_STATE`；20～50 Hz；发布 `left/right` 新鲜 `attached` 布尔状态；只 RT-Control 用于 GRIP 判定；Motion 不订阅 |
 | R-OUT-06 | `/control/safety_state` | Topic / `robot_rt_control_interfaces/msg/SafetyState` | RT-Control → Perception、Motion、Autonomy | **软件可观测摘要，不含硬安全链状态**；`Q_STATE`；10～50 Hz；最大年龄 200 ms；`safe_to_start_motion=false` 或过期时禁止新动作 |
+| R-OUT-07 | `/rt/rolling_joint_control/state` | Topic / `robot_rt_control_interfaces/msg/RollingJointControlState` | RT-Control → Motion | 协议、boot/session/client、mode/session、generation/sequence、execution/replaceable/buffered/age、desired q/qdot、独立 RejectCode/StopReason、switch evidence 与 limits source 全量可观测；reliable/volatile/keep-last(5)，deadline 100 ms、lifespan 200 ms；published_at 仅诊断，不参与命令排序或采样 |
 | R-OUT-09 | `/rt_control/readiness` | Topic / `robot_system_interfaces/msg/DomainReadiness` | RT-Control → Autonomy | 故障立即 `ready=false`；变化立即发；稳定 1 Hz |
 | R-OUT-10 | `/diagnostics` | Topic / `diagnostic_msgs/msg/DiagnosticArray` | RT-Control → 外部/本地入口 | `Q_DIAGNOSTIC`；不替代 Action Result、SafetyState 或硬安全链 |

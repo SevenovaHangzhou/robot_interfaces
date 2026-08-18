@@ -28,6 +28,31 @@ inline rclcpp::QoS control()
   return qos;
 }
 
+/// ELECTRI-102 rolling joint future-suffix command.
+///
+/// A newer self-contained suffix supersedes an older one. Reliable replay of
+/// an expired suffix is less useful than keeping only the newest sample.
+inline rclcpp::QoS rolling_command()
+{
+  rclcpp::QoS qos{rclcpp::KeepLast(1)};
+  qos.best_effort();
+  qos.durability_volatile();
+  qos.deadline(std::chrono::milliseconds(100));
+  qos.lifespan(std::chrono::milliseconds(100));
+  return qos;
+}
+
+/// ELECTRI-102 rolling joint acknowledgement and controller state.
+inline rclcpp::QoS rolling_state()
+{
+  rclcpp::QoS qos{rclcpp::KeepLast(5)};
+  qos.reliable();
+  qos.durability_volatile();
+  qos.deadline(std::chrono::milliseconds(100));
+  qos.lifespan(std::chrono::milliseconds(200));
+  return qos;
+}
+
 /// 高频状态（/joint_states 125 Hz、/odom、/wheel/odom 50 Hz）。
 inline rclcpp::QoS fast_state()
 {
