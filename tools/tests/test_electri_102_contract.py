@@ -11,10 +11,15 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 RT_PACKAGE = ROOT / "robot_rt_control_interfaces"
+MOTION_PACKAGE = ROOT / "robot_motion_interfaces"
 
 
 def schema(relative_path: str) -> str:
     return (RT_PACKAGE / relative_path).read_text(encoding="utf-8")
+
+
+def motion_schema(relative_path: str) -> str:
+    return (MOTION_PACKAGE / relative_path).read_text(encoding="utf-8")
 
 
 def constants(relative_path: str) -> dict[str, int]:
@@ -31,27 +36,36 @@ def constants(relative_path: str) -> dict[str, int]:
 class RollingSchemaTest(unittest.TestCase):
     def test_required_interface_files_exist(self) -> None:
         expected = {
-            "msg/JointControlMode.msg",
-            "msg/RollingJointPoint.msg",
-            "msg/RollingJointTargetBatch.msg",
-            "msg/RollingJointControlState.msg",
-            "msg/RollingLimitsSource.msg",
-            "msg/RollingRejectCode.msg",
-            "msg/RollingServiceResult.msg",
-            "msg/RollingSessionState.msg",
-            "msg/RollingStopReason.msg",
-            "srv/CloseRollingJointSession.srv",
-            "srv/OpenRollingJointSession.srv",
-            "srv/SetJointControlMode.srv",
+            RT_PACKAGE: {
+                "msg/JointControlMode.msg",
+                "msg/RollingJointControlState.msg",
+                "msg/RollingLimitsSource.msg",
+                "msg/RollingRejectCode.msg",
+                "msg/RollingServiceResult.msg",
+                "msg/RollingSessionState.msg",
+                "msg/RollingStopReason.msg",
+                "srv/CloseRollingJointSession.srv",
+                "srv/OpenRollingJointSession.srv",
+                "srv/SetJointControlMode.srv",
+            },
+            MOTION_PACKAGE: {
+                "msg/RollingJointPoint.msg",
+                "msg/RollingJointTargetBatch.msg",
+            },
         }
 
-        missing = sorted(path for path in expected if not (RT_PACKAGE / path).is_file())
+        missing = sorted(
+            f"{package.name}/{path}"
+            for package, paths in expected.items()
+            for path in paths
+            if not (package / path).is_file()
+        )
 
         self.assertEqual(missing, [])
 
     def test_point_and_batch_are_fixed_and_bounded(self) -> None:
-        point = schema("msg/RollingJointPoint.msg")
-        batch = schema("msg/RollingJointTargetBatch.msg")
+        point = motion_schema("msg/RollingJointPoint.msg")
+        batch = motion_schema("msg/RollingJointTargetBatch.msg")
 
         self.assertIn("float64[14] positions", point)
         self.assertIn("float64[14] velocities", point)
@@ -159,9 +173,9 @@ class RollingEndpointTest(unittest.TestCase):
                 "robot_rt_control_interfaces/srv/OpenRollingJointSession",
                 "Q_DEFAULT",
             ),
-            "R-IN-08": (
+            "M-09": (
                 "/rt/rolling_joint_control/update",
-                "robot_rt_control_interfaces/msg/RollingJointTargetBatch",
+                "robot_motion_interfaces/msg/RollingJointTargetBatch",
                 "Q_ROLLING_COMMAND",
             ),
             "R-IN-09": (
@@ -181,8 +195,12 @@ class RollingEndpointTest(unittest.TestCase):
             self.assertEqual(endpoint["ros_name"], name)
             self.assertEqual(endpoint["type"], type_name)
             self.assertEqual(endpoint["qos"], qos)
-            self.assertEqual(endpoint["producer"], "rt_control")
-            self.assertEqual(endpoint["consumers"], ["motion"])
+            if endpoint_id == "M-09":
+                self.assertEqual(endpoint["producer"], "motion")
+                self.assertEqual(endpoint["consumers"], ["rt_control"])
+            else:
+                self.assertEqual(endpoint["producer"], "rt_control")
+                self.assertEqual(endpoint["consumers"], ["motion"])
 
     def test_named_qos_profiles_are_registered(self) -> None:
         self.assertIn("Q_ROLLING_COMMAND", self.document["qos_profiles"])
