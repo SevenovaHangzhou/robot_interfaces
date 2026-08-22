@@ -39,6 +39,17 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 非破坏性：明确 P-02 导航位姿通过语义地图 landmark 间接消费
+
+- **接口**：`robot_perception_interfaces/msg/PickSequence.station_nav_pose` 注释；wire schema 不变。
+- **原因**：N-01 `/navigation/navigate_to_pose` 当前公共接口只接收 `target_name + map_version`，
+  不直接消费 `PoseStamped`。`station_nav_pose` 实际先以 `station_id` 注册或更新 semantic map
+  landmark，再由 Autonomy 传入 `target_name=station_id`，Motion 查询 `Landmark.landmark_pose`
+  后转发给内部 Nav2。注释必须写清该链路，避免消费者误以为 Motion/Nav2 会直接解析
+  `PickSequence` 中的位姿字段。
+- **提出人**：@pppp（perception / navigation contract）
+- **影响域**：Perception、Autonomy、Motion/Navigation。仅更新接口注释，消息字段和类型哈希不变。
+
 ### 破坏性：冻结跨域 `ErrorInfo` DREE 与 `DomainReadiness` 一致性语义
 
 - **接口**：全部直接或间接携带 `robot_system_interfaces/msg/ErrorInfo` 的 Action、Service、

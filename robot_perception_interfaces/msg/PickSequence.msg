@@ -26,7 +26,10 @@ float32 station_standoff_m
 #   取本序列所属列的箱墙面心 → 法向量与 XY 方向平均值
 #   → 沿箱墙外法向回退统一的 station_standoff_m（当前 0.74 m）
 #
-# Motion 的 Nav2 只消费本位姿，不解析语义地图、不重算、不自行加偏置。
+# 该位姿用于以 station_id 为 landmark name 注册或更新 semantic map。
+# N-01 /navigation/navigate_to_pose 只接收 target_name + map_version；
+# Autonomy 导航本序列时传入 target_name=station_id，由 Motion 查询 semantic map
+# 后把对应 Landmark.landmark_pose 转发给内部 Nav2，不重算、不自行加偏置。
 geometry_msgs/PoseStamped station_nav_pose
 
 # 本序列的近距离重拍位，按臂绑定，1～2 项，与 boxes 同集同序。
