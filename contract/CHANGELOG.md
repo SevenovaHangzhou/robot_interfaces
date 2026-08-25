@@ -39,6 +39,21 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 非破坏性：M-08 增加独立 Turn 与命名关节姿态任务
+
+- **接口**：M-08 `/motion/execute_stage`
+  `robot_motion_interfaces/action/ExecuteMotionStage` 新增独立阶段 `TURN`、
+  `NAMED_JOINT_POSE`，Goal 新增 `turn_target_rad`、`named_joint_pose`；命名姿态固定为
+  `REMOTE_CAMERA_VIEW` 与 `ARM_CONVERGED`。
+- **原因**：Autonomy 需要在不建立抓取流程时，独立命令 Motion 旋转 Turn、到达远端拍照姿态
+  或机械臂收敛姿态；旧 M-08 只表达 CAMERA_VIEW 和严格抓取阶段，无法区分这些可任意触发的
+  单次动作与必须顺序执行的抓取流程。
+- **提出人**：@231055558（motion）
+- **影响域**：Motion（生产者）与 Autonomy（消费者）必须使用同一
+  `robot_interfaces` SHA，并同步更新 Goal 构造、阶段校验和状态机。新旧 Action 类型哈希不同，
+  不允许混跑；升级时停止 Autonomy 与 Motion，统一更新接口和两端实现后执行独立任务及完整
+  PREGRASP→APPROACH→PLACE→HOME smoke test，回滚时两域共同恢复到本变更前 SHA。
+
 ### 破坏性：冻结跨域 `ErrorInfo` DREE 与 `DomainReadiness` 一致性语义
 
 - **接口**：全部直接或间接携带 `robot_system_interfaces/msg/ErrorInfo` 的 Action、Service、

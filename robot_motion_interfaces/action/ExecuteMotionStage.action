@@ -1,8 +1,11 @@
 # M-08 /motion/execute_stage。Autonomy ⇄ Motion。
 #
-# 单一阶段 Action。正常顺序为 CAMERA_VIEW → PREGRASP → APPROACH → PLACE → HOME；
-# 无重拍任务允许从当前机器人真实状态直接以 PREGRASP 开始新流程。
-# 同一时刻只接受一个 Goal；除上述可选 CAMERA_VIEW 外，禁止跳步和阶段重放。
+# 单一阶段 Action，分为两类：
+# - 独立任务 TURN、CAMERA_VIEW、NAMED_JOINT_POSE：仅在无活动抓取流程时允许，
+#   三者可按任意顺序单独触发，完成后不建立抓取流程上下文。
+# - 抓取流程 PREGRASP → APPROACH → PLACE → HOME：PREGRASP 建立流程，后续阶段
+#   必须严格按序执行，HOME 成功后结束流程；禁止跳步和提前触发。
+# 同一时刻只接受一个 Goal；活动抓取流程期间禁止触发独立任务。
 # 本 Action 只规划和执行机械轨迹，不控制真空泵或电磁阀。
 
 uint8 EXECUTION_STAGE_UNSPECIFIED=0
@@ -11,9 +14,27 @@ uint8 EXECUTION_STAGE_PREGRASP=2
 uint8 EXECUTION_STAGE_APPROACH=3
 uint8 EXECUTION_STAGE_PLACE=4
 uint8 EXECUTION_STAGE_HOME=5
+uint8 EXECUTION_STAGE_TURN=6
+uint8 EXECUTION_STAGE_NAMED_JOINT_POSE=7
+
+uint8 NAMED_JOINT_POSE_UNSPECIFIED=0
+uint8 NAMED_JOINT_POSE_REMOTE_CAMERA_VIEW=1
+uint8 NAMED_JOINT_POSE_ARM_CONVERGED=2
 
 uint8 execution_stage
+
+# CAMERA_VIEW/PREGRASP 使用；Pose 固定表达在 base_link 中。
+# 其他阶段必须保持默认值，服务端不得解析其中的 Pose。
 robot_motion_interfaces/DualArmPoseTargets targets
+
+# 仅 TURN 使用；单位 rad，采用 RT-Control 公共 ROS/URDF Turn 坐标语义。
+# Motion 只在本阶段改变 Turn；其他阶段保持当前 Turn。
+float64 turn_target_rad
+
+# 仅 NAMED_JOINT_POSE 使用，必须取上述两个非 UNSPECIFIED 值之一。
+# 两个固定姿态只改变左右臂 12 个旋转关节；Turn 与 Updown 均保持当前位置。
+# 实际关节值由 Motion 域按机器人型号和标定版本管理，不进入公共 wire schema。
+uint8 named_joint_pose
 ---
 # 与 ROS Action 终态一致；SUCCEEDED 时必须为 true，ABORTED/CANCELED 时必须为 false。
 bool ok

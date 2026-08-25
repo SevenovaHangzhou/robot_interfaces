@@ -29,7 +29,7 @@
 | N-10 | `/navigation/semanticmap/landmark_array` | Topic | `robot_motion_interfaces/msg/LandmarkArray` | Motion | Q_STATE |
 | N-15 | `/navigation/semanticmap/get_landmark` | Service | `robot_motion_interfaces/srv/GetLandmark` | Motion | — |
 | N-16 | `/navigation/semanticmap/get_map` | Service | `robot_motion_interfaces/srv/GetSemanticMap` | Motion | — |
-| M-08 | `/motion/execute_stage` | Action | `robot_motion_interfaces/action/ExecuteMotionStage` | Motion | Pose 固定为 base_link 下的目标吸附面中心；真空吸放由 Autonomy 编排 RT-Control |
+| M-08 | `/motion/execute_stage` | Action | `robot_motion_interfaces/action/ExecuteMotionStage` | Motion | CAMERA_VIEW/PREGRASP Pose 固定表达在 base_link；TURN 目标单位 rad；命名姿态只改变双臂 12 轴并保持 Turn/Updown；真空吸放由 Autonomy 编排 RT-Control |
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
 | R-IN-05 | `/vacuum/grip` | Action | `robot_rt_control_interfaces/action/VacuumGrip` | RT-Control | — |
