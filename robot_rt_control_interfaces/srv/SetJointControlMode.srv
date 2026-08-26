@@ -1,0 +1,23 @@
+# Compare-and-set controller mode transition. Motion owns FJT cancel/wait.
+
+uint16 PROTOCOL_MAJOR=1
+uint16 PROTOCOL_MINOR=0
+
+uint16 protocol_major
+uint16 protocol_minor
+unique_identifier_msgs/UUID client_instance_id
+unique_identifier_msgs/UUID request_id
+JointControlMode expected_mode
+JointControlMode target_mode
+---
+# accepted=true requires result=NONE and ErrorInfo.code=SUCCESS. A retry with
+# the same client/request IDs returns the original outcome.
+bool accepted
+RollingServiceResult result
+robot_system_interfaces/ErrorInfo error
+JointControlMode mode
+unique_identifier_msgs/UUID controller_boot_id
+unique_identifier_msgs/UUID request_id
+bool source_controller_deactivated
+bool target_controller_activated
+bool restart_required

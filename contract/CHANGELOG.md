@@ -54,6 +54,27 @@
   不允许混跑；升级时停止 Autonomy 与 Motion，统一更新接口和两端实现后执行独立任务及完整
   PREGRASP→APPROACH→PLACE→HOME smoke test，回滚时两域共同恢复到本变更前 SHA。
 
+### 新增：Motion 与 RT-Control 的 rolling 关节控制公共契约
+
+- **接口**：新增 R-IN-06 `/rt/joint_control/set_mode`
+  `robot_rt_control_interfaces/srv/SetJointControlMode`、R-IN-07
+  `/rt/rolling_joint_control/open` `OpenRollingJointSession`、M-09
+  `/rt/rolling_joint_control/update`
+  `robot_motion_interfaces/msg/RollingJointTargetBatch`、R-IN-09
+  `/rt/rolling_joint_control/close` `CloseRollingJointSession`、R-OUT-07
+  `/rt/rolling_joint_control/state` `RollingJointControlState`，以及成员枚举、固定 14 轴 point
+  和命名 QoS `Q_ROLLING_COMMAND`／`Q_ROLLING_STATE`。
+- **原因**：ELECTRI-102 的视觉伺服需要 Motion 以约 30 Hz 持续替换 100 ms 间隔的完整未来
+  关节后缀，RT-Control 在 250 Hz 环内插值执行，并对会话身份、拼接连续性、动态包络、
+  断更和可停车 horizon 做 fail-closed 准入；单个长 FJT goal 和无会话 Twist 均无法表达
+  authoritative suffix、generation/reject acknowledgement 与两阶段安全关闭语义。
+- **提出人**：@kkozia（rt_control / 契约）
+- **影响域**：Motion 是 M-09 生产者及四个 RT-Control endpoint 的消费者，RT-Control 是
+  M-09 消费者及其余 endpoint 生产者；两域必须锁定同一 `robot_interfaces` SHA，先完成
+  各自编译与 mock，再在同一联调窗口执行 open→prime→rolling update→stop→finalize smoke。
+  新旧 SHA 不允许混跑；回滚时 Motion 与 RT-Control 一同回到本变更前 SHA，禁止只回滚
+  topic 一侧或 service 一侧。Autonomy、Perception 和 external 不获得这些直控端点。
+
 ### 破坏性：冻结跨域 `ErrorInfo` DREE 与 `DomainReadiness` 一致性语义
 
 - **接口**：全部直接或间接携带 `robot_system_interfaces/msg/ErrorInfo` 的 Action、Service、

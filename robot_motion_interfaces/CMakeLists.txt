@@ -6,6 +6,7 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(robot_system_interfaces REQUIRED)
+find_package(unique_identifier_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Landmark.msg"
@@ -20,10 +21,13 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/UpdateLandmark.srv"
   "action/ExecuteMotionStage.action"
   "msg/DualArmPoseTargets.msg"
+  "msg/RollingJointPoint.msg"
+  "msg/RollingJointTargetBatch.msg"
   DEPENDENCIES
     geometry_msgs
     std_msgs
     robot_system_interfaces
+    unique_identifier_msgs
 )
 
 ament_package()

@@ -4,9 +4,8 @@
   <version>0.6.0</version>
   <description>
     Motion 域提供的跨域公共接口：导航执行、语义地图、定位状态、
-    观测位执行、抓取与放置。对应 N-01、N-05、N-10～N-16 与 M-01～M-03。
-    Motion 域提供的跨域公共接口：导航执行与五阶段机械运动。
-    对应 N-01、M-08。
+    五阶段机械运动与 rolling 关节目标。对应 N-01、N-05、N-10～N-16、
+    M-08、M-09。
   </description>
   <maintainer email="kkozia188@gmail.com">kkozia</maintainer>
   <license>Apache-2.0</license>
@@ -17,6 +16,7 @@
   <depend>geometry_msgs</depend>
   <depend>std_msgs</depend>
   <depend>robot_system_interfaces</depend>
+  <depend>unique_identifier_msgs</depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>
