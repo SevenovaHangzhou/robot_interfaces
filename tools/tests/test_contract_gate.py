@@ -68,7 +68,22 @@ class ContractGateTest(unittest.TestCase):
         )
         self.assertEqual(motion_stage["producer"], "motion")
         self.assertEqual(motion_stage["consumers"], ["autonomy"])
-        self.assertIn("CAMERA_VIEW 可选", motion_stage["constraint"])
+        self.assertIn("TURN/CAMERA_VIEW/NAMED_JOINT_POSE", motion_stage["constraint"])
+        self.assertIn("PREGRASP→APPROACH→PLACE→HOME", motion_stage["constraint"])
+
+        schema = Path(
+            "robot_motion_interfaces/action/ExecuteMotionStage.action"
+        ).read_text(encoding="utf-8")
+        for declaration in (
+            "uint8 EXECUTION_STAGE_TURN=6",
+            "uint8 EXECUTION_STAGE_NAMED_JOINT_POSE=7",
+            "uint8 NAMED_JOINT_POSE_REMOTE_CAMERA_VIEW=1",
+            "uint8 NAMED_JOINT_POSE_ARM_CONVERGED=2",
+            "float64 turn_target_rad",
+            "uint8 named_joint_pose",
+        ):
+            self.assertIn(declaration, schema)
+        self.assertIn("Turn 与 Updown 均保持当前位置", schema)
 
         vacuum_grip = endpoints["R-IN-05"]
         self.assertEqual(vacuum_grip["consumers"], ["autonomy"])

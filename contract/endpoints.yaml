@@ -198,8 +198,8 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    note: "Pose 固定为 base_link 下的目标吸附面中心；真空吸放由 Autonomy 编排 RT-Control"
-    constraint: "单一串行阶段 Action；CAMERA_VIEW 可选，其余固定 PREGRASP→APPROACH→PLACE→HOME；禁止并发、非法跳步和阶段重放"
+    note: "CAMERA_VIEW/PREGRASP Pose 固定表达在 base_link；TURN 目标单位 rad；命名姿态只改变双臂 12 轴并保持 Turn/Updown；真空吸放由 Autonomy 编排 RT-Control"
+    constraint: "单一串行阶段 Action；无活动抓取流程时 TURN/CAMERA_VIEW/NAMED_JOINT_POSE 可任意独立触发；抓取流程固定 PREGRASP→APPROACH→PLACE→HOME，活动期间禁止独立任务、并发、跳步和提前触发"
 
   - id: M-06
     ros_name: /motion/readiness
