@@ -15,7 +15,7 @@
 | --- | --- | --- | --- | --- | --- |
 | G-01 | `/autonomy/execute_demo_task` | Action | `robot_autonomy_interfaces/action/ExecuteDemoTask` | 外部/本地入口 | — |
 
-## 本域消费（21 条）
+## 本域消费（22 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -29,6 +29,7 @@
 | N-10 | `/navigation/semanticmap/landmark_array` | Topic | `robot_motion_interfaces/msg/LandmarkArray` | Motion | Q_STATE |
 | N-15 | `/navigation/semanticmap/get_landmark` | Service | `robot_motion_interfaces/srv/GetLandmark` | Motion | — |
 | N-16 | `/navigation/semanticmap/get_map` | Service | `robot_motion_interfaces/srv/GetSemanticMap` | Motion | — |
+| N-17 | `/navigation/mapping/set_turn_state` | Service | `robot_motion_interfaces/srv/SetMappingTurnState` | Motion | 只用于固定 LiDAR 外参建图模式；turn_sequence 由调用方单调递增，同一 BEGIN_TURN/TURN_COMPLETE 重试幂等 |
 | M-08 | `/motion/execute_stage` | Action | `robot_motion_interfaces/action/ExecuteMotionStage` | Motion | CAMERA_VIEW/PREGRASP Pose 固定表达在 base_link；TURN 目标单位 rad；命名姿态只改变双臂 12 轴并保持 Turn/Updown；真空吸放由 Autonomy 编排 RT-Control |
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |

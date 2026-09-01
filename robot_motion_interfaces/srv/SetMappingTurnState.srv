@@ -1,0 +1,37 @@
+# N-17 /navigation/mapping/set_turn_state
+#
+# 上位机必须在转台开始运动前调用 BEGIN_TURN，并在转台完全停稳后以相同
+# caller_id、turn_sequence 调用 TURN_COMPLETE。turn_sequence 由调用方单调递增，
+# 0 非法；同一阶段的网络重试是幂等的。
+
+uint8 BEGIN_TURN=1
+uint8 TURN_COMPLETE=2
+
+uint8 phase
+uint64 turn_sequence
+string caller_id
+---
+# INITIALIZING：固定外参尚未完成启动捕获。
+# READY：可开始下一次 Turn，或最近一次 Turn 已完成并恢复里程计融合。
+# TURNING：BEGIN_TURN 已生效，FAST-LIO 到底盘的融合输入已暂停。
+# RESUME_PENDING：新固定外参已切换，但融合输入尚未成功恢复；调用方应以
+# 相同 TURN_COMPLETE 请求重试，不得开始下一次 Turn。
+uint8 STATE_INITIALIZING=0
+uint8 STATE_READY=1
+uint8 STATE_TURNING=2
+uint8 STATE_RESUME_PENDING=3
+
+# success=true 表示请求阶段已完全生效；此时 error.code 必须为 SUCCESS。
+bool success
+uint8 state
+
+# TURNING/RESUME_PENDING 时为当前事务序号，其他状态为 0。
+uint64 active_turn_sequence
+# 最近一次成功完成并应用到固定外参的事务序号；启动快照为 0。
+uint64 applied_turn_sequence
+# 最近一次固定外参切换的 ROS 时间；尚未捕获启动外参时为零。
+builtin_interfaces/Time effective_stamp
+
+# success=false 时说明拒绝或可重试原因。调用方只根据 code/retryable 决策，
+# 不解析 message/detail 文本。
+robot_system_interfaces/ErrorInfo error
