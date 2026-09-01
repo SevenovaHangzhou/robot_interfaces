@@ -39,6 +39,21 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：N-17 为固定外参建图提供 Turn 边界切换协议
+
+- **接口**：N-17 `/navigation/mapping/set_turn_state`，
+  `robot_motion_interfaces/srv/SetMappingTurnState`；请求阶段为 `BEGIN_TURN` 或
+  `TURN_COMPLETE`，以 `caller_id + turn_sequence` 关联一次 Turn，响应返回协议状态、
+  活动/已应用序号、外参生效时间和公共 `ErrorInfo`。
+- **原因**：固定外参建图原先只在启动时捕获一次 `base_footprint←LiDAR` TF；转台改变角度后，
+  只能重启 mapping 才能重新捕获。上位机需要在 Turn 前可靠暂停 FAST-LIO 到底盘的融合输入，
+  并在停稳且实时 TF 连续稳定后原子切换固定外参、丢弃旧里程计再恢复融合。
+- **提出人**：@Carbine-P（motion / external）
+- **影响域**：Motion/Navigation（生产者）与 Autonomy、external 上位机（消费者）必须使用同一
+  `robot_interfaces` SHA。部署时先升级公共接口，再升级导航服务端和调用方，并执行
+  BEGIN_TURN→实际 Turn→TURN_COMPLETE、重复请求、乱序拒绝及 TF 未稳定重试 smoke test；
+  回滚时三方共同恢复到 N-17 引入前 SHA。
+
 ### 非破坏性：M-08 增加独立 Turn 与命名关节姿态任务
 
 - **接口**：M-08 `/motion/execute_stage`

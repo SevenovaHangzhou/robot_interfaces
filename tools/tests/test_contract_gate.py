@@ -101,6 +101,40 @@ class ContractGateTest(unittest.TestCase):
             }.issubset(removed_endpoints)
         )
 
+    def test_mapping_turn_state_contract_is_registered_and_transactional(self) -> None:
+        endpoints = {
+            endpoint["id"]: endpoint for endpoint in self.document["endpoints"]
+        }
+        endpoint = endpoints["N-17"]
+
+        self.assertEqual(
+            endpoint["ros_name"], "/navigation/mapping/set_turn_state"
+        )
+        self.assertEqual(
+            endpoint["type"],
+            "robot_motion_interfaces/srv/SetMappingTurnState",
+        )
+        self.assertEqual(endpoint["producer"], "motion")
+        self.assertEqual(endpoint["consumers"], ["autonomy", "external"])
+        self.assertIn("BEGIN_TURN", endpoint["constraint"])
+        self.assertIn("TURN_COMPLETE", endpoint["constraint"])
+        self.assertIn("连续稳定", endpoint["constraint"])
+
+        schema = Path(
+            "robot_motion_interfaces/srv/SetMappingTurnState.srv"
+        ).read_text(encoding="utf-8")
+        for declaration in (
+            "uint8 BEGIN_TURN=1",
+            "uint8 TURN_COMPLETE=2",
+            "uint64 turn_sequence",
+            "string caller_id",
+            "uint8 STATE_RESUME_PENDING=3",
+            "uint64 applied_turn_sequence",
+            "builtin_interfaces/Time effective_stamp",
+            "robot_system_interfaces/ErrorInfo error",
+        ):
+            self.assertIn(declaration, schema)
+
     def test_error_info_is_the_cross_domain_uint32_dree_envelope(self) -> None:
         schema = Path("robot_system_interfaces/msg/ErrorInfo.msg").read_text(
             encoding="utf-8"

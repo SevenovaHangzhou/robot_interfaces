@@ -191,6 +191,16 @@ endpoints:
     qos: Q_DEFAULT
     constraint: "查询指定 map_version 下全部语义地标"
 
+  - id: N-17
+    ros_name: /navigation/mapping/set_turn_state
+    kind: service
+    type: robot_motion_interfaces/srv/SetMappingTurnState
+    producer: motion
+    consumers: [autonomy, external]
+    qos: Q_DEFAULT
+    note: "只用于固定 LiDAR 外参建图模式；turn_sequence 由调用方单调递增，同一 BEGIN_TURN/TURN_COMPLETE 重试幂等"
+    constraint: "转台运动前 BEGIN_TURN 必须先暂停 FAST-LIO 到底盘的融合输入；停稳后同 caller_id、turn_sequence 的 TURN_COMPLETE 仅在实时 base_footprint←LiDAR TF 新鲜且连续稳定满配置窗口时切换固定外参，丢弃切换前排队里程计并恢复融合；乱序、并发事务或调用者不一致必须拒绝"
+
   - id: M-08
     ros_name: /motion/execute_stage
     kind: action
