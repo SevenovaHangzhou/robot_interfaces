@@ -39,14 +39,17 @@ IDL 按 endpoint **提供方所属域**唯一归档，包名即责任边界：
 | --- | --- | --- | --- |
 | Autonomy | `robot_autonomy_interfaces` | 外部任务入口与终态 | G-01 |
 | Perception | `robot_perception_interfaces` | 箱墙计划、精定位、障碍点云 | P-01～03 |
-| Motion | `robot_motion_interfaces` | 导航执行、语义地图、定位状态、观测位执行、抓取与放置 | N-01、N-05、N-10～N-16、M-01～03 |
-| RT-Control | `robot_rt_control_interfaces` | 使能、真空、安全状态 | R-IN-03～05、R-OUT-05、R-OUT-06 |
+| Motion | `robot_motion_interfaces` | 导航、语义地图、定位、五阶段机械运动与 rolling 目标 | N-01、N-05、N-10～N-16、M-08、M-09 |
+| RT-Control | `robot_rt_control_interfaces` | 使能、真空、安全状态与 rolling 会话/状态 | R-IN-03～07、R-IN-09、R-OUT-05～07 |
 | 四域共享 | `robot_system_interfaces` | 就绪心跳、统一错误载荷 | P-04、M-06、N-06、R-OUT-09 |
 | 四域共享 | `robot_interfaces_qos` | 命名 QoS 剖面（C++ / Python） | 全部命名剖面 |
 
 消费域直接依赖提供方的包，**不在自己包内复制 IDL**。例如
 `LocalizationStatus` 由 Motion/Navigation 发布，因此只在
 `robot_motion_interfaces` 定义；Autonomy 依赖该包消费它。
+同理，rolling update Topic 的 Publisher 是 Motion，所以 batch/point 在 Motion 包；
+set-mode/open/close Service 与 state Topic 由 RT-Control 提供，所以其 schema 在 RT-Control
+包。运行时数据流方向不改变 schema 所有权。
 
 ROS 标准类型不会为了目录对称而包装一层。`/cmd_vel_safe`、`/odom`、
 `/joint_states` 等 endpoint 只在注册表和分域视图中出现。

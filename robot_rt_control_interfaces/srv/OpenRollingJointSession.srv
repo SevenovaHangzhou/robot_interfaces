@@ -1,0 +1,53 @@
+# Open an exclusive rolling session while the controller is RollingReady.
+
+uint16 PROTOCOL_MAJOR=1
+uint16 PROTOCOL_MINOR=0
+
+uint16 protocol_major
+uint16 protocol_minor
+unique_identifier_msgs/UUID client_instance_id
+unique_identifier_msgs/UUID request_id
+unique_identifier_msgs/UUID expected_controller_boot_id
+# SHA-256 of the exact ordered active-axis names and SI units selected by the
+# runtime profile. Canonical UTF-8 bytes are `rolling-axis-set-v1<LF>` followed
+# by one `<joint_name><TAB><position_unit><TAB><velocity_unit><LF>` per axis.
+# Names/units must not contain TAB, LF or CR. The active set contains 1..14 axes.
+uint8[32] axis_set_hash
+---
+# accepted=true requires result=NONE, ErrorInfo.code=SUCCESS and PRIMING.
+# A retry with the same client/request IDs returns the original outcome.
+bool accepted
+RollingServiceResult result
+robot_system_interfaces/ErrorInfo error
+unique_identifier_msgs/UUID request_id
+uint16 protocol_major
+uint16 protocol_minor
+uint16 active_axis_count
+unique_identifier_msgs/UUID controller_boot_id
+unique_identifier_msgs/UUID session_id
+unique_identifier_msgs/UUID client_instance_id
+RollingSessionState session_state
+uint8[32] axis_set_hash
+# SHA-256 of the complete ordered numeric envelope artifact.
+uint8[32] limits_version
+RollingLimitsSource limits_source
+bool test_only_limits
+
+uint64 CAPABILITY_CUBIC_HERMITE=1
+uint64 CAPABILITY_EXPLICIT_SPLICE_BOUNDARY=2
+uint64 CAPABILITY_DIRECTIONAL_LIMITS=4
+uint64 CAPABILITY_SYNCHRONOUS_C1_STOP=8
+uint64 CAPABILITY_LATEST_VALID_PENDING=16
+
+uint64 capability_bits
+uint16 transport_max_points
+uint16 buffer_capacity
+uint64 required_initial_horizon_ns
+uint64 max_horizon_ns
+uint64 replace_lead_ns
+uint64 update_timeout_ns
+uint64 nominal_controller_period_ns
+uint64 initial_replaceable_from_ns
+# Same active axis order and units identified by axis_set_hash.
+float64[<=14] hold_positions
+float64[<=14] hold_velocities
