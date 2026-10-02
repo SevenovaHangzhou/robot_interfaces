@@ -8,7 +8,7 @@
 # Wire schema 由本仓库对应 IDL 定义。不在本表中的跨域 endpoint 视为未授权。
 # 域取值：rt_control / perception / motion / autonomy / external
 
-version: "0.7.0"
+version: "1.0.0"
 
 domains: [rt_control, perception, motion, autonomy, external]
 
@@ -21,7 +21,7 @@ package_owners:
   robot_motion_interfaces: motion
   robot_autonomy_interfaces: autonomy
 
-qos_profiles: [Q_CONTROL, Q_FAST_STATE, Q_STATE, Q_LATCHED, Q_DIAGNOSTIC, Q_DEFAULT]
+qos_profiles: [Q_CONTROL, Q_ROLLING_COMMAND, Q_ROLLING_STATE, Q_FAST_STATE, Q_STATE, Q_LATCHED, Q_DIAGNOSTIC, Q_DEFAULT]
 
 endpoints:
   - id: G-01
@@ -105,7 +105,7 @@ endpoints:
     constraint: "`target_name + map_version` 由 Motion 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次"
 
   - id: N-04
-    ros_name: /cmd_vel_safe
+    ros_name: /cmd_vel
     kind: topic
     type: geometry_msgs/msg/Twist
     producer: motion
@@ -114,8 +114,8 @@ endpoints:
     rate_hz: [20, 50]
     watchdog_ms: 500
     external_type: true
-    note: Twist 无 header；看门狗只用本地接收间隔，不得推导 stamp 或 frame
-    constraint: "见 R-IN-01；Motion 是唯一生产者"
+    note: "当前 Navigation 职责由 motion 域承载；Twist 无 header，看门狗只使用 RT 本地接收间隔；后续 Motion 接管底盘另立协议"
+    constraint: "当前唯一底盘速度入口；20～50 Hz；500 ms 本地接收超时；不与旧 `/cmd_vel_safe` 或未来第二 writer 并行生效"
 
   - id: N-05
     ros_name: /navigation/localization/status
@@ -211,6 +211,17 @@ endpoints:
     note: "CAMERA_VIEW/PREGRASP Pose 固定表达在 base_link；TURN 目标单位 rad；命名姿态只改变双臂 12 轴并保持 Turn/Updown；真空吸放由 Autonomy 编排 RT-Control"
     constraint: "单一串行阶段 Action；无活动抓取流程时 TURN/CAMERA_VIEW/NAMED_JOINT_POSE 可任意独立触发；抓取流程固定 PREGRASP→APPROACH→PLACE→HOME，活动期间禁止独立任务、并发、跳步和提前触发"
 
+  - id: M-09
+    ros_name: /rt/rolling_joint_control/update
+    kind: topic
+    type: robot_motion_interfaces/msg/RollingJointTargetBatch
+    producer: motion
+    consumers: [rt_control]
+    qos: Q_ROLLING_COMMAND
+    rate_hz: [30, 30]
+    note: "Motion 发布完整权威 future suffix；点间隔由 Motion 决定，本期约 100 ms"
+    constraint: "协议 1.0 精确匹配；固定 14 轴 SI 单位；sequence 非零且严格递增；replace_from_ns 与首点 session-relative 时间完全相等；points 非空且不超过 open 回报 capacity/传输上限 256；best-effort/volatile/keep-last(1)，deadline/lifespan 100 ms；DDS deadline 仅诊断，停止由 accepted-update age 与 low-water 决定"
+
   - id: M-06
     ros_name: /motion/readiness
     kind: topic
@@ -256,18 +267,99 @@ endpoints:
     kind: service
     type: robot_rt_control_interfaces/srv/SetPumpEnabled
     producer: rt_control
-    consumers: [external]
+    consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "活动真空命令或可能持箱时拒绝普通停泵"
+    constraint: "Autonomy 设置共用泵目标状态；普通停泵要求左右阀回读有效且为释放、左右压力有效且 >= -1 kPa、无活动或结果未知阀操作；检查与执行期间阻止新吸附"
 
   - id: R-IN-05
-    ros_name: /vacuum/grip
+    ros_name: /vacuum/valves/set
     kind: action
-    type: robot_rt_control_interfaces/action/VacuumGrip
+    type: robot_rt_control_interfaces/action/SetVacuumValves
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    constraint: "Motion 设置 left/right 或双侧吸附/释放；输出确认即完成，不等待吸附；同侧忙拒绝、双侧预检原子、部分成功不回退、request_id 仅追踪不去重、RT 不自动重试"
+
+  - id: R-IN-06
+    ros_name: /rt/joint_control/set_mode
+    kind: service
+    type: robot_rt_control_interfaces/srv/SetJointControlMode
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    constraint: "协议 1.0 精确匹配；expected_mode 是 compare-and-set guard；Motion 在 FJT→rolling 前 cancel 并等待 Action 终态；admission 失败不得调用 controller_manager；同 client/request_id 幂等；STRICT 结果含 source/target controller 证据，歧义进入 RESTART_REQUIRED 且不自动重试"
+
+  - id: R-IN-07
+    ros_name: /rt/rolling_joint_control/open
+    kind: service
+    type: robot_rt_control_interfaces/srv/OpenRollingJointSession
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    constraint: "仅 ROLLING_READY/NONE 可 open；协议、boot、14 轴 axis_set_hash、反馈新鲜度、source hold 与 limits 完整性 fail-closed 校验；同 client/request_id 幂等；返回 session/hold、limits source/version、capacity、horizon、replace lead、update timeout 与名义周期的实际生效值"
+
+  - id: R-IN-09
+    ros_name: /rt/rolling_joint_control/close
+    kind: service
+    type: robot_rt_control_interfaces/srv/CloseRollingJointSession
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    constraint: "协议/boot/session/client 精确匹配；REQUEST_STOP 异步锁存 stopping，完成以 state=HOLDING 为准；HOLDING 后显式 FINALIZE 销毁 session；同 client/request_id 幂等；无公共 abrupt abort，disable/fault 走既有高优先级生命周期"
+
+  - id: R-IN-12
+    ros_name: /led/set_rgbw
+    kind: service
+    type: robot_rt_control_interfaces/srv/SetLedRgbw
     producer: rt_control
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "Autonomy 在 M-08 阶段之间编排；通道固定 `left/right` 且同数量/同集/同序；当前只接受 `grip_profile_id=default`；GRIP 每通道新鲜 `attached=true`；RELEASE 仍 `UNVERIFIED`"
+    constraint: "六路灯带完整 RGBW 设置；全零灭灯；响应只证明通信写确认，不证明实际发光；退出和重启不主动改色或重放"
+
+  - id: R-IN-13
+    ros_name: /pp/left/move
+    kind: action
+    type: robot_rt_control_interfaces/action/MoveAxis
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    constraint: "左 PP 米制绝对位置；同资源忙拒绝、无队列/抢占；取消后停止并保持，不自动张开"
+
+  - id: R-IN-14
+    ros_name: /pp/right/move
+    kind: action
+    type: robot_rt_control_interfaces/action/MoveAxis
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    constraint: "右 PP 米制绝对位置；同资源忙拒绝、无队列/抢占；取消后停止并保持，不自动张开"
+
+  - id: R-IN-15
+    ros_name: /updown/move
+    kind: action
+    type: robot_rt_control_interfaces/action/MoveAxis
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    constraint: "升降米制绝对关节位置；同资源忙拒绝；取消停止并保持，不下降、回零或直接失能；生产参数缺失时 fail closed"
+
+  - id: R-IN-16
+    ros_name: /head/move
+    kind: action
+    type: robot_rt_control_interfaces/action/MoveHead
+    producer: rt_control
+    consumers: [perception]
+    qos: Q_DEFAULT
+    constraint: "具名 head_joint/head_pitch_joint 弧度目标；同资源忙拒绝；取消停止并保持；旧 command topic 不允许外部并行写入"
+
+  - id: R-IN-17
+    ros_name: /protective_stop/reset
+    kind: service
+    type: robot_rt_control_interfaces/srv/ResetProtectiveStop
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "仅处理人工流程后的保护复位请求；RT 仍复核输入解除、数据有效、所需运动已停止和无阻塞故障；复位只恢复新命令准入"
 
   - id: R-OUT-01
     ros_name: /tf
@@ -312,11 +404,9 @@ endpoints:
     producer: rt_control
     consumers: [motion, perception, autonomy]
     qos: Q_FAST_STATE
-    rate_hz: [125, 125]
-    note: 只含 14 个 EtherCAT 机械轴，不含履带控制关节；250 Hz controller_manager 将配置的 100 Hz 量化为实测 125 Hz
-    max_age_ms: 200
     external_type: true
-    constraint: "只含 14 个 EtherCAT 机械轴，不含履带关节；仅 position；`Q_FAST_STATE`；125 Hz"
+    note: "整机各受管模块按真实采样时间发布不重叠关节子集；一关节一个权威来源；有效性与时效由模块状态配套表达"
+    constraint: "双臂、PP、升降、头部及底盘相关关节使用统一入口；不填伪造零值、不刷新旧样本时间、不把多模块拼成虚假同步快照"
 
   - id: R-OUT-04
     ros_name: /battery_state
@@ -335,10 +425,191 @@ endpoints:
     kind: topic
     type: robot_rt_control_interfaces/msg/VacuumState
     producer: rt_control
-    consumers: [autonomy]
+    consumers: [motion, autonomy]
     qos: Q_STATE
     rate_hz: [20, 50]
-    constraint: "`Q_STATE`；20～50 Hz；发布 `left/right` 新鲜 `attached` 布尔状态；只 RT-Control 用于 GRIP 判定；Motion 不订阅"
+    constraint: "左右独立压力、阀输出回读、泵状态与样本有效性；p<=-60 kPa 为建立、p>=-1 kPa 为释放、中间态独立表达；单个有效新鲜样本立即分类"
+
+  - id: R-OUT-18
+    ros_name: /vacuum/events
+    kind: topic
+    type: robot_rt_control_interfaces/msg/VacuumStateEvent
+    producer: rt_control
+    consumers: [motion, autonomy]
+    qos: Q_STATE
+    constraint: "发布左右真空分类变化和最近阀操作上下文；实例+序号标识事件；仅为信号变化证据，不声明箱子掉落或事件因果"
+
+  - id: R-OUT-19A
+    ros_name: /ultrasonic/channel1/range
+    kind: topic
+    type: sensor_msgs/msg/Range
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_FAST_STATE
+    max_age_ms: 2500
+    external_type: true
+    constraint: "米制距离；通信失败停发并由状态接口立即报错；年龄超过 2.5 s 过期；无目标 +Inf，协议异常 NaN"
+
+  - id: R-OUT-19B
+    ros_name: /ultrasonic/channel2/range
+    kind: topic
+    type: sensor_msgs/msg/Range
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_FAST_STATE
+    max_age_ms: 2500
+    external_type: true
+    constraint: "同 R-OUT-19A；通道与安装外参须由版本化配置确认"
+
+  - id: R-OUT-19C
+    ros_name: /ultrasonic/channel3/range
+    kind: topic
+    type: sensor_msgs/msg/Range
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_FAST_STATE
+    max_age_ms: 2500
+    external_type: true
+    constraint: "同 R-OUT-19A；通道与安装外参须由版本化配置确认"
+
+  - id: R-OUT-19D
+    ros_name: /ultrasonic/channel4/range
+    kind: topic
+    type: sensor_msgs/msg/Range
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_FAST_STATE
+    max_age_ms: 2500
+    external_type: true
+    constraint: "同 R-OUT-19A；通道与安装外参须由版本化配置确认"
+
+  - id: R-OUT-19E
+    ros_name: /ultrasonic/channel5/range
+    kind: topic
+    type: sensor_msgs/msg/Range
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_FAST_STATE
+    max_age_ms: 2500
+    external_type: true
+    constraint: "米制距离；第二 E08 独立发布，第一模块失败不得阻止本侧；其余同 R-OUT-19A"
+
+  - id: R-OUT-19F
+    ros_name: /ultrasonic/channel6/range
+    kind: topic
+    type: sensor_msgs/msg/Range
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_FAST_STATE
+    max_age_ms: 2500
+    external_type: true
+    constraint: "同 R-OUT-19E；通道与安装外参须由版本化配置确认"
+
+  - id: R-OUT-19G
+    ros_name: /ultrasonic/channel7/range
+    kind: topic
+    type: sensor_msgs/msg/Range
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_FAST_STATE
+    max_age_ms: 2500
+    external_type: true
+    constraint: "同 R-OUT-19E；通道与安装外参须由版本化配置确认"
+
+  - id: R-OUT-19H
+    ros_name: /ultrasonic/channel8/range
+    kind: topic
+    type: sensor_msgs/msg/Range
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_FAST_STATE
+    max_age_ms: 2500
+    external_type: true
+    constraint: "同 R-OUT-19E；通道与安装外参须由版本化配置确认"
+
+  - id: R-OUT-20
+    ros_name: /rt_control/sensors/status
+    kind: topic
+    type: robot_rt_control_interfaces/msg/SensorStatusArray
+    producer: rt_control
+    consumers: [motion, autonomy]
+    qos: Q_STATE
+    constraint: "逐传感器声明有效、无目标、协议异常、通信错误、过期或未配置；每项保留真实样本时间，数组发布时间不刷新旧观测"
+
+  - id: R-OUT-21
+    ros_name: /infrared/state
+    kind: topic
+    type: robot_rt_control_interfaces/msg/DigitalInputStateArray
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_STATE
+    constraint: "手臂红外只表示目标检测开关量；逐通道标识、原始电平、语义状态和有效性；未知不得当成未检测，不直接触发运动停止"
+
+  - id: R-OUT-22
+    ros_name: /imu/data
+    kind: topic
+    type: sensor_msgs/msg/Imu
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_FAST_STATE
+    external_type: true
+    constraint: "当前 Navigation 职责由 motion 域消费；SI 单位；时间为主机发布/接收链语义，不声明设备同步；无效拼接不重发旧测量；独立磁场不公开"
+
+  - id: R-OUT-23L
+    ros_name: /rt_control/left_wrist/wrench
+    kind: topic
+    type: geometry_msgs/msg/WrenchStamped
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_FAST_STATE
+    external_type: true
+    constraint: "左传感器坐标系、N/Nm、经设备标定与单位换算；不做工具/箱子重力补偿、不自动调零；配置未闭合时不可宣称有效"
+
+  - id: R-OUT-23R
+    ros_name: /rt_control/right_wrist/wrench
+    kind: topic
+    type: geometry_msgs/msg/WrenchStamped
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_FAST_STATE
+    external_type: true
+    constraint: "右传感器坐标系、N/Nm、经设备标定与单位换算；不做工具/箱子重力补偿、不自动调零；配置未闭合时不可宣称有效"
+
+  - id: R-OUT-24
+    ros_name: /rt_control/modules/state
+    kind: topic
+    type: robot_rt_control_interfaces/msg/ModuleStateArray
+    producer: rt_control
+    consumers: [perception, motion, autonomy]
+    qos: Q_LATCHED
+    constraint: "分别表达安装、实现、启用、配置、数据和故障；未安装触边及未实现力控/换电不得伪报可用；不替代各能力 DomainReadiness.ready"
+
+  - id: R-OUT-25
+    ros_name: /rt_control/motion/state
+    kind: topic
+    type: robot_rt_control_interfaces/msg/MotionExecutionState
+    producer: rt_control
+    consumers: [perception, motion, autonomy]
+    qos: Q_STATE
+    constraint: "按资源发布实际位置、执行、停止/保持和反馈有效性；只证明对应资源事实，不形成底盘与双臂/PP/升降的跨组互斥令牌"
+
+  - id: R-OUT-26
+    ros_name: /protective_stop/state
+    kind: topic
+    type: robot_rt_control_interfaces/msg/ProtectiveStopState
+    producer: rt_control
+    consumers: [perception, motion, autonomy]
+    qos: Q_LATCHED
+    constraint: "软件保护摘要，不代表硬安全链；触边未安装明确不可用；安装启用后触发、通信失效或过期停止约定范围并锁存"
+
+  - id: R-OUT-27
+    ros_name: /edge/state
+    kind: topic
+    type: robot_rt_control_interfaces/msg/DigitalInputStateArray
+    producer: rt_control
+    consumers: [perception, motion, autonomy]
+    qos: Q_STATE
+    constraint: "逐通道触边输入；当前未安装不得伪造未触发；启用后的时效、地址和电平来自实物配置"
 
   - id: R-OUT-06
     ros_name: /control/safety_state
@@ -350,6 +621,17 @@ endpoints:
     rate_hz: [10, 50]
     max_age_ms: 200
     constraint: "**软件可观测摘要，不含硬安全链状态**；`Q_STATE`；10～50 Hz；最大年龄 200 ms；`safe_to_start_motion=false` 或过期时禁止新动作"
+
+  - id: R-OUT-07
+    ros_name: /rt/rolling_joint_control/state
+    kind: topic
+    type: robot_rt_control_interfaces/msg/RollingJointControlState
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_ROLLING_STATE
+    rate_hz: [50, 50]
+    max_age_ms: 200
+    constraint: "协议、boot/session/client、mode/session、generation/sequence、execution/replaceable/buffered/age、desired q/qdot、独立 RejectCode/StopReason、switch evidence 与 limits source 全量可观测；reliable/volatile/keep-last(5)，deadline 100 ms、lifespan 200 ms；published_at 仅诊断，不参与命令排序或采样"
 
   - id: R-OUT-09
     ros_name: /rt_control/readiness
@@ -378,9 +660,20 @@ member_types:
   - robot_system_interfaces/msg/ErrorInfo
   - robot_motion_interfaces/msg/Landmark
   - robot_motion_interfaces/msg/DualArmPoseTargets
+  - robot_motion_interfaces/msg/RollingJointPoint
+  - robot_rt_control_interfaces/msg/JointControlMode
+  - robot_rt_control_interfaces/msg/RollingLimitsSource
+  - robot_rt_control_interfaces/msg/RollingRejectCode
+  - robot_rt_control_interfaces/msg/RollingServiceResult
+  - robot_rt_control_interfaces/msg/RollingSessionState
+  - robot_rt_control_interfaces/msg/RollingStopReason
+  - robot_rt_control_interfaces/msg/ObservationMeta
+  - robot_rt_control_interfaces/msg/OutputState
+  - robot_rt_control_interfaces/msg/OutputCommandResult
   - robot_rt_control_interfaces/msg/VacuumChannelState
-  - robot_rt_control_interfaces/msg/VacuumChannelResult
-  - robot_rt_control_interfaces/msg/VacuumChannelFeedback
+  - robot_rt_control_interfaces/msg/DigitalInputState
+  - robot_rt_control_interfaces/msg/SensorStatus
+  - robot_rt_control_interfaces/msg/ModuleState
   - robot_perception_interfaces/msg/BoxPose
   - robot_perception_interfaces/msg/CameraViewPose
   - robot_perception_interfaces/msg/PickSequence
@@ -388,16 +681,26 @@ member_types:
 
 # 禁止的通信边。各域 CI 与联调 ros2 node info 复核。
 forbidden_edges:
-  - {from: autonomy, to: /cmd_vel_safe}
+  - {from: autonomy, to: /cmd_vel}
   - {from: autonomy, to: /whole_body_jtc/follow_joint_trajectory}
   - {from: autonomy, to: /control/set_enabled}
-  - {from: autonomy, to: /vacuum/pump/set_enabled}
-  - {from: motion, to: /vacuum/grip}
+  - {from: autonomy, to: /vacuum/valves/set}
+  - {from: motion, to: /vacuum/pump/set_enabled}
+  - {from: motion, to: /led/set_rgbw}
   - {from: perception, to: /navigation/navigate_to_pose}
 
 # 已删除的 endpoint。出现在 ROS graph 中即为违约。
-# 底盘与手臂互斥是 Motion 域内不变量，不得重新做成跨域接口。
+# 不在此恢复旧真空、速度、LED、头部写入口或已取消的跨组件运动互斥。
 removed_endpoints:
+  - /cmd_vel_safe
+  - /vacuum/grip
+  - /led0/color
+  - /led1/color
+  - /led2/color
+  - /led3/color
+  - /led4/color
+  - /led5/color
+  - /head_position_controller/commands
   - /navigation/set_base_motion_inhibit
   - /robot_model/info
   - /calibration/info

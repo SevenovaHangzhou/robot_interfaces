@@ -1,0 +1,16 @@
+uint8 MEASUREMENT_UNKNOWN=0
+uint8 MEASUREMENT_VALID=1
+uint8 MEASUREMENT_NO_TARGET=2
+uint8 MEASUREMENT_INVALID=3
+uint8 MEASUREMENT_COMMUNICATION_ERROR=4
+uint8 MEASUREMENT_STALE=5
+uint8 MEASUREMENT_NOT_CONFIGURED=6
+
+string sensor_id
+string module_id
+string data_topic
+ObservationMeta observation
+uint8 measurement_state
+builtin_interfaces/Time fault_detected_at
+bool fault_detected_time_valid
+robot_system_interfaces/ErrorInfo error

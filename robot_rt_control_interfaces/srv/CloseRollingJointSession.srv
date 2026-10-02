@@ -1,0 +1,24 @@
+# Graceful close is explicit and asynchronous.
+
+uint8 REQUEST_STOP=1
+uint8 FINALIZE=2
+uint16 PROTOCOL_MAJOR=1
+uint16 PROTOCOL_MINOR=0
+
+uint16 protocol_major
+uint16 protocol_minor
+unique_identifier_msgs/UUID controller_boot_id
+unique_identifier_msgs/UUID session_id
+unique_identifier_msgs/UUID client_instance_id
+unique_identifier_msgs/UUID request_id
+uint8 operation
+---
+# accepted means the requested phase was accepted; completed means that phase
+# is already complete. REQUEST_STOP normally returns accepted=true/completed=false.
+bool accepted
+bool completed
+RollingServiceResult result
+robot_system_interfaces/ErrorInfo error
+unique_identifier_msgs/UUID request_id
+RollingSessionState session_state
+RollingStopReason stop_reason

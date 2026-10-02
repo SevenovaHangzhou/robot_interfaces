@@ -39,6 +39,38 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：在当前 main 上恢复 RT-Control 已固定的 Rolling 合同
+
+- **接口**：M-09 `/rt/rolling_joint_control/update`，R-IN-06 `/rt/joint_control/set_mode`，
+  R-IN-07 `/rt/rolling_joint_control/open`，R-IN-09 `/rt/rolling_joint_control/close`，
+  R-OUT-07 `/rt/rolling_joint_control/state` 及其 Motion／RT 成员类型与命名 QoS。
+- **原因**：`robot_driver main@2234eef` 固定的 `robot_interfaces@9aa2693` 已依赖完整 V3 Rolling
+  类型，但 `robot_interfaces/main@e9dde70` 从共同祖先合入 N-17 后没有合入该 Rolling merge；
+  直接从当前 main 发布 ELECTRI-152 新契约会使现有 driver 缺少生成头文件并停止编译。
+- **提出人**：@kkozia（rt_control / motion）
+- **影响域**：RT-Control 和 Motion。该段恢复 `9aa2693` 已使用的 wire schema，不重设计其协议；
+  发布时仍须和本批其他破坏性 RT schema 使用同一 SHA，并由两域执行 FJT／Rolling 回归和回滚。
+
+### 破坏性：RT-Control V3 泵阀、执行器与状态接口按职责重新划分
+
+- **接口**：N-04 `/cmd_vel`；R-IN-04 `SetPumpEnabled`；R-IN-05 `/vacuum/valves/set`
+  `SetVacuumValves`；新增 R-IN-12～17 的 RGBW、PP、升降、头部与保护复位接口；
+  修改 R-OUT-03 `/joint_states`、R-OUT-05 `VacuumState`，新增 R-OUT-18～27 的
+  真空事件、八路超声波、传感器状态、红外、IMU、左右六维力、模块／执行状态和保护状态；
+  删除 `VacuumGrip` 及其旧成员类型。
+- **原因**：ELECTRI-152 的 V3 拆垛接口评审确认 Autonomy 只管理共用泵，Motion 只管理左右
+  独立阀并持续消费真实压力；旧 `VacuumGrip` 会隐式启停共用泵且无法表达左右独立压力、
+  部分成功和未知输出。现有契约也没有 PP／升降／头部位置动作、传感器有效性、触边分阶段
+  状态或模块能力表达，并仍登记已退役的 `/cmd_vel_safe` 和组件组间互斥假设。
+- **提出人**：@kkozia（rt_control）
+- **影响域**：RT-Control 是全部新增接口的生产者；Motion、Perception、Autonomy 及承载
+  Navigation 职责的 Motion 域按注册表消费。该批次修改类型哈希、端点名称、生产／消费职责和
+  终态语义，所有域必须锁定同一新 SHA 原子升级；新旧版本混跑时 ROS 2 节点可能正常启动，
+  但同名 Topic／Service／Action 无法通信，旧真空客户端还可能与新阀 writer 竞争。
+  升级时停止四域，先部署公共契约，再同步升级 RT 生产者和全部消费者并执行跨进程 smoke；
+  回滚时四域共同恢复到本变更前 main SHA `e9dde707d477c6db86cfa7f1d2043365c7b2908c`，
+  禁止只恢复旧 `/vacuum/grip`、`/cmd_vel_safe` 或单一消费域。
+
 ### 新增：N-17 为固定外参建图提供 Turn 边界切换协议
 
 - **接口**：N-17 `/navigation/mapping/set_turn_state`，
