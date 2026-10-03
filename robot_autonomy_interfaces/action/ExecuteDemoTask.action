@@ -1,8 +1,10 @@
+# Legacy V2 Demo wire schema retained for consumer migration; not a V3 task API.
 # G-01 /autonomy/execute_demo_task。本地 CLI/HMI ⇄ Autonomy。
 #
 # 同时只接受一个活动 Goal，第二个在 Goal 响应阶段 reject。
 # Autonomy 是唯一任务编排、取消、恢复和重试计数责任域，
-# 但不直接控制 RT-Control。
+# V3 按公共注册表允许 Autonomy 管泵、RGBW 与人工流程后的保护复位；
+# 阀和双臂运动归 Motion，头部归 Perception，底盘当前归 Navigation。
 # 外部任务只能经此入口进入，不得绕过直达 Motion / RT-Control。
 
 # 空 Goal：Demo 任务无外部参数。

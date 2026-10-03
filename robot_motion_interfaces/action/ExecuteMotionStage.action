@@ -1,3 +1,6 @@
+# Legacy V2 M-08 /motion/execute_stage. Retained for migration, not a V3 workflow.
+# V3 dual-seven-axis FJT/Rolling is defined by contract/endpoints.yaml axis_sets.v3_dual_arm.
+# This old stage action must not reinterpret TURN as a seventh arm joint.
 # M-08 /motion/execute_stage。Autonomy ⇄ Motion。
 #
 # 单一阶段 Action，分为两类：

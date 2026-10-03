@@ -1,0 +1,13 @@
+uint8 OUTCOME_UNSPECIFIED=0
+uint8 OUTCOME_CONFIRMED=1
+uint8 OUTCOME_NOT_EXECUTED=2
+uint8 OUTCOME_UNKNOWN=3
+
+string resource_id
+unique_identifier_msgs/UUID attempt_id
+uint8 outcome
+bool requested_value
+OutputState output
+builtin_interfaces/Time started_at
+builtin_interfaces/Time completed_at
+robot_system_interfaces/ErrorInfo error

@@ -1,0 +1,15 @@
+# Latched reason for leaving Priming or Running.
+
+uint8 NONE=0
+uint8 GRACEFUL_CLOSE=1
+uint8 PRIME_TIMEOUT=2
+uint8 UPDATE_TIMEOUT=3
+uint8 LOW_WATER=4
+uint8 CLOCK_ANOMALY=5
+uint8 INTERNAL_INVARIANT=6
+uint8 CONTROLLER_DEACTIVATED=7
+uint8 DISABLE=8
+uint8 GROUP_FAULT=9
+uint8 CONTROLLER_RESTART=10
+
+uint8 value

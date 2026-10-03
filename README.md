@@ -23,7 +23,7 @@ Service / Action 的 Server。
 1. 提供方与消费方跨越 RT-Control / Perception / Motion / Autonomy 的域边界
    （Gateway 是部署边界，不计入业务域）
 2. 在接口总表中有 ID（`G` / `P` / `N` / `M` / `R-IN` / `R-OUT`）
-3. ROS 标准类型无法直接表达（`/cmd_vel_safe` 用 `geometry_msgs/Twist`、
+3. ROS 标准类型无法直接表达（`/cmd_vel` 用 `geometry_msgs/Twist`、
    `/joint_states` 用 `sensor_msgs/JointState`，这类不收）
 4. 有明确的单位、坐标系、时效和成功语义
 
@@ -39,8 +39,8 @@ IDL 按 endpoint **提供方所属域**唯一归档，包名即责任边界：
 | --- | --- | --- | --- |
 | Autonomy | `robot_autonomy_interfaces` | 外部任务入口与终态 | G-01 |
 | Perception | `robot_perception_interfaces` | 箱墙计划、精定位、障碍点云 | P-01～03 |
-| Motion | `robot_motion_interfaces` | 导航执行、语义地图、定位状态、观测位执行、抓取与放置 | N-01、N-05、N-10～N-16、M-01～03 |
-| RT-Control | `robot_rt_control_interfaces` | 使能、真空、安全状态 | R-IN-03～05、R-OUT-05、R-OUT-06 |
+| Motion | `robot_motion_interfaces` | 导航执行、语义地图、定位状态、观测位执行、抓取与放置、Rolling 目标 | N-01、N-05、N-10～N-17、M-01～M-09 |
+| RT-Control | `robot_rt_control_interfaces` | 使能、泵阀、IO、执行器动作、保护、模块状态与 Rolling | R-IN-03～17、R-OUT-05～27 |
 | 四域共享 | `robot_system_interfaces` | 就绪心跳、统一错误载荷 | P-04、M-06、N-06、R-OUT-09 |
 | 四域共享 | `robot_interfaces_qos` | 命名 QoS 剖面（C++ / Python） | 全部命名剖面 |
 
@@ -48,7 +48,7 @@ IDL 按 endpoint **提供方所属域**唯一归档，包名即责任边界：
 `LocalizationStatus` 由 Motion/Navigation 发布，因此只在
 `robot_motion_interfaces` 定义；Autonomy 依赖该包消费它。
 
-ROS 标准类型不会为了目录对称而包装一层。`/cmd_vel_safe`、`/odom`、
+ROS 标准类型不会为了目录对称而包装一层。`/cmd_vel`、`/odom`、
 `/joint_states` 等 endpoint 只在注册表和分域视图中出现。
 
 一个仓库多个包：`source-lock.yaml` 锁单个 SHA 即一次原子升级，同时各域只
@@ -58,7 +58,19 @@ ROS 标准类型不会为了目录对称而包装一层。`/cmd_vel_safe`、`/od
 `rt_control` 依赖 `system`；`motion` 依赖 `system`、`perception`、
 `rt_control`。依赖无环，只表示 schema 引用，不替代 endpoint 运行方向。
 
-底盘与手臂互斥是 Motion 域内不变量，用 Action Goal 拒绝表达，无对应公共类型。
+底盘、双臂、升降和 PP 当前按各自资源独立准入，不建立跨组运动互斥；同一资源仍必须保持唯一 writer，FJT/Rolling 继续互斥。触边等已明确保护按其独立状态和锁存协议执行。
+
+## V3 轴合同与兼容边界
+
+V3 FJT/Rolling 只控制双臂：`right_joint1..7` 后接 `left_joint1..7`，14个旋转轴的
+position 全为 rad、velocity 全为 rad/s。Updown、PP、头部和底盘均为独立资源。
+`contract/endpoints.yaml` 的 `axis_sets.v3_dual_arm` 保存轴序与哈希；Motion 必须用该哈希
+打开会话，旧双六轴＋turn＋updown 的14元素数组不兼容，不得只换哈希后重放旧轨迹。
+
+本轮迁移的是 RT 接口。G-01、P-01/P-02、M-08、N-17 仍保留旧消费者的 wire schema，
+已标为 `legacy_only`；这不是它们已适配 V3 的承诺。旧固定25箱/15序列/0.74m、Turn阶段、
+双六轴及旧真空编排不适用于新的V3任务。对应Motion/Perception/Autonomy流程仍须由其
+责任域按跨域Spec迁移；不能把保留的旧类型用于控制本PR的V3机器人。
 
 ## 分域视图
 
