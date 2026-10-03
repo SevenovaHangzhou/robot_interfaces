@@ -32,7 +32,8 @@ uint64 available_horizon_ns
 uint64 prime_age_ns
 uint64 accepted_update_age_ns
 
-# Same fixed axis order and units as RollingJointPoint.
+# V3 right_joint1..7, left_joint1..7, exactly as RollingJointPoint.
+# ALL desired positions rad; ALL desired velocities rad/s.
 float64[14] desired_positions
 float64[14] desired_velocities
 uint16 buffer_point_count
@@ -47,6 +48,8 @@ bool target_controller_activated
 bool restart_required
 RollingLimitsSource limits_source
 bool test_only_limits
+# V3 SHA-256: f4c8ff8a32183d1733032494600c9f5d1e7e625673a4ad51556b3ac6c35adee4
+# Authority and canonicalization: contract/endpoints.yaml axis_sets.v3_dual_arm.
 uint8[32] axis_set_hash
 uint8[32] limits_version
 

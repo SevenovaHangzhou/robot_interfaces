@@ -60,6 +60,18 @@ ROS 标准类型不会为了目录对称而包装一层。`/cmd_vel`、`/odom`�
 
 底盘、双臂、升降和 PP 当前按各自资源独立准入，不建立跨组运动互斥；同一资源仍必须保持唯一 writer，FJT/Rolling 继续互斥。触边等已明确保护按其独立状态和锁存协议执行。
 
+## V3 轴合同与兼容边界
+
+V3 FJT/Rolling 只控制双臂：`right_joint1..7` 后接 `left_joint1..7`，14个旋转轴的
+position 全为 rad、velocity 全为 rad/s。Updown、PP、头部和底盘均为独立资源。
+`contract/endpoints.yaml` 的 `axis_sets.v3_dual_arm` 保存轴序与哈希；Motion 必须用该哈希
+打开会话，旧双六轴＋turn＋updown 的14元素数组不兼容，不得只换哈希后重放旧轨迹。
+
+本轮迁移的是 RT 接口。G-01、P-01/P-02、M-08、N-17 仍保留旧消费者的 wire schema，
+已标为 `legacy_only`；这不是它们已适配 V3 的承诺。旧固定25箱/15序列/0.74m、Turn阶段、
+双六轴及旧真空编排不适用于新的V3任务。对应Motion/Perception/Autonomy流程仍须由其
+责任域按跨域Spec迁移；不能把保留的旧类型用于控制本PR的V3机器人。
+
 ## 分域视图
 
 各部门只需读自己域的视图：

@@ -37,6 +37,22 @@
 
 ## [Unreleased]
 
+### 破坏性：纠正 Rolling 的三代机双七轴语义与轴身份
+
+- **接口**：M-09 `RollingJointPoint/RollingJointTargetBatch`、R-IN-07
+  `OpenRollingJointSession`、R-OUT-07 `RollingJointControlState`；R-IN-02 FJT 同步轴集合。
+  `axis_sets.v3_dual_arm` 明确 right_joint1..7 后接 left_joint1..7，全部 rad/rad/s。
+- **原因**：ELECTRI-174 自审发现恢复旧 Rolling IDL 时遗漏二代的双六轴＋turn＋updown注释，
+  与RT已经使用的双七轴实现冲突。相同长度不能保证相同语义；升降米制值可能被当成关节角。
+- **提出人**：@kkozia（rt_control / motion）
+- **影响域**：Motion生产完整14轴suffix，RT-Control执行并按V3轴哈希校验。保留字段布局、
+  协议1.0及会话机制，V3轴哈希固定为
+  `f4c8ff8a32183d1733032494600c9f5d1e7e625673a4ad51556b3ac6c35adee4`；
+  不匹配必须拒绝open。旧数组即使类型可通信也会发生轴错位，禁止通过替换hash重放旧轨迹。
+  两端锁同一新SHA，停止旧会话后统一升级并重建V3目标；回滚恢复匹配的机器人型号、模型和
+  完整控制栈，不将V2内容混入V3。另将G-01/P-01/P-02/M-08/N-17标为旧版兼容，未更改其
+  wire字段或声称业务迁移完成。
+
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
 ### 新增：在当前 main 上恢复 RT-Control 已固定的 Rolling 合同

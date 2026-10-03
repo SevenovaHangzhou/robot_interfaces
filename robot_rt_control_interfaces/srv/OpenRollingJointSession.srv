@@ -8,7 +8,11 @@ uint16 protocol_minor
 unique_identifier_msgs/UUID client_instance_id
 unique_identifier_msgs/UUID request_id
 unique_identifier_msgs/UUID expected_controller_boot_id
-# SHA-256 of the exact ordered 14-axis names and units frozen by the contract.
+# V3 ordered axes: right_joint1..7, left_joint1..7, ALL rad and rad/s.
+# SHA-256 of each UTF-8 joint_name:rad:rad/s line, including the final LF:
+# f4c8ff8a32183d1733032494600c9f5d1e7e625673a4ad51556b3ac6c35adee4
+# Must match contract/endpoints.yaml axis_sets.v3_dual_arm;
+# any other axis_set_hash is rejected with AXIS_SET_MISMATCH before opening.
 uint8[32] axis_set_hash
 ---
 # accepted=true requires result=NONE, ErrorInfo.code=SUCCESS and PRIMING.
@@ -44,6 +48,7 @@ uint64 replace_lead_ns
 uint64 update_timeout_ns
 uint64 nominal_controller_period_ns
 uint64 initial_replaceable_from_ns
-# Same fixed axis order and units as RollingJointPoint.
+# V3 right_joint1..7, left_joint1..7; ALL hold positions rad, velocities rad/s.
+# Same complete order as RollingJointPoint; no lift or other actuator slots.
 float64[14] hold_positions
 float64[14] hold_velocities

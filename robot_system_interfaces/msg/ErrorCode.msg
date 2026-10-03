@@ -74,9 +74,11 @@ uint32 PERC_LOCALIZATION_LOST=2150
 uint32 MOTION_STAGE_SEQUENCE_INVALID=3004
 # 目标超出可达域；指向标定或退避表配置，不是规划器问题。
 uint32 MOTION_TARGET_UNREACHABLE=3010
-# 手臂未在行走包络内，或存在活动手臂 goal（契约 6.7）。
+# Legacy V2 error only; not a V3 cross-component motion admission rule.
+# 手臂未在旧行走包络内，或存在活动手臂 goal（历史契约 6.7）。
 uint32 MOTION_ARM_NOT_STOWED=3070
-# 底盘未静止，或存在活动导航 goal（契约 6.7）。
+# Legacy V2 error only; planned chassis motion does not block V3 arm admission.
+# 底盘未静止，或存在活动导航 goal（历史契约 6.7）。
 uint32 MOTION_BASE_IN_MOTION=3071
 uint32 MOTION_EXECUTION_FAILED=3060
 # 生成轨迹不满足完整关节集、时间单调、速度或连续性约束。

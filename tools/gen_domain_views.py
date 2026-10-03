@@ -49,6 +49,8 @@ def constraints(entry: dict) -> str:
         parts.append(f"最大年龄 {entry['max_age_ms']} ms")
     if entry.get("watchdog_ms"):
         parts.append(f"看门狗 {entry['watchdog_ms']} ms")
+    if entry.get("legacy_only"):
+        parts.append("**Legacy V2，仅保留迁移；非 V3 工作流**")
     if entry.get("reserved"):
         parts.append("**产品预留，Demo 不部署**")
     if entry.get("external_type"):

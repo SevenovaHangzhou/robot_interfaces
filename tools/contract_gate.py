@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import sys
 from pathlib import Path
 
@@ -55,6 +56,25 @@ def validate(document: dict) -> list[str]:
     profiles = set(document.get("qos_profiles") or [])
     endpoints = document.get("endpoints") or []
     member_types = set(document.get("member_types") or [])
+    axis_sets = document.get("axis_sets") or {}
+    for axis_id, definition in axis_sets.items():
+        names = definition.get("joint_names", [])
+        if (
+            not isinstance(names, list) or not names
+            or any(not isinstance(name, str) or not name for name in names)
+        ):
+            findings.append(f"axis_sets:{axis_id}: joint_names must be a nonempty string list")
+            continue
+        if len(names) != len(set(names)) or definition.get("count") != len(names):
+            findings.append(f"axis_sets:{axis_id}: duplicate names or axis count mismatch")
+        position_unit = definition.get("position_unit")
+        velocity_unit = definition.get("velocity_unit")
+        if not isinstance(position_unit, str) or not isinstance(velocity_unit, str):
+            findings.append(f"axis_sets:{axis_id}: position/velocity units must be explicit")
+            continue
+        canonical = "".join(f"{name}:{position_unit}:{velocity_unit}\n" for name in names)
+        if definition.get("sha256") != hashlib.sha256(canonical.encode("utf-8")).hexdigest():
+            findings.append(f"axis_sets:{axis_id}: canonical axis_set_hash mismatch")
 
     if not endpoints:
         return ["endpoints.yaml: endpoints 为空"]
@@ -98,6 +118,8 @@ def validate(document: dict) -> list[str]:
         if eid in seen_ids:
             findings.append(f"{eid}: id 重复")
         seen_ids.add(eid)
+        if entry.get("axis_set") and entry["axis_set"] not in axis_sets:
+            findings.append(f"{eid}: unknown axis_set {entry['axis_set']!r}")
 
         kind = entry.get("kind")
         if kind not in KIND_DIR:
