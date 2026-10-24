@@ -47,6 +47,7 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | --- | --- | --- | --- | --- |
 | R-IN-02 | `/whole_body_jtc/follow_joint_trajectory` | Action / `control_msgs/action/FollowJointTrajectory` | Motion ⇄ RT-Control | 完整三代双臂 7+7 轴；位置 rad、速度 rad/s；不包含 turn/updown 或 PP；`allow_partial_joints_goal=false`；整组取消 |
 | R-IN-03 | `/control/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetControlEnabled` | 外部/本地入口 ⇄ RT-Control | 不复位急停、安全继电器或 STO；不属于箱级任务流程 |
+| R-IN-18 | `/control/set_chassis_align_first` | Service / `std_srvs/srv/SetBool` | Motion ⇄ RT-Control | data=true 为对齐模式，false 为连续模式；保持使能，仅在导航执行权有效、持续收到新鲜零速、四轮参考为零且有效实测轮速满足既有停稳窗口时切换；运动中拒绝，不自动停车或排队；success=true 仅在控制周期确认生效后返回；message 仅供人读；失败或超时后保持零速并核对 R-OUT-28，不推断是否改变；切换保留执行历史，不使能、不复位，应用时废弃已接收指令，后续以RT本地接收时间判新；调用方收到确认前持续零速；不持久化为启动默认值 |
 | R-IN-04 | `/vacuum/pump/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetPumpEnabled` | Autonomy ⇄ RT-Control | Autonomy 设置共用泵目标状态；普通停泵要求左右阀回读有效且为释放、左右压力有效且 >= -1 kPa、无活动或结果未知阀操作；检查与执行期间阻止新吸附 |
 | R-IN-05 | `/vacuum/valves/set` | Action / `robot_rt_control_interfaces/action/SetVacuumValves` | Motion ⇄ RT-Control | Motion 设置 left/right 或双侧吸附/释放；输出确认即完成，不等待吸附；同侧忙拒绝、双侧预检原子、部分成功不回退、request_id 仅追踪不去重、RT 不自动重试 |
 | R-IN-06 | `/rt/joint_control/set_mode` | Service / `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion ⇄ RT-Control | 协议 1.0 精确匹配；expected_mode 是 compare-and-set guard；Motion 在 FJT→rolling 前 cancel 并等待 Action 终态；admission 失败不得调用 controller_manager；同 client/request_id 幂等；STRICT 结果含 source/target controller 证据，歧义进入 RESTART_REQUIRED 且不自动重试 |
@@ -63,6 +64,7 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 
 | ID | ROS 名称 | 形式 / 类型 | 方向 | 关键约束 |
 | --- | --- | --- | --- | --- |
+| R-OUT-28 | `/rt_control/chassis/align_first` | Topic / `std_msgs/msg/Bool` | RT-Control → Motion | 实际生效模式：true=align_first，false=steer_while_driving；切换时立即更新，稳定时1Hz；只表示模式，不表示使能、停稳或运动准入；消费者按本地接收时间检查新鲜度，重启后丢弃旧状态并等待新实例发布；重新configure或进程重启恢复部署默认模式 |
 | R-OUT-01 | `/tf` | Topic / `tf2_msgs/msg/TFMessage` | RT-Control → Perception、Motion、Autonomy | 本体动态坐标边唯一；`map→odom` 与 `odom→base_footprint` 不由本域发布 |
 | R-OUT-01S | `/tf_static` | Topic / `tf2_msgs/msg/TFMessage` | RT-Control → Perception、Motion、Autonomy | 本体固定坐标边唯一；`Q_LATCHED`；与 `/tf` 分开登记 |
 | R-OUT-02 | `/wheel/odom` | Topic / `nav_msgs/msg/Odometry` | RT-Control → Perception | `frame_id=odom`、`child_frame_id=base_footprint`；`Q_FAST_STATE`；50 Hz；**不作为到站或停稳最终证据** |

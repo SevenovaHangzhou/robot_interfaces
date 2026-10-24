@@ -31,12 +31,14 @@
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 
-## 本域消费（24 条）
+## 本域消费（26 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
 | P-03 | `/perception/obstacle_cloud` | Topic | `robot_perception_interfaces/msg/ObstacleCloud` | Perception | Q_STATE；**产品预留，Demo 不部署** |
 | R-IN-02 | `/whole_body_jtc/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | RT-Control | ROS 标准类型；三代双七轴 right_joint1..7,left_joint1..7；完整 14 轴；allow_partial_joints_goal=false |
+| R-IN-18 | `/control/set_chassis_align_first` | Service | `std_srvs/srv/SetBool` | RT-Control | ROS 标准类型 |
+| R-OUT-28 | `/rt_control/chassis/align_first` | Topic | `std_msgs/msg/Bool` | RT-Control | Q_LATCHED；1 Hz；ROS 标准类型 |
 | R-IN-05 | `/vacuum/valves/set` | Action | `robot_rt_control_interfaces/action/SetVacuumValves` | RT-Control | — |
 | R-IN-06 | `/rt/joint_control/set_mode` | Service | `robot_rt_control_interfaces/srv/SetJointControlMode` | RT-Control | — |
 | R-IN-07 | `/rt/rolling_joint_control/open` | Service | `robot_rt_control_interfaces/srv/OpenRollingJointSession` | RT-Control | 三代 right_joint1..7,left_joint1..7；hold_positions 全部 rad、hold_velocities 全部 rad/s；拒绝旧轴哈希 |

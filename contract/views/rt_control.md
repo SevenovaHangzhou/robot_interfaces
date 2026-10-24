@@ -9,12 +9,14 @@
 本文只列 RT-Control 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（41 条）
+## 本域提供（43 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
 | R-IN-02 | `/whole_body_jtc/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | Motion | ROS 标准类型；三代双七轴 right_joint1..7,left_joint1..7；完整 14 轴；allow_partial_joints_goal=false |
 | R-IN-03 | `/control/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetControlEnabled` | 外部/本地入口 | — |
+| R-IN-18 | `/control/set_chassis_align_first` | Service | `std_srvs/srv/SetBool` | Motion | ROS 标准类型 |
+| R-OUT-28 | `/rt_control/chassis/align_first` | Topic | `std_msgs/msg/Bool` | Motion | Q_LATCHED；1 Hz；ROS 标准类型 |
 | R-IN-04 | `/vacuum/pump/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetPumpEnabled` | Autonomy | — |
 | R-IN-05 | `/vacuum/valves/set` | Action | `robot_rt_control_interfaces/action/SetVacuumValves` | Motion | — |
 | R-IN-06 | `/rt/joint_control/set_mode` | Service | `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion | — |

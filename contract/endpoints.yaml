@@ -285,6 +285,27 @@ endpoints:
     qos: Q_DEFAULT
     constraint: "不复位急停、安全继电器或 STO；不属于箱级任务流程"
 
+  - id: R-IN-18
+    ros_name: /control/set_chassis_align_first
+    kind: service
+    type: std_srvs/srv/SetBool
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_DEFAULT
+    external_type: true
+    constraint: "data=true 为对齐模式，false 为连续模式；保持使能，仅在导航执行权有效、持续收到新鲜零速、四轮参考为零且有效实测轮速满足既有停稳窗口时切换；运动中拒绝，不自动停车或排队；success=true 仅在控制周期确认生效后返回；message 仅供人读；失败或超时后保持零速并核对 R-OUT-28，不推断是否改变；切换保留执行历史，不使能、不复位，应用时废弃已接收指令，后续以RT本地接收时间判新；调用方收到确认前持续零速；不持久化为启动默认值"
+
+  - id: R-OUT-28
+    ros_name: /rt_control/chassis/align_first
+    kind: topic
+    type: std_msgs/msg/Bool
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_LATCHED
+    external_type: true
+    rate_hz: [1, 1]
+    constraint: "实际生效模式：true=align_first，false=steer_while_driving；切换时立即更新，稳定时1Hz；只表示模式，不表示使能、停稳或运动准入；消费者按本地接收时间检查新鲜度，重启后丢弃旧状态并等待新实例发布；重新configure或进程重启恢复部署默认模式"
+
   - id: R-IN-04
     ros_name: /vacuum/pump/set_enabled
     kind: service

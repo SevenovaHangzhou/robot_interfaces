@@ -37,6 +37,15 @@
 
 ## [Unreleased]
 
+### 新增：底盘停稳后切换对齐/连续模式
+
+- **接口**：R-IN-18 `/control/set_chassis_align_first`，`std_srvs/srv/SetBool`；R-OUT-28 `/rt_control/chassis/align_first`，`std_msgs/msg/Bool`。
+- **原因**：ELECTRI-127，导航要求保持使能、不重启底盘，在停稳后选择对齐或连续执行；禁止用仅改变参数显示而未改变执行策略的方式确认成功。
+- **提出人**：@kkozia188（RT-Control）
+- **影响域**：RT-Control 提供，Motion/Navigation 消费。仅新增标准类型端点，不修改既有 IDL；双方评审并登记统一契约 SHA 后接入。缺少端点的旧部署不得假定切换成功。回滚时停止调用新服务、恢复原部署默认模式；不改变 `/cmd_vel` 类型和唯一写入方规则。
+- **运行语义**：导航持续发送零速并请求模式，RT 使用既有有效反馈、停稳门限与驻留时间检查。运动中拒绝，不自动停车或排队。实际生效后才返回 success=true；响应丢失或未知时保持零速，以模式状态核对。模式服务不使能、不复位、不修改启动默认值。
+- **类型选择**：请求仅有两种模式，标准 SetBool 与 Bool 足以表达，无新增自定义 IDL；`message` 仅作诊断，不解析它作运动准入。停稳窗口来源和模式门限必须由部署配置给出。
+
 ### 破坏性：纠正 Rolling 的三代机双七轴语义与轴身份
 
 - **接口**：M-09 `RollingJointPoint/RollingJointTargetBatch`、R-IN-07
