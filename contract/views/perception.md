@@ -2,7 +2,7 @@
 
 # Perception 域接口视图
 
-> 契约版本：0.7.0
+> 契约版本：1.0.0
 > 事实源：`contract/endpoints.yaml`
 > Wire schema：本仓库对应的 `robot_*_interfaces` IDL
 
@@ -13,12 +13,12 @@
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
-| P-01 | `/perception/build_wall_task_plan` | Action | `robot_perception_interfaces/action/BuildWallTaskPlan` | Autonomy | — |
-| P-02 | `/perception/refine_sequence_poses` | Action | `robot_perception_interfaces/action/RefineSequencePoses` | Autonomy | — |
+| P-01 | `/perception/build_wall_task_plan` | Action | `robot_perception_interfaces/action/BuildWallTaskPlan` | Autonomy | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 固定计划协议：25箱/15序列/0.74m；不代表 V3 箱墙观测和选箱职责 |
+| P-02 | `/perception/refine_sequence_poses` | Action | `robot_perception_interfaces/action/RefineSequencePoses` | Autonomy | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 序列精定位协议；不代表 V3 墙图更新和掉箱识别 |
 | P-03 | `/perception/obstacle_cloud` | Topic | `robot_perception_interfaces/msg/ObstacleCloud` | Motion | Q_STATE；**产品预留，Demo 不部署** |
 | P-04 | `/perception/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 
-## 本域消费（14 条）
+## 本域消费（19 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -31,10 +31,15 @@
 | N-14 | `/navigation/semanticmap/remove_landmark` | Service | `robot_motion_interfaces/srv/RemoveLandmark` | Motion | — |
 | N-15 | `/navigation/semanticmap/get_landmark` | Service | `robot_motion_interfaces/srv/GetLandmark` | Motion | — |
 | N-16 | `/navigation/semanticmap/get_map` | Service | `robot_motion_interfaces/srv/GetSemanticMap` | Motion | — |
+| R-IN-16 | `/head/move` | Action | `robot_rt_control_interfaces/action/MoveHead` | RT-Control | — |
 | R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
 | R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
 | R-OUT-02 | `/wheel/odom` | Topic | `nav_msgs/msg/Odometry` | RT-Control | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；frame_id=odom，child_frame_id=base_footprint；rt-control 不发 odom→base_footprint TF |
-| R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；125 Hz；最大年龄 200 ms；ROS 标准类型；只含 14 个 EtherCAT 机械轴，不含履带控制关节；250 Hz controller_manager 将配置的 100 Hz 量化为实测 125 Hz |
+| R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；ROS 标准类型；整机各受管模块按真实采样时间发布不重叠关节子集；一关节一个权威来源；有效性与时效由模块状态配套表达 |
+| R-OUT-24 | `/rt_control/modules/state` | Topic | `robot_rt_control_interfaces/msg/ModuleStateArray` | RT-Control | Q_LATCHED |
+| R-OUT-25 | `/rt_control/motion/state` | Topic | `robot_rt_control_interfaces/msg/MotionExecutionState` | RT-Control | Q_STATE |
+| R-OUT-26 | `/protective_stop/state` | Topic | `robot_rt_control_interfaces/msg/ProtectiveStopState` | RT-Control | Q_LATCHED |
+| R-OUT-27 | `/edge/state` | Topic | `robot_rt_control_interfaces/msg/DigitalInputStateArray` | RT-Control | Q_STATE |
 | R-OUT-06 | `/control/safety_state` | Topic | `robot_rt_control_interfaces/msg/SafetyState` | RT-Control | Q_STATE；10～50 Hz；最大年龄 200 ms |
 
 ## 本域禁止的通信边
@@ -45,6 +50,15 @@
 
 出现在 ROS graph 中即为违约：
 
+- `/cmd_vel_safe`
+- `/vacuum/grip`
+- `/led0/color`
+- `/led1/color`
+- `/led2/color`
+- `/led3/color`
+- `/led4/color`
+- `/led5/color`
+- `/head_position_controller/commands`
 - `/navigation/set_base_motion_inhibit`
 - `/robot_model/info`
 - `/calibration/info`

@@ -85,10 +85,15 @@ class ContractGateTest(unittest.TestCase):
             self.assertIn(declaration, schema)
         self.assertIn("Turn 与 Updown 均保持当前位置", schema)
 
-        vacuum_grip = endpoints["R-IN-05"]
-        self.assertEqual(vacuum_grip["consumers"], ["autonomy"])
+        vacuum_valves = endpoints["R-IN-05"]
+        self.assertEqual(vacuum_valves["ros_name"], "/vacuum/valves/set")
+        self.assertEqual(
+            vacuum_valves["type"],
+            "robot_rt_control_interfaces/action/SetVacuumValves",
+        )
+        self.assertEqual(vacuum_valves["consumers"], ["motion"])
         self.assertIn(
-            {"from": "motion", "to": "/vacuum/grip"},
+            {"from": "autonomy", "to": "/vacuum/valves/set"},
             self.document["forbidden_edges"],
         )
 
@@ -98,8 +103,56 @@ class ContractGateTest(unittest.TestCase):
                 "/motion/move_to_camera_view_pose",
                 "/motion/plan_and_execute_pick",
                 "/motion/plan_and_execute_place",
+                "/vacuum/grip",
             }.issubset(removed_endpoints)
         )
+
+    def test_rt_v3_contract_replaces_legacy_writers_and_preserves_component_parallelism(self) -> None:
+        endpoints = {
+            endpoint["id"]: endpoint for endpoint in self.document["endpoints"]
+        }
+
+        self.assertEqual(endpoints["N-04"]["ros_name"], "/cmd_vel")
+        self.assertEqual(endpoints["R-IN-04"]["consumers"], ["autonomy"])
+        self.assertEqual(endpoints["R-OUT-05"]["consumers"], ["motion", "autonomy"])
+        self.assertEqual(
+            endpoints["R-IN-16"]["type"],
+            "robot_rt_control_interfaces/action/MoveHead",
+        )
+        self.assertIn("不形成", endpoints["R-OUT-25"]["constraint"])
+
+        removed = set(self.document["removed_endpoints"])
+        self.assertTrue(
+            {
+                "/cmd_vel_safe",
+                "/vacuum/grip",
+                "/head_position_controller/commands",
+                "/led0/color",
+            }.issubset(removed)
+        )
+
+        valve_schema = Path(
+            "robot_rt_control_interfaces/action/SetVacuumValves.action"
+        ).read_text(encoding="utf-8")
+        for declaration in (
+            "unique_identifier_msgs/UUID request_id",
+            "string[<=2] channels",
+            "OutputCommandResult[<=2] channel_results",
+            "VacuumChannelState[<=2] channels",
+        ):
+            self.assertIn(declaration, valve_schema)
+
+        vacuum_state = Path(
+            "robot_rt_control_interfaces/msg/VacuumChannelState.msg"
+        ).read_text(encoding="utf-8")
+        for declaration in (
+            "float64 pressure_kpa",
+            "ObservationMeta pressure_observation",
+            "uint8 vacuum_state",
+            "OutputState valve",
+            "bool last_request_known",
+        ):
+            self.assertIn(declaration, vacuum_state)
 
     def test_mapping_turn_state_contract_is_registered_and_transactional(self) -> None:
         endpoints = {

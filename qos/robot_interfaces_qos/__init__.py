@@ -7,14 +7,22 @@
 from rclpy.duration import Duration
 from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 
-__all__ = ["control", "fast_state", "state", "latched", "diagnostic"]
+__all__ = [
+    "control",
+    "rolling_command",
+    "rolling_state",
+    "fast_state",
+    "state",
+    "latched",
+    "diagnostic",
+]
 
-# /cmd_vel_safe 的看门狗间隔。与 profiles.hpp 及 RT-Control 实现同源。
+# /cmd_vel 的看门狗间隔。与 profiles.hpp 及 RT-Control 实现同源。
 CMD_VEL_WATCHDOG_MS = 500
 
 
 def control() -> QoSProfile:
-    """周期控制命令（/cmd_vel_safe）。
+    """周期控制命令（/cmd_vel）。
 
     deadline 与 lifespan 均为 500 ms，与 RT-Control 的 500 ms 本地接收间隔
     看门狗一致。两者必须同步修改：lifespan 短于看门狗会让消息在看门狗
@@ -26,6 +34,28 @@ def control() -> QoSProfile:
         durability=DurabilityPolicy.VOLATILE,
         deadline=Duration(nanoseconds=CMD_VEL_WATCHDOG_MS * 1_000_000),
         lifespan=Duration(nanoseconds=CMD_VEL_WATCHDOG_MS * 1_000_000),
+    )
+
+
+def rolling_command() -> QoSProfile:
+    """Newest complete rolling future suffix."""
+    return QoSProfile(
+        depth=1,
+        reliability=ReliabilityPolicy.BEST_EFFORT,
+        durability=DurabilityPolicy.VOLATILE,
+        deadline=Duration(nanoseconds=100_000_000),
+        lifespan=Duration(nanoseconds=100_000_000),
+    )
+
+
+def rolling_state() -> QoSProfile:
+    """Rolling acknowledgement and controller state."""
+    return QoSProfile(
+        depth=5,
+        reliability=ReliabilityPolicy.RELIABLE,
+        durability=DurabilityPolicy.VOLATILE,
+        deadline=Duration(nanoseconds=100_000_000),
+        lifespan=Duration(nanoseconds=200_000_000),
     )
 
 

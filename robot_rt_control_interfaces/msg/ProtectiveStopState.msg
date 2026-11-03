@@ -1,0 +1,12 @@
+std_msgs/Header header
+unique_identifier_msgs/UUID producer_instance_id
+bool edge_installed
+bool edge_protection_enabled
+bool input_state_valid
+bool latched
+string[] active_input_ids
+string[] reasons
+bool all_required_motion_stopped
+bool stop_confirmation_valid
+bool reset_conditions_met
+robot_system_interfaces/ErrorInfo[] errors
