@@ -1,0 +1,10 @@
+uint8 strip_id
+float32 red
+float32 green
+float32 blue
+float32 white
+---
+bool accepted
+bool write_acknowledged
+builtin_interfaces/Time completed_at
+robot_system_interfaces/ErrorInfo error

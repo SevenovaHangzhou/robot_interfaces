@@ -13,7 +13,7 @@
 namespace robot_interfaces_qos
 {
 
-/// 周期控制命令（/cmd_vel_safe）。
+/// 周期控制命令（/cmd_vel）。
 ///
 /// deadline 与 lifespan 均为 500 ms，与 RT-Control 的 500 ms 本地接收间隔
 /// 看门狗一致。两者必须同步修改：lifespan 短于看门狗会让消息在看门狗
@@ -25,6 +25,28 @@ inline rclcpp::QoS control()
   qos.durability_volatile();
   qos.deadline(std::chrono::milliseconds(500));
   qos.lifespan(std::chrono::milliseconds(500));
+  return qos;
+}
+
+/// Rolling joint future-suffix command: newest complete suffix wins.
+inline rclcpp::QoS rolling_command()
+{
+  rclcpp::QoS qos{rclcpp::KeepLast(1)};
+  qos.best_effort();
+  qos.durability_volatile();
+  qos.deadline(std::chrono::milliseconds(100));
+  qos.lifespan(std::chrono::milliseconds(100));
+  return qos;
+}
+
+/// Rolling acknowledgement and controller state.
+inline rclcpp::QoS rolling_state()
+{
+  rclcpp::QoS qos{rclcpp::KeepLast(5)};
+  qos.reliable();
+  qos.durability_volatile();
+  qos.deadline(std::chrono::milliseconds(100));
+  qos.lifespan(std::chrono::milliseconds(200));
   return qos;
 }
 

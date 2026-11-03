@@ -1,0 +1,6 @@
+float64 target_position_m
+---
+MotionExecutionState final_state
+robot_system_interfaces/ErrorInfo error
+---
+MotionExecutionState state

@@ -1,0 +1,12 @@
+uint8 TIME_SOURCE_UNKNOWN=0
+uint8 TIME_SOURCE_DEVICE_SAMPLE=1
+uint8 TIME_SOURCE_HOST_RECEIVE=2
+uint8 TIME_SOURCE_READ_COMPLETE=3
+uint8 TIME_SOURCE_PUBLICATION=4
+
+builtin_interfaces/Time stamp
+uint8 time_source
+bool valid
+unique_identifier_msgs/UUID source_instance_id
+uint64 sample_sequence
+robot_system_interfaces/ErrorInfo error

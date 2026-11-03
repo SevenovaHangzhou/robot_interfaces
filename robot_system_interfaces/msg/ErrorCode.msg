@@ -36,11 +36,25 @@ uint32 RETRYABLE_INVALID_GOAL=100
 uint32 NOT_READY=130
 
 # RT-Control, not machine recoverable.
+uint32 RT_ENABLE_FAILED=1021
+uint32 RT_PUMP_UNAVAILABLE=1022
+uint32 RT_RESET_FAILED=1023
+uint32 RT_DISABLE_FAILED=1024
+uint32 RT_PUMP_COMMAND_REJECTED=1025
+uint32 RT_POSSIBLE_LOAD_HELD=1026
+uint32 RT_RESTART_REQUIRED=1027
 uint32 RT_TOLERANCE_VIOLATED=1060
+uint32 RT_INTERNAL_ERROR=1090
 
 # RT-Control, machine recoverable.
+uint32 RT_SERVICE_UNAVAILABLE=1100
+uint32 RT_ENABLE_MANAGER_NOT_READY=1101
+uint32 RT_OPERATION_IN_PROGRESS=1102
+uint32 RT_PLC_UNAVAILABLE=1121
 uint32 RT_CMD_VEL_STALE=1130
 uint32 RT_ODOM_STALE=1131
+uint32 RT_SENSOR_INVALID=1140
+uint32 RT_VACUUM_NOT_ESTABLISHED=1160
 
 # Perception, not machine recoverable.
 uint32 PERC_STANDOFF_TABLE_MISMATCH=2010
@@ -60,9 +74,11 @@ uint32 PERC_LOCALIZATION_LOST=2150
 uint32 MOTION_STAGE_SEQUENCE_INVALID=3004
 # 目标超出可达域；指向标定或退避表配置，不是规划器问题。
 uint32 MOTION_TARGET_UNREACHABLE=3010
-# 手臂未在行走包络内，或存在活动手臂 goal（契约 6.7）。
+# Legacy V2 error only; not a V3 cross-component motion admission rule.
+# 手臂未在旧行走包络内，或存在活动手臂 goal（历史契约 6.7）。
 uint32 MOTION_ARM_NOT_STOWED=3070
-# 底盘未静止，或存在活动导航 goal（契约 6.7）。
+# Legacy V2 error only; planned chassis motion does not block V3 arm admission.
+# 底盘未静止，或存在活动导航 goal（历史契约 6.7）。
 uint32 MOTION_BASE_IN_MOTION=3071
 uint32 MOTION_EXECUTION_FAILED=3060
 # 生成轨迹不满足完整关节集、时间单调、速度或连续性约束。

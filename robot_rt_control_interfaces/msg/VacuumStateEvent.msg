@@ -1,0 +1,8 @@
+std_msgs/Header header
+unique_identifier_msgs/UUID producer_instance_id
+uint64 event_sequence
+string channel
+uint8 previous_state
+uint8 current_state
+builtin_interfaces/Time detected_at
+VacuumChannelState observation
