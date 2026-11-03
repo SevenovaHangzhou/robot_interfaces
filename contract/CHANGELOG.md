@@ -87,6 +87,13 @@
   回滚时四域共同恢复到本变更前 main SHA `e9dde707d477c6db86cfa7f1d2043365c7b2908c`，
   禁止只恢复旧 `/vacuum/grip`、`/cmd_vel_safe` 或单一消费域。
 
+### 非破坏性：新增 RT-Control 设备自检与设备故障 DREE 错误码
+
+- **接口**：`robot_system_interfaces/msg/ErrorCode` 新增常量 `RT_DEVICE_OFFLINE=1001`、`RT_DEVICE_IDENTITY_MISMATCH=1010`、`RT_DEVICE_FAULT=1028`、`RT_STO_ACTIVE=1070`、`RT_DEVICE_FAULT_RESETTABLE=1128`、`RT_DEVICE_FEEDBACK_STALE=1141`；`ErrorInfo` 字段不变
+- **原因**：RT-Control 诊断重写需要按设备上报启动自检结果与驱动器故障。驱动器故障码（如零差 eRob 0x603F、Kinco 0x2601/0x2602）由厂家定义，不能按总线协议统一映射；按设计只把事件类放进 `ErrorInfo.code`，设备位置放 `source`、厂家原始码与原文放 `detail`，现有 RT 码没有设备离线、身份不符、设备故障（区分可复位与需人工排查）、STO 激活与反馈超时这些事件类
+- **提出人**：@kkozia188（RT-Control）
+- **影响域**：RT-Control 为生产者；注册表中携带 RT `ErrorInfo` 的消费方为 Autonomy（R-IN-05、R-OUT-09）与外部调用方（R-IN-03、R-IN-04），只会收到新的数值，`retryable` 仍由 R 位决定，无需改代码；各域随同一契约 SHA 升级
+
 ### 新增：N-17 为固定外参建图提供 Turn 边界切换协议
 
 - **接口**：N-17 `/navigation/mapping/set_turn_state`，

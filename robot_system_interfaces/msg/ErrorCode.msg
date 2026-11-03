@@ -36,6 +36,14 @@ uint32 RETRYABLE_INVALID_GOAL=100
 uint32 NOT_READY=130
 
 # RT-Control, not machine recoverable.
+# RT-Control device codes: ErrorInfo.source names the device (module/joint/role) and
+# ErrorInfo.detail carries the vendor's raw fault code and text; vendor codes are
+# vendor-defined and are never encoded into this table.
+# A configured device is absent at startup self-check (bus slave missing or not in OP,
+# CAN node silent).
+uint32 RT_DEVICE_OFFLINE=1001
+# A device's vendor, product or revision identity differs from the configured one.
+uint32 RT_DEVICE_IDENTITY_MISMATCH=1010
 uint32 RT_ENABLE_FAILED=1021
 uint32 RT_PUMP_UNAVAILABLE=1022
 uint32 RT_RESET_FAILED=1023
@@ -43,7 +51,11 @@ uint32 RT_DISABLE_FAILED=1024
 uint32 RT_PUMP_COMMAND_REJECTED=1025
 uint32 RT_POSSIBLE_LOAD_HELD=1026
 uint32 RT_RESTART_REQUIRED=1027
+# A device reports a vendor fault that needs operator diagnosis before reset.
+uint32 RT_DEVICE_FAULT=1028
 uint32 RT_TOLERANCE_VIOLATED=1060
+# A device reports its Safe Torque Off input as active.
+uint32 RT_STO_ACTIVE=1070
 uint32 RT_INTERNAL_ERROR=1090
 
 # RT-Control, machine recoverable.
@@ -51,9 +63,14 @@ uint32 RT_SERVICE_UNAVAILABLE=1100
 uint32 RT_ENABLE_MANAGER_NOT_READY=1101
 uint32 RT_OPERATION_IN_PROGRESS=1102
 uint32 RT_PLC_UNAVAILABLE=1121
+# A device reports a vendor fault that its documented reset path clears (for example a
+# CiA402 fault reset after the EtherCAT master left OP).
+uint32 RT_DEVICE_FAULT_RESETTABLE=1128
 uint32 RT_CMD_VEL_STALE=1130
 uint32 RT_ODOM_STALE=1131
 uint32 RT_SENSOR_INVALID=1140
+# A device's cyclic feedback is older than its configured limit.
+uint32 RT_DEVICE_FEEDBACK_STALE=1141
 uint32 RT_VACUUM_NOT_ESTABLISHED=1160
 
 # Perception, not machine recoverable.
