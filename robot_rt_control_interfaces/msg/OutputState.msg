@@ -1,4 +1,0 @@
-bool requested_value_known
-bool requested_value
-bool observed_value
-ObservationMeta observation

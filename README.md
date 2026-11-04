@@ -23,7 +23,7 @@ Service / Action 的 Server。
 1. 提供方与消费方跨越 RT-Control / Perception / Motion / Autonomy 的域边界
    （Gateway 是部署边界，不计入业务域）
 2. 在接口总表中有 ID（`G` / `P` / `N` / `M` / `R-IN` / `R-OUT`）
-3. ROS 标准类型无法直接表达（`/cmd_vel` 用 `geometry_msgs/Twist`、
+3. ROS 标准类型无法直接表达（`/rt/base/cmd_vel` 用 `geometry_msgs/Twist`、
    `/joint_states` 用 `sensor_msgs/JointState`，这类不收）
 4. 有明确的单位、坐标系、时效和成功语义
 
@@ -48,7 +48,7 @@ IDL 按 endpoint **提供方所属域**唯一归档，包名即责任边界：
 `LocalizationStatus` 由 Motion/Navigation 发布，因此只在
 `robot_motion_interfaces` 定义；Autonomy 依赖该包消费它。
 
-ROS 标准类型不会为了目录对称而包装一层。`/cmd_vel`、`/odom`、
+ROS 标准类型不会为了目录对称而包装一层。`/rt/base/cmd_vel`、`/odom`、
 `/joint_states` 等 endpoint 只在注册表和分域视图中出现。
 
 一个仓库多个包：`source-lock.yaml` 锁单个 SHA 即一次原子升级，同时各域只

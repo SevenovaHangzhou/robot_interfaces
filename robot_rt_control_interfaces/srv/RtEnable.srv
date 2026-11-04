@@ -1,0 +1,12 @@
+# R-IN-18 /rt/enable, R-IN-19 /rt/disable, R-IN-20 /rt/reset_fault: the request carries no fields.
+---
+bool ok
+# Enable batch that failed, -1 when none.
+int8 failed_batch
+# Joint whose drive stopped the sequence, empty when none.
+string failed_joint
+# CiA402 status word of failed_joint at the failure, 0 when none.
+uint16 status_word
+# enable_manager stage name, e.g. success, device_offline, fault_reset_timeout.
+string stage
+robot_system_interfaces/ErrorInfo error
