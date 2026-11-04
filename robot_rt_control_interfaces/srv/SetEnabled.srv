@@ -1,0 +1,10 @@
+# R-IN-04 pump, R-IN-05L/R left/right vacuum valve: switch one output on or off.
+bool enabled
+# Free-text origin of the request, recorded in the RT audit log.
+string reason
+---
+# True only when the output read back equals the requested value.
+bool accepted
+# Output value read back after the write; meaningless when the readback is unknown (see error).
+bool enabled
+robot_system_interfaces/ErrorInfo error

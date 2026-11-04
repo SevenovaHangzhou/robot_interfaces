@@ -55,6 +55,43 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 破坏性：RT-Control 跨域接口统一到 `/rt/` 命名，删除未实现接口，拆分真空与电池
+
+- **接口**：
+  - 改名（类型不变）：N-04 `/cmd_vel`→`/rt/base/cmd_vel`；M-09→`/rt/arms/rolling/target_batch`；
+    R-IN-02→`/rt/arms/follow_joint_trajectory`；R-IN-06→`/rt/arms/set_control_mode`；
+    R-IN-07/09→`/rt/arms/rolling/open_session`、`close_session`；R-OUT-07→`/rt/arms/rolling/state`；
+    R-IN-12→`/rt/led/set_rgbw`；R-IN-16→`/rt/head/move`；R-OUT-02→`/rt/base/odom`；
+    R-OUT-09→`/rt/readiness`；R-OUT-19A–H→`/rt/ultrasonic/channel1..8/range`；
+    R-OUT-20→`/rt/sensors/state`；R-OUT-21→`/rt/infrared/state`；R-OUT-22→`/rt/imu/data`；
+    R-OUT-23L/R→`/rt/force_torque/{left,right}_wrist/wrench`。
+  - 拆分：R-OUT-04 `/battery_state`→R-OUT-04L/R `/rt/battery/{left,right}/state`（BMS 地址 1=左、2=右）；
+    R-OUT-05 `/vacuum/state` `VacuumState`→R-OUT-05L/R `/rt/vacuum/{left,right}/pressure`
+    `sensor_msgs/FluidPressure`（表压 Pa，负值为真空）；R-IN-05 `/vacuum/valves/set` `SetVacuumValves`
+    →R-IN-05L/R `/rt/vacuum/{left,right}_valve/set_enabled`；R-IN-04 改为
+    `/rt/vacuum/pump/set_enabled`，泵与两阀共用新 `srv/SetEnabled`。
+  - 新增：R-IN-02L/R 单臂 FJT（仅单臂作用域）；R-IN-18/19/20 `/rt/enable`、`/rt/disable`、
+    `/rt/reset_fault`（新 `srv/RtEnable`）；R-IN-21 `/rt/run_self_check`（`std_srvs/Trigger`）；
+    R-OUT-28 `/rt/capabilities`（`std_msgs/String` JSON）。R-OUT-09 `ready` 语义改为“当前能接收指令”。
+  - 删除：R-IN-03 `/control/set_enabled` `SetControlEnabled`；R-IN-13/14 `/pp/{left,right}/move`、
+    R-IN-15 `/updown/move` `MoveAxis`；R-IN-17 `/protective_stop/reset` `ResetProtectiveStop`；
+    R-OUT-06 `/control/safety_state` `SafetyState`；R-OUT-18 `/vacuum/events` `VacuumStateEvent`；
+    R-OUT-24 `/rt_control/modules/state` `ModuleStateArray`；R-OUT-25 `/rt_control/motion/state`；
+    R-OUT-26 `/protective_stop/state` `ProtectiveStopState`；R-OUT-27 `/edge/state`；
+    成员类型 `OutputState`、`OutputCommandResult`、`VacuumChannelState`、`ModuleState`。
+    旧名全部登记到 `removed_endpoints`。
+- **原因**：RT-Control 公开接口分散在 `/control`、`/rt_control`、`/vacuum`、根命名空间等多处，
+  同一能力的名字与 robot_driver 实际实现不一致（`/whole_body_jtc` 实为 `dual_arm_jtc`，使能实为
+  `/rt/enable|disable|reset_fault`，`/rt/capabilities` 与按需自检未登记）；PP、升降、触边、保护停与
+  模块/执行/安全摘要没有任何实现且硬件未定，与 `/rt/readiness`、`/rt/capabilities`、
+  `/rt/sensors/state` 重叠；真空与电池按左右分路后由标准类型即可表达。名称表由用户 2026-11-04 给定。
+- **提出人**：@kkozia188（rt_control）
+- **影响域**：RT-Control（全部生产者）、Motion（cmd_vel、FJT、Rolling、真空阀、IMU、六维力、压力、
+  传感器状态）、Autonomy（使能、泵、LED、电池、超声、红外、readiness）、Perception（头部、odom、
+  TF）。不原子升级时：旧名的订阅方收不到任何数据、旧名的服务/Action 调用一直等不到服务端，
+  两侧节点都正常启动且无报错；真空消费方若仍按 `VacuumState` 解析会完全收不到压力。必须同一
+  SHA 发布，停机窗口内同时升级 RT-Control 与全部消费域；回滚为所有域同时回到 `c82f0e4`。
+
 ### 新增：在当前 main 上恢复 RT-Control 已固定的 Rolling 合同
 
 - **接口**：M-09 `/rt/rolling_joint_control/update`，R-IN-06 `/rt/joint_control/set_mode`，

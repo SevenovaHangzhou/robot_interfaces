@@ -18,7 +18,7 @@
 | P-03 | `/perception/obstacle_cloud` | Topic | `robot_perception_interfaces/msg/ObstacleCloud` | Motion | Q_STATE；**产品预留，Demo 不部署** |
 | P-04 | `/perception/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 
-## 本域消费（19 条）
+## 本域消费（14 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -31,16 +31,11 @@
 | N-14 | `/navigation/semanticmap/remove_landmark` | Service | `robot_motion_interfaces/srv/RemoveLandmark` | Motion | — |
 | N-15 | `/navigation/semanticmap/get_landmark` | Service | `robot_motion_interfaces/srv/GetLandmark` | Motion | — |
 | N-16 | `/navigation/semanticmap/get_map` | Service | `robot_motion_interfaces/srv/GetSemanticMap` | Motion | — |
-| R-IN-16 | `/head/move` | Action | `robot_rt_control_interfaces/action/MoveHead` | RT-Control | — |
+| R-IN-16 | `/rt/head/move` | Action | `robot_rt_control_interfaces/action/MoveHead` | RT-Control | — |
 | R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
 | R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
-| R-OUT-02 | `/wheel/odom` | Topic | `nav_msgs/msg/Odometry` | RT-Control | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；frame_id=odom，child_frame_id=base_footprint；rt-control 不发 odom→base_footprint TF |
+| R-OUT-02 | `/rt/base/odom` | Topic | `nav_msgs/msg/Odometry` | RT-Control | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；frame_id=odom，child_frame_id=base_footprint；rt-control 不发 odom→base_footprint TF |
 | R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；ROS 标准类型；整机各受管模块按真实采样时间发布不重叠关节子集；一关节一个权威来源；有效性与时效由模块状态配套表达 |
-| R-OUT-24 | `/rt_control/modules/state` | Topic | `robot_rt_control_interfaces/msg/ModuleStateArray` | RT-Control | Q_LATCHED |
-| R-OUT-25 | `/rt_control/motion/state` | Topic | `robot_rt_control_interfaces/msg/MotionExecutionState` | RT-Control | Q_STATE |
-| R-OUT-26 | `/protective_stop/state` | Topic | `robot_rt_control_interfaces/msg/ProtectiveStopState` | RT-Control | Q_LATCHED |
-| R-OUT-27 | `/edge/state` | Topic | `robot_rt_control_interfaces/msg/DigitalInputStateArray` | RT-Control | Q_STATE |
-| R-OUT-06 | `/control/safety_state` | Topic | `robot_rt_control_interfaces/msg/SafetyState` | RT-Control | Q_STATE；10～50 Hz；最大年龄 200 ms |
 
 ## 本域禁止的通信边
 
@@ -69,3 +64,42 @@
 - `/motion/move_to_camera_view_pose`
 - `/motion/plan_and_execute_pick`
 - `/motion/plan_and_execute_place`
+- `/vacuum/events`
+- `/control/safety_state`
+- `/control/set_enabled`
+- `/pp/left/move`
+- `/rt_control/motion/state`
+- `/pp/right/move`
+- `/protective_stop/reset`
+- `/vacuum/state`
+- `/rt_control/modules/state`
+- `/vacuum/valves/set`
+- `/protective_stop/state`
+- `/updown/move`
+- `/edge/state`
+- `/cmd_vel`
+- `/rt/rolling_joint_control/update`
+- `/whole_body_jtc/follow_joint_trajectory`
+- `/rt/joint_control/set_mode`
+- `/rt/rolling_joint_control/open`
+- `/rt/rolling_joint_control/close`
+- `/led/set_rgbw`
+- `/head/move`
+- `/wheel/odom`
+- `/rt/rolling_joint_control/state`
+- `/rt_control/readiness`
+- `/rt_control/sensors/status`
+- `/infrared/state`
+- `/imu/data`
+- `/rt_control/left_wrist/wrench`
+- `/rt_control/right_wrist/wrench`
+- `/ultrasonic/channel1/range`
+- `/ultrasonic/channel2/range`
+- `/ultrasonic/channel3/range`
+- `/ultrasonic/channel4/range`
+- `/ultrasonic/channel5/range`
+- `/ultrasonic/channel6/range`
+- `/ultrasonic/channel7/range`
+- `/ultrasonic/channel8/range`
+- `/vacuum/pump/set_enabled`
+- `/battery_state`

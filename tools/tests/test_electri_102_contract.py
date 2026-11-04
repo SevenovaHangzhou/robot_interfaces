@@ -212,27 +212,27 @@ class RollingEndpointTest(unittest.TestCase):
         }
         expected = {
             "R-IN-06": (
-                "/rt/joint_control/set_mode",
+                "/rt/arms/set_control_mode",
                 "robot_rt_control_interfaces/srv/SetJointControlMode",
                 "Q_DEFAULT",
             ),
             "R-IN-07": (
-                "/rt/rolling_joint_control/open",
+                "/rt/arms/rolling/open_session",
                 "robot_rt_control_interfaces/srv/OpenRollingJointSession",
                 "Q_DEFAULT",
             ),
             "M-09": (
-                "/rt/rolling_joint_control/update",
+                "/rt/arms/rolling/target_batch",
                 "robot_motion_interfaces/msg/RollingJointTargetBatch",
                 "Q_ROLLING_COMMAND",
             ),
             "R-IN-09": (
-                "/rt/rolling_joint_control/close",
+                "/rt/arms/rolling/close_session",
                 "robot_rt_control_interfaces/srv/CloseRollingJointSession",
                 "Q_DEFAULT",
             ),
             "R-OUT-07": (
-                "/rt/rolling_joint_control/state",
+                "/rt/arms/rolling/state",
                 "robot_rt_control_interfaces/msg/RollingJointControlState",
                 "Q_ROLLING_STATE",
             ),
