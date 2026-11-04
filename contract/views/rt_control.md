@@ -9,13 +9,16 @@
 本文只列 RT-Control 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（40 条）
+## 本域提供（43 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
 | R-IN-02 | `/rt/arms/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | Motion | ROS 标准类型；三代双七轴 right_joint1..7,left_joint1..7；完整 14 轴；allow_partial_joints_goal=false |
 | R-IN-02L | `/rt/arms/left/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | Motion | ROS 标准类型 |
 | R-IN-02R | `/rt/arms/right/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | Motion | ROS 标准类型 |
+| R-IN-22 | `/rt/arms/joint_trajectory` | Topic | `trajectory_msgs/msg/JointTrajectory` | Motion | Q_CONTROL；ROS 标准类型；流式下发（遥操作、视觉伺服、在线重规划）；与 R-IN-02 同一控制器，新消息替换尚未执行的轨迹；断流后保持最后目标 |
+| R-IN-22L | `/rt/arms/left/joint_trajectory` | Topic | `trajectory_msgs/msg/JointTrajectory` | Motion | Q_CONTROL；ROS 标准类型 |
+| R-IN-22R | `/rt/arms/right/joint_trajectory` | Topic | `trajectory_msgs/msg/JointTrajectory` | Motion | Q_CONTROL；ROS 标准类型 |
 | R-IN-18 | `/rt/enable` | Service | `robot_rt_control_interfaces/srv/RtEnable` | 外部/本地入口 | — |
 | R-IN-19 | `/rt/disable` | Service | `robot_rt_control_interfaces/srv/RtEnable` | 外部/本地入口 | — |
 | R-IN-20 | `/rt/reset_fault` | Service | `robot_rt_control_interfaces/srv/RtEnable` | 外部/本地入口 | — |

@@ -55,6 +55,16 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：双臂流式关节轨迹话题 R-IN-22/22L/22R
+
+- **接口**：R-IN-22 `/rt/arms/joint_trajectory`、R-IN-22L `/rt/arms/left/joint_trajectory`、
+  R-IN-22R `/rt/arms/right/joint_trajectory`，类型 `trajectory_msgs/msg/JointTrajectory`，QoS `Q_CONTROL`。
+- **原因**：遥操作、视觉伺服和在线重规划需要高频替换轨迹；FJT action 每次新目标都要走
+  goal 握手，Rolling 会话协议对单客户端、断流保持即可的场景过重。由同一 JTC 的话题入口
+  提供，准入规则与 R-IN-02 相同，并按模型 URDF 速度上限拒绝超速轨迹。
+- **提出人**：@kkozia188（rt_control）
+- **影响域**：Motion 可选用，无需同批升级；R-IN-02 不变。
+
 ### 破坏性：RT-Control 跨域接口统一到 `/rt/` 命名，删除未实现接口，拆分真空与电池
 
 - **接口**：

@@ -319,6 +319,38 @@ endpoints:
     external_type: true
     constraint: "仅单臂作用域提供；right_joint1..7；其余同 R-IN-02L"
 
+  - id: R-IN-22
+    ros_name: /rt/arms/joint_trajectory
+    kind: topic
+    type: trajectory_msgs/msg/JointTrajectory
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_CONTROL
+    external_type: true
+    axis_set: v3_dual_arm
+    note: "流式下发（遥操作、视觉伺服、在线重规划）；与 R-IN-02 同一控制器，新消息替换尚未执行的轨迹；断流后保持最后目标"
+    constraint: "完整三代双臂 7+7 轴；位置 rad、速度 rad/s；首点距实测位置 ≤ 1° + 速度上限×首点时间，每段平均速度与各点速度不超过模型 URDF 速度上限，否则整条丢弃；末点速度应为 0 或在其执行完前送达下一条；与 R-IN-02 并发时以最后到达者为准"
+
+  - id: R-IN-22L
+    ros_name: /rt/arms/left/joint_trajectory
+    kind: topic
+    type: trajectory_msgs/msg/JointTrajectory
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_CONTROL
+    external_type: true
+    constraint: "仅单臂作用域提供；left_joint1..7；其余同 R-IN-22"
+
+  - id: R-IN-22R
+    ros_name: /rt/arms/right/joint_trajectory
+    kind: topic
+    type: trajectory_msgs/msg/JointTrajectory
+    producer: rt_control
+    consumers: [motion]
+    qos: Q_CONTROL
+    external_type: true
+    constraint: "仅单臂作用域提供；right_joint1..7；其余同 R-IN-22"
+
   - id: R-IN-18
     ros_name: /rt/enable
     kind: service
