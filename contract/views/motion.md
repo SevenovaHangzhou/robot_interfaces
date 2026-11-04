@@ -31,7 +31,7 @@
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 
-## 本域消费（19 条）
+## 本域消费（22 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -39,6 +39,9 @@
 | R-IN-02 | `/rt/arms/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | RT-Control | ROS 标准类型；三代双七轴 right_joint1..7,left_joint1..7；完整 14 轴；allow_partial_joints_goal=false |
 | R-IN-02L | `/rt/arms/left/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | RT-Control | ROS 标准类型 |
 | R-IN-02R | `/rt/arms/right/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | RT-Control | ROS 标准类型 |
+| R-IN-22 | `/rt/arms/joint_trajectory` | Topic | `trajectory_msgs/msg/JointTrajectory` | RT-Control | Q_CONTROL；ROS 标准类型；流式下发（遥操作、视觉伺服、在线重规划）；与 R-IN-02 同一控制器，新消息替换尚未执行的轨迹；断流后保持最后目标 |
+| R-IN-22L | `/rt/arms/left/joint_trajectory` | Topic | `trajectory_msgs/msg/JointTrajectory` | RT-Control | Q_CONTROL；ROS 标准类型 |
+| R-IN-22R | `/rt/arms/right/joint_trajectory` | Topic | `trajectory_msgs/msg/JointTrajectory` | RT-Control | Q_CONTROL；ROS 标准类型 |
 | R-IN-05L | `/rt/vacuum/left_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
 | R-IN-05R | `/rt/vacuum/right_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
 | R-IN-06 | `/rt/arms/set_control_mode` | Service | `robot_rt_control_interfaces/srv/SetJointControlMode` | RT-Control | — |
