@@ -22,6 +22,8 @@ uint8 LIMIT_EXCEEDED=6
 uint8 NOT_STOPPABLE=7
 # Beyond the buffer capacity or the maximum horizon.
 uint8 HORIZON_EXCEEDED=8
+# Braking (STOPPING), or the arms are not where the held command is; resend once HOLDING.
+uint8 NOT_ACCEPTING=9
 
 uint8 STOP_NONE=0
 # No accepted batch within the update timeout.
