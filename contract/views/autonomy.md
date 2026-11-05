@@ -68,6 +68,8 @@
 
 出现在 ROS graph 中即为违约：
 
+- `/rt/arms/rolling/open_session`
+- `/rt/arms/rolling/close_session`
 - `/cmd_vel_safe`
 - `/vacuum/grip`
 - `/led0/color`

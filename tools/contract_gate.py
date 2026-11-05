@@ -10,7 +10,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import sys
 from pathlib import Path
 
@@ -72,9 +71,6 @@ def validate(document: dict) -> list[str]:
         if not isinstance(position_unit, str) or not isinstance(velocity_unit, str):
             findings.append(f"axis_sets:{axis_id}: position/velocity units must be explicit")
             continue
-        canonical = "".join(f"{name}:{position_unit}:{velocity_unit}\n" for name in names)
-        if definition.get("sha256") != hashlib.sha256(canonical.encode("utf-8")).hexdigest():
-            findings.append(f"axis_sets:{axis_id}: canonical axis_set_hash mismatch")
 
     if not endpoints:
         return ["endpoints.yaml: endpoints 为空"]

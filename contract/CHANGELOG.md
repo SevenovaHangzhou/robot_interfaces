@@ -55,6 +55,18 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 破坏性：精简 Rolling 协议，会话随模式切换，批次用 ROS 时间
+
+- **接口**：
+  - 删除 R-IN-07 `/rt/arms/rolling/open_session`、R-IN-09 `/rt/arms/rolling/close_session` 及类型 `OpenRollingJointSession`、`CloseRollingJointSession`、`RollingLimitsSource`、`RollingRejectCode`、`RollingServiceResult`、`RollingSessionState`、`RollingStopReason`。
+  - M-09 `RollingJointTargetBatch`：只留 `epoch`、`sequence`、`replace_from`（ROS 时间）、`points`；`RollingJointPoint` 时间改为相对 `replace_from` 的 `time_from_start`。
+  - R-OUT-07 `RollingJointControlState`：只留 `epoch`、`state`、`last_sequence`、`last_result`、`stop_reason`，状态/结果/停止原因常量内联。
+  - R-IN-06 `SetJointControlMode`：请求只留 `target_mode`；响应为 `accepted`、`error`、`mode`。
+  - `axis_sets.v3_dual_arm` 删除 `sha256`，门禁不再校验轴集合哈希。
+- **原因**：运控是唯一客户端，且与 RT-Control 同机（用户 2026-11-04 代表运控确认）。原协议的协议版本号、4 层 UUID、两阶段关闭、幂等缓存、SHA 轴身份、限值来源三态和约 50 个状态字段，都是为多客户端、跨机器、不可信链路设计的，增加对接与实现负担而不提高安全性。缓冲替换、拼接检查、限值与停车可行性检查、断流刹停保留。
+- **提出人**：@kkozia188（rt_control；代表 motion 评审）
+- **影响域**：motion 与 rt_control 同批升级。未同批升级时：旧客户端调用 open/close 服务不存在；旧批次消息类型不匹配，DDS 两端都能启动但收不到数据，rolling 不会动；`SetJointControlMode` 请求类型不同，模式切换调用失败。
+
 ### 非破坏性：双臂轨迹准入加入加速度上限，首点容差只用于立即执行的点
 
 - **接口**：R-IN-02/02L/02R `FollowJointTrajectory`、R-IN-22/22L/22R `JointTrajectory` 的 `constraint`；wire 类型不变。

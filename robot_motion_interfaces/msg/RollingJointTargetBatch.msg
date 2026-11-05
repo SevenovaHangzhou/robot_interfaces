@@ -1,18 +1,11 @@
-# Complete authoritative suffix update for one V3 dual-seven-axis session.
-# protocol 1.0 requires an exact version match AND the V3 axis_set_hash at open.
-# Every point uses right_joint1..7, left_joint1..7; ALL positions rad, velocities rad/s.
-# No axis substitution or partial-arm update; the non-moving arm is still included.
+# Replaces the buffered rolling trajectory from replace_from onwards (M-09).
+uint16 MAX_POINTS=256
 
-uint16 TRANSPORT_MAX_POINTS=256
-uint16 PROTOCOL_MAJOR=1
-uint16 PROTOCOL_MINOR=0
-
-uint16 protocol_major
-uint16 protocol_minor
-unique_identifier_msgs/UUID controller_boot_id
-unique_identifier_msgs/UUID session_id
-unique_identifier_msgs/UUID client_instance_id
+# RollingJointControlState.epoch of the activation this batch is meant for.
+uint32 epoch
+# Strictly increasing within one activation.
 uint64 sequence
-# Session-relative replacement boundary. The first point time must equal it.
-uint64 replace_from_ns
+# ROS time of the first point. It must not be earlier than now + the replace lead, and the
+# first point must match the buffered trajectory there (position and velocity).
+builtin_interfaces/Time replace_from
 RollingJointPoint[<=256] points
