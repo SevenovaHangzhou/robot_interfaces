@@ -1,63 +1,45 @@
-# Public rolling state. All time fields are session-relative or monotonic ages;
-# published_at is diagnostic only and never orders or samples commands.
+# Rolling controller state (R-OUT-07), published while the rolling controller is active.
 
-uint16 PROTOCOL_MAJOR=1
-uint16 PROTOCOL_MINOR=0
+# Holding a position; the first accepted batch starts motion.
+uint8 HOLDING=0
+# Following the buffered trajectory.
+uint8 RUNNING=1
+# Braking within the limits (see stop_reason); HOLDING follows.
+uint8 STOPPING=2
 
-uint16 protocol_major
-uint16 protocol_minor
-unique_identifier_msgs/UUID controller_boot_id
-unique_identifier_msgs/UUID session_id
-unique_identifier_msgs/UUID client_instance_id
+uint8 ACCEPTED=0
+uint8 WRONG_EPOCH=1
+uint8 STALE_SEQUENCE=2
+# Empty, too many points, not finite, or point times not strictly increasing.
+uint8 INVALID_BATCH=3
+# replace_from earlier than now + the replace lead.
+uint8 LATE_REPLACE=4
+# First point does not match the buffered trajectory at replace_from.
+uint8 SPLICE_MISMATCH=5
+# A position, velocity or acceleration limit of the robot model is exceeded.
+uint8 LIMIT_EXCEEDED=6
+# From some point of the batch the arms could not stop within the limits.
+uint8 NOT_STOPPABLE=7
+# Beyond the buffer capacity or the maximum horizon.
+uint8 HORIZON_EXCEEDED=8
+# Braking (STOPPING), or the arms are not where the held command is; resend once HOLDING.
+uint8 NOT_ACCEPTING=9
 
-JointControlMode control_mode
-RollingSessionState session_state
-bool has_session
-bool has_accepted_update
-bool pending_generation_valid
+uint8 STOP_NONE=0
+# No accepted batch within the update timeout.
+uint8 STOP_UPDATE_TIMEOUT=1
+# The buffered trajectory ran out while moving.
+uint8 STOP_BUFFER_END=2
+# Mode switched away, disabled or controller deactivated.
+uint8 STOP_DEACTIVATED=3
+uint8 STOP_FAULT=4
+uint8 STOP_INTERNAL=5
 
-uint64 active_generation
-uint64 validation_base_generation
-uint64 pending_generation
-uint64 last_seen_sequence
-uint64 last_accepted_sequence
-uint64 last_rejected_sequence
-
-uint64 execution_time_ns
-uint64 replaceable_from_ns
-uint64 buffered_until_ns
-uint64 available_horizon_ns
-# prime_age is meaningful before the first accepted update; accepted_update_age
-# is meaningful only while has_accepted_update=true. Both use steady time.
-uint64 prime_age_ns
-uint64 accepted_update_age_ns
-
-# V3 right_joint1..7, left_joint1..7, exactly as RollingJointPoint.
-# ALL desired positions rad; ALL desired velocities rad/s.
-float64[14] desired_positions
-float64[14] desired_velocities
-uint16 buffer_point_count
-uint16 buffer_capacity
-
-RollingRejectCode last_reject
-RollingStopReason stop_reason
-RollingServiceResult last_mode_result
-unique_identifier_msgs/UUID last_mode_request_id
-bool source_controller_deactivated
-bool target_controller_activated
-bool restart_required
-RollingLimitsSource limits_source
-bool test_only_limits
-# V3 SHA-256: f4c8ff8a32183d1733032494600c9f5d1e7e625673a4ad51556b3ac6c35adee4
-# Authority and canonicalization: contract/endpoints.yaml axis_sets.v3_dual_arm.
-uint8[32] axis_set_hash
-uint8[32] limits_version
-
-uint64 accepted_count
-uint64 rejected_count
-uint64 superseded_pending_count
-uint64 timeout_count
-uint64 invariant_failure_count
-uint64 command_deadline_miss_count
-uint64 state_sequence
-builtin_interfaces/Time published_at
+# Increments on every activation of the rolling controller.
+uint32 epoch
+uint8 state
+# Sequence of the newest batch received in this epoch and its result.
+uint64 last_sequence
+uint8 last_result
+# Why the last stop happened; STOP_NONE until the first stop of the epoch.
+uint8 stop_reason

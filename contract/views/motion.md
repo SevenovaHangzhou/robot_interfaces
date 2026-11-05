@@ -27,11 +27,11 @@
 | N-16 | `/navigation/semanticmap/get_map` | Service | `robot_motion_interfaces/srv/GetSemanticMap` | Perception、Autonomy、外部/本地入口 | — |
 | N-17 | `/navigation/mapping/set_turn_state` | Service | `robot_motion_interfaces/srv/SetMappingTurnState` | Autonomy、外部/本地入口 | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 Turn 边界，保留既有协议；不是 V3 底盘接管或同步运动接口；turn_sequence 单调递增，同一 BEGIN_TURN/TURN_COMPLETE 重试幂等 |
 | M-08 | `/motion/execute_stage` | Action | `robot_motion_interfaces/action/ExecuteMotionStage` | Autonomy | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 分阶段机械动作：12臂轴与Turn/Updown；保留供旧消费者迁移，不是 V3 双七轴或新抓放流程；不得通过旧流程调用已退役 VacuumGrip |
-| M-09 | `/rt/arms/rolling/target_batch` | Topic | `robot_motion_interfaces/msg/RollingJointTargetBatch` | RT-Control | Q_ROLLING_COMMAND；30 Hz；三代双七轴：right_joint1..7 后接 left_joint1..7；全部 rad/rad/s；完整 future suffix，非运动臂仍须包含 |
+| M-09 | `/rt/arms/rolling/target_batch` | Topic | `robot_motion_interfaces/msg/RollingJointTargetBatch` | RT-Control | Q_ROLLING_COMMAND；30 Hz；三代双七轴：right_joint1..7 后接 left_joint1..7；全部 rad/rad/s；从 replace_from 起替换缓冲轨迹，非运动臂仍须包含 |
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 
-## 本域消费（22 条）
+## 本域消费（20 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -45,8 +45,6 @@
 | R-IN-05L | `/rt/vacuum/left_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
 | R-IN-05R | `/rt/vacuum/right_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
 | R-IN-06 | `/rt/arms/set_control_mode` | Service | `robot_rt_control_interfaces/srv/SetJointControlMode` | RT-Control | — |
-| R-IN-07 | `/rt/arms/rolling/open_session` | Service | `robot_rt_control_interfaces/srv/OpenRollingJointSession` | RT-Control | 三代 right_joint1..7,left_joint1..7；hold_positions 全部 rad、hold_velocities 全部 rad/s；拒绝旧轴哈希 |
-| R-IN-09 | `/rt/arms/rolling/close_session` | Service | `robot_rt_control_interfaces/srv/CloseRollingJointSession` | RT-Control | — |
 | R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
 | R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
 | R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；ROS 标准类型；整机各受管模块按真实采样时间发布不重叠关节子集；一关节一个权威来源；有效性与时效由模块状态配套表达 |
@@ -56,7 +54,7 @@
 | R-OUT-22 | `/rt/imu/data` | Topic | `sensor_msgs/msg/Imu` | RT-Control | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-23L | `/rt/force_torque/left_wrist/wrench` | Topic | `geometry_msgs/msg/WrenchStamped` | RT-Control | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-23R | `/rt/force_torque/right_wrist/wrench` | Topic | `geometry_msgs/msg/WrenchStamped` | RT-Control | Q_FAST_STATE；ROS 标准类型 |
-| R-OUT-07 | `/rt/arms/rolling/state` | Topic | `robot_rt_control_interfaces/msg/RollingJointControlState` | RT-Control | Q_ROLLING_STATE；50 Hz；最大年龄 200 ms；三代双七轴 right_joint1..7,left_joint1..7；desired_positions rad、desired_velocities rad/s；axis_set_hash 与 open 一致 |
+| R-OUT-07 | `/rt/arms/rolling/state` | Topic | `robot_rt_control_interfaces/msg/RollingJointControlState` | RT-Control | Q_ROLLING_STATE；50 Hz；最大年龄 200 ms；rolling 控制器激活期间发布；5 个字段：epoch、state、last_sequence、last_result、stop_reason |
 
 ## 本域禁止的通信边
 
@@ -67,6 +65,8 @@
 
 出现在 ROS graph 中即为违约：
 
+- `/rt/arms/rolling/open_session`
+- `/rt/arms/rolling/close_session`
 - `/cmd_vel_safe`
 - `/vacuum/grip`
 - `/led0/color`
