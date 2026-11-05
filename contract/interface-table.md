@@ -45,10 +45,10 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 
 | ID | ROS 名称 | 形式 / 类型 | 方向 | 关键约束 |
 | --- | --- | --- | --- | --- |
-| R-IN-02 | `/rt/arms/follow_joint_trajectory` | Action / `control_msgs/action/FollowJointTrajectory` | Motion ⇄ RT-Control | 完整三代双臂 7+7 轴；位置 rad、速度 rad/s；不包含 turn/updown 或 PP；`allow_partial_joints_goal=false`；整组取消 |
+| R-IN-02 | `/rt/arms/follow_joint_trajectory` | Action / `control_msgs/action/FollowJointTrajectory` | Motion ⇄ RT-Control | 完整三代双臂 7+7 轴；位置 rad、速度 rad/s；不包含 turn/updown 或 PP；`allow_partial_joints_goal=false`；整组取消。准入（RT-Control 实时侧）：每点必须带速度、末点速度为 0；首点时间为 0 时距实测位置 ≤ 1°，首点在未来时距实测位置 ≤ 速度上限×首点时间；各点速度与每段平均速度 ≤ 速度上限；每段三次插值加速度（含从上一条指令接入首点的一段）≤ 加速度上限；上限取自 robot_description（双臂 30°/s、60°/s²）；不满足整条拒绝 |
 | R-IN-02L | `/rt/arms/left/follow_joint_trajectory` | Action / `control_msgs/action/FollowJointTrajectory` | Motion ⇄ RT-Control | 仅单臂作用域提供；left_joint1..7；位置 rad、速度 rad/s；`allow_partial_joints_goal=false`；整组取消；双臂作用域只提供 R-IN-02 |
 | R-IN-02R | `/rt/arms/right/follow_joint_trajectory` | Action / `control_msgs/action/FollowJointTrajectory` | Motion ⇄ RT-Control | 仅单臂作用域提供；right_joint1..7；其余同 R-IN-02L |
-| R-IN-22 | `/rt/arms/joint_trajectory` | Topic / `trajectory_msgs/msg/JointTrajectory` | RT-Control → Motion | 完整三代双臂 7+7 轴；位置 rad、速度 rad/s；首点距实测位置 ≤ 1° + 速度上限×首点时间，每段平均速度与各点速度不超过模型 URDF 速度上限，否则整条丢弃；末点速度应为 0 或在其执行完前送达下一条；与 R-IN-02 并发时以最后到达者为准 |
+| R-IN-22 | `/rt/arms/joint_trajectory` | Topic / `trajectory_msgs/msg/JointTrajectory` | RT-Control → Motion | 完整三代双臂 7+7 轴；位置 rad、速度 rad/s；准入同 R-IN-02；用 header.stamp 标注首点时间基准；末点速度必须为 0；控制器从上一条指令接续新轨迹；与 R-IN-02 并发时以最后到达者为准（执行中的 action 目标被中止） |
 | R-IN-22L | `/rt/arms/left/joint_trajectory` | Topic / `trajectory_msgs/msg/JointTrajectory` | RT-Control → Motion | 仅单臂作用域提供；left_joint1..7；其余同 R-IN-22 |
 | R-IN-22R | `/rt/arms/right/joint_trajectory` | Topic / `trajectory_msgs/msg/JointTrajectory` | RT-Control → Motion | 仅单臂作用域提供；right_joint1..7；其余同 R-IN-22 |
 | R-IN-18 | `/rt/enable` | Service / `robot_rt_control_interfaces/srv/RtEnable` | 外部/本地入口 ⇄ RT-Control | 按使能策略分批使能全部受管驱动与握手设备并激活运动控制器；失败时返回失败批次、关节、状态字、阶段与 DREE 错误；不复位急停、安全继电器或 STO |

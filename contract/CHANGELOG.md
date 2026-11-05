@@ -55,6 +55,13 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 非破坏性：双臂轨迹准入加入加速度上限，首点容差只用于立即执行的点
+
+- **接口**：R-IN-02/02L/02R `FollowJointTrajectory`、R-IN-22/22L/22R `JointTrajectory` 的 `constraint`；wire 类型不变。
+- **原因**：2026-11-04 台架流式测试中，0.03 rad/5 ms 的窗口按“1° + 速度上限 × 首点时间”被接受，两侧 joint7 报 0x8400（速度误差超限）急停。只限速度无法拦住速度阶跃；1° 容差加在未来首点上等于允许瞬跳。
+- **提出人**：@kkozia188（rt_control）
+- **影响域**：motion。RT-Control 起拒绝：不带速度的点、末点速度非 0、超过 30°/s 或 60°/s²（robot_description 双臂上限）的轨迹。Motion 规划与流式下发需同步满足；未满足时目标被拒绝（FJT 返回 INVALID_GOAL，话题整条丢弃），不会执行半条。
+
 ### 新增：双臂流式关节轨迹话题 R-IN-22/22L/22R
 
 - **接口**：R-IN-22 `/rt/arms/joint_trajectory`、R-IN-22L `/rt/arms/left/joint_trajectory`、
