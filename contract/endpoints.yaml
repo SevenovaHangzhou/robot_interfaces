@@ -296,7 +296,7 @@ endpoints:
     external_type: true
     axis_set: v3_dual_arm
     note: "三代双七轴 right_joint1..7,left_joint1..7；完整 14 轴；allow_partial_joints_goal=false"
-    constraint: "完整三代双臂 7+7 轴；位置 rad、速度 rad/s；不包含 turn/updown 或 PP；`allow_partial_joints_goal=false`；整组取消"
+    constraint: "完整三代双臂 7+7 轴；位置 rad、速度 rad/s；不包含 turn/updown 或 PP；`allow_partial_joints_goal=false`；整组取消。准入（RT-Control 实时侧）：每点必须带速度、末点速度为 0；首点时间为 0 时距实测位置 ≤ 1°，首点在未来时距实测位置 ≤ 速度上限×首点时间；各点速度与每段平均速度 ≤ 速度上限；每段三次插值加速度（含从上一条指令接入首点的一段）≤ 加速度上限；上限取自 robot_description（双臂 30°/s、60°/s²）；不满足整条拒绝"
 
 
   - id: R-IN-02L
@@ -329,7 +329,7 @@ endpoints:
     external_type: true
     axis_set: v3_dual_arm
     note: "流式下发（遥操作、视觉伺服、在线重规划）；与 R-IN-02 同一控制器，新消息替换尚未执行的轨迹；断流后保持最后目标"
-    constraint: "完整三代双臂 7+7 轴；位置 rad、速度 rad/s；首点距实测位置 ≤ 1° + 速度上限×首点时间，每段平均速度与各点速度不超过模型 URDF 速度上限，否则整条丢弃；末点速度应为 0 或在其执行完前送达下一条；与 R-IN-02 并发时以最后到达者为准"
+    constraint: "完整三代双臂 7+7 轴；位置 rad、速度 rad/s；准入同 R-IN-02；用 header.stamp 标注首点时间基准；末点速度必须为 0；控制器从上一条指令接续新轨迹；与 R-IN-02 并发时以最后到达者为准（执行中的 action 目标被中止）"
 
   - id: R-IN-22L
     ros_name: /rt/arms/left/joint_trajectory
