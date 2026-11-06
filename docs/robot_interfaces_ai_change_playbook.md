@@ -88,6 +88,7 @@ AI 按以下优先级执行：
 | RT-Control | `robot_rt_control_interfaces` | `@SevenovaHangzhou/rt-control-interface-owners` |
 | 四域共享 | `robot_system_interfaces` | 根据实际生产者和消费者共同评审 |
 | 四域共享 | `robot_interfaces_qos` | 根据受影响 endpoint 共同评审 |
+| Motion 使用 | `robot_interfaces_rolling_client`（发送端代码，无 IDL） | RT-Control 与 Motion 共同评审 |
 
 允许的 schema 依赖方向：
 
@@ -99,7 +100,13 @@ robot_motion_interfaces     -> robot_system_interfaces
                             -> robot_perception_interfaces
                             -> robot_rt_control_interfaces
 robot_interfaces_qos        -> rclcpp / rclpy
+robot_interfaces_rolling_client -> robot_motion_interfaces
+                                -> robot_rt_control_interfaces
+                                -> robot_interfaces_qos
+                                -> rclcpp
 ```
+
+客户端包只按契约写明的语义工作；契约未写明的控制器行为先进入契约，再进入客户端。
 
 不得为了完成一次改动引入反向依赖或循环依赖。运行时调用方向不等于 schema 依赖方向。
 

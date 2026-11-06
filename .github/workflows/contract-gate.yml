@@ -56,3 +56,10 @@ jobs:
         run: |
           source /opt/ros/humble/setup.bash
           colcon build --event-handlers console_direct+
+
+      - name: Test Rolling client
+        shell: bash
+        run: |
+          source /opt/ros/humble/setup.bash
+          colcon test --packages-select robot_interfaces_rolling_client --event-handlers console_direct+
+          colcon test-result --verbose
