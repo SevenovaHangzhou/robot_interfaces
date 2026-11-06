@@ -62,6 +62,7 @@ class RollingSchemaTest(unittest.TestCase):
                 "uint64 sequence",
                 "builtin_interfaces/Time replace_from",
                 "RollingJointPoint[<=256] points",
+                "bool final",
             ],
         )
         self.assertEqual(
@@ -86,14 +87,18 @@ class RollingSchemaTest(unittest.TestCase):
             ],
         )
         codes = constants("msg/RollingJointControlState.msg")
-        states = [codes[name] for name in ("HOLDING", "RUNNING", "STOPPING")]
-        results = [value for name, value in codes.items() if name not in (
-            "HOLDING", "RUNNING", "STOPPING") and not name.startswith("STOP_")]
+        state_names = ("HOLDING", "RUNNING", "STOPPING", "STARTING")
+        states = [codes[name] for name in state_names]
+        results = [value for name, value in codes.items() if name not in state_names
+                   and not name.startswith("STOP_")]
         stops = [value for name, value in codes.items() if name.startswith("STOP_")]
         for group in (states, results, stops):
             self.assertEqual(len(group), len(set(group)))
         self.assertEqual(codes["ACCEPTED"], 0)
         self.assertEqual(codes["STOP_NONE"], 0)
+        # A final trajectory ends with its own result and stop reason.
+        self.assertIn("FINAL_NOT_AT_REST", codes)
+        self.assertIn("STOP_COMPLETED", codes)
 
     def test_mode_service_takes_only_the_target(self) -> None:
         service = schema("srv/SetJointControlMode.srv")

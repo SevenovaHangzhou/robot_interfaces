@@ -258,7 +258,7 @@ endpoints:
     rate_hz: [30, 30]
     axis_set: v3_dual_arm
     note: "三代双七轴：right_joint1..7 后接 left_joint1..7；全部 rad/rad/s；从 replace_from 起替换缓冲轨迹，非运动臂仍须包含"
-    constraint: "仅在 /rt/arms/set_control_mode 切到 ROLLING_READY 后生效；epoch 等于 R-OUT-07 当前 epoch；sequence 在同一 epoch 内严格递增；replace_from 为 ROS 时间（运控与 RT-Control 同机），不早于当前时刻 + 替换提前量；首点 time_from_start=0，位置与速度在拼接容差内等于缓冲轨迹在 replace_from 处的值；点时间严格递增，1～256 点，总长不超过缓冲上限；位置/速度/加速度不超过 robot_description 关节限位，且从任一点起都能在限值内停住；不满足整批拒绝，结果见 R-OUT-07 last_result；超过更新超时未收到有效批次，或缓冲耗尽时按限值刹停并保持；best-effort/volatile/keep-last(1)，deadline/lifespan 100 ms"
+    constraint: "仅在 /rt/arms/set_control_mode 切到 ROLLING_READY 后生效；epoch 等于 R-OUT-07 当前 epoch；sequence 在同一 epoch 内严格递增；replace_from 为 ROS 时间（运控与 RT-Control 同机），不早于当前时刻 + 替换提前量；首点 time_from_start=0，位置与速度在拼接容差内等于缓冲轨迹在 replace_from 处的值；点时间严格递增，1～256 点，总长不超过缓冲上限；位置/速度/加速度不超过 robot_description 关节限位，且从任一点起都能在限值内停住；不满足整批拒绝，结果见 R-OUT-07 last_result；final=true 为本段最后一批，末点各轴速度须为 0（否则 FINAL_NOT_AT_REST）；最新接受的批次为 final 时不再需要后续批次、不计更新超时，执行到末点后保持并报 STOP_COMPLETED，期间仍可用新批次从其 replace_from 起替换，替换批次非 final 时恢复更新超时；最新接受的批次非 final 时，超过更新超时未收到有效批次，或缓冲耗尽时按限值刹停并保持；best-effort/volatile/keep-last(1)，deadline/lifespan 100 ms"
 
 
   - id: M-06
@@ -702,7 +702,7 @@ endpoints:
     max_age_ms: 200
     axis_set: v3_dual_arm
     note: "rolling 控制器激活期间发布；5 个字段：epoch、state、last_sequence、last_result、stop_reason"
-    constraint: "每次激活 epoch 加 1；state 为 HOLDING/RUNNING/STOPPING；last_sequence/last_result 只报本 epoch 最新收到的批次；stop_reason 为本 epoch 最近一次停止原因；reliable/volatile/keep-last(5)，deadline 100 ms、lifespan 200 ms"
+    constraint: "每次激活 epoch 加 1；state 为 HOLDING（无轨迹）/STARTING（开始一段轨迹的批次已接受，等待其 replace_from）/RUNNING/STOPPING；last_sequence/last_result 只报本 epoch 最新收到的批次；stop_reason 为当前或最近一段轨迹的停止原因，自开始该段的批次被接受起为 STOP_NONE，停止后保持到下一段开始；final 轨迹执行到末点报 STOP_COMPLETED，由 RUNNING 直接进入 HOLDING；reliable/volatile/keep-last(5)，deadline 100 ms、lifespan 200 ms"
 
 
   - id: R-OUT-09
