@@ -43,6 +43,7 @@ IDL 按 endpoint **提供方所属域**唯一归档，包名即责任边界：
 | RT-Control | `robot_rt_control_interfaces` | 使能、泵阀、IO、执行器动作、保护、模块状态与 Rolling | R-IN-03～17、R-OUT-05～27 |
 | 四域共享 | `robot_system_interfaces` | 就绪心跳、统一错误载荷 | P-04、M-06、N-06、R-OUT-09 |
 | 四域共享 | `robot_interfaces_qos` | 命名 QoS 剖面（C++ / Python） | 全部命名剖面 |
+| Motion 使用 | `robot_interfaces_rolling_client` | Rolling 发送端 C++ 客户端，不含 IDL | M-09、R-OUT-07 |
 
 消费域直接依赖提供方的包，**不在自己包内复制 IDL**。例如
 `LocalizationStatus` 由 Motion/Navigation 发布，因此只在
@@ -57,6 +58,8 @@ ROS 标准类型不会为了目录对称而包装一层。`/rt/base/cmd_vel`、`
 依赖方向：`autonomy` 依赖 `system`；`perception` 依赖 `system`；
 `rt_control` 依赖 `system`；`motion` 依赖 `system`、`perception`、
 `rt_control`。依赖无环，只表示 schema 引用，不替代 endpoint 运行方向。
+`robot_interfaces_rolling_client` 依赖 `motion`、`rt_control` 和 `robot_interfaces_qos`，
+任何接口包都不依赖它。
 
 底盘、双臂、升降和 PP 当前按各自资源独立准入，不建立跨组运动互斥；同一资源仍必须保持唯一 writer，FJT/Rolling 继续互斥。触边等已明确保护按其独立状态和锁存协议执行。
 

@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>robot_interfaces_rolling_client</name>
+  <version>0.1.0</version>
+  <description>
+    Rolling 发送端 C++ 客户端（M-09 批次、R-OUT-07 状态）：等待连接、确认首批、
+    管理 epoch 与序号、区分正常收尾与停止。不新增任何接口类型。
+  </description>
+  <maintainer email="kkozia188@gmail.com">kkozia</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>builtin_interfaces</depend>
+  <depend>rclcpp</depend>
+  <depend>robot_interfaces_qos</depend>
+  <depend>robot_motion_interfaces</depend>
+  <depend>robot_rt_control_interfaces</depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

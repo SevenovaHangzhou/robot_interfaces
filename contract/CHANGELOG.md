@@ -55,6 +55,13 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：Rolling 发送端 C++ 客户端 `robot_interfaces_rolling_client`
+
+- **接口**：M-09 `RollingJointTargetBatch` 的发送与 R-OUT-07 `RollingJointControlState` 的跟随；不新增、不修改任何 IDL 或 endpoint。
+- **原因**：2026-11-06 台架测试中，发送端在命令连接建立前就发批，开头批次丢失，又把“已接受、等待开始”误判为未启动而中止。连接等待、首批确认、epoch/sequence 管理和结束判断集中在一个库中，只依据契约写明的状态，避免每个发送端各自实现并犯同样的错。
+- **提出人**：@kkozia188（rt_control）
+- **影响域**：motion 可选接入，无需同批升级；接入后随 robot_interfaces 同一 SHA 升级。rt_control 不依赖本包。
+
 ### 破坏性：Rolling 显式结束一段轨迹，状态区分等待开始与无轨迹
 
 - **接口**：
