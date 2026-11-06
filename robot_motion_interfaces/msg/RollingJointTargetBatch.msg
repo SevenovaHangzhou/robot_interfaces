@@ -9,3 +9,8 @@ uint64 sequence
 # first point must match the buffered trajectory there (position and velocity).
 builtin_interfaces/Time replace_from
 RollingJointPoint[<=256] points
+# Last batch of the trajectory: every velocity of its last point is 0. While the newest
+# accepted batch is final no further batch is needed: the controller runs to that point, holds
+# there and reports STOP_COMPLETED. A later batch may still replace the trajectory from its
+# replace_from; if that batch is not final, the update timeout applies again.
+bool final

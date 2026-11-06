@@ -55,6 +55,16 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 破坏性：Rolling 显式结束一段轨迹，状态区分等待开始与无轨迹
+
+- **接口**：
+  - M-09 `RollingJointTargetBatch` 新增 `bool final`：本段最后一批，末点各轴速度须为 0；最新接受的批次为 final 时不再需要后续批次、不计更新超时，执行到末点后保持。仍可用新批次替换，替换批次非 final 时恢复更新超时。
+  - R-OUT-07 `RollingJointControlState` 新增状态 `STARTING=3`（开始一段轨迹的批次已接受，等待其 `replace_from`）；`HOLDING` 改为只表示无轨迹。新增结果码 `FINAL_NOT_AT_REST=10`、停止原因 `STOP_COMPLETED=6`（final 轨迹到达末点，由 RUNNING 直接进入 HOLDING）。
+  - R-OUT-07 `stop_reason` 由“本 epoch 最近一次停止原因”改为“当前或最近一段轨迹的停止原因”：开始一段轨迹的批次被接受时清为 `STOP_NONE`。`STOP_UPDATE_TIMEOUT`、`STOP_BUFFER_END` 只在最新接受的批次非 final 时出现；`STOP_BUFFER_END` 注释更正为“缓冲用完”，与是否仍在运动无关。
+- **原因**：2026-11-06 台架测试中，协议没有“正常结束”：发送端主动停发后只能以更新超时收尾，与意外断流共用 `STOP_UPDATE_TIMEOUT`；新一段运行时 `stop_reason` 仍显示上一段的超时。首批未送达时控制器从后续批次开始，等待其开始时间期间报 `HOLDING`，测试脚本把“已接受、未开始”误判为未启动并中止。发送端只能依赖契约外的控制器内部行为和时间阈值推断，无法写成可靠的客户端库。
+- **提出人**：@kkozia188（rt_control）
+- **影响域**：motion 与 rt_control 同批升级，motion 尚未正式使用 Rolling。未同批升级时：两种消息类型都变化，DDS 两端都能启动但收不到对方数据，rolling 不会动。回滚：两端一起回到 79d982d 及其匹配的 robot_driver 控制器。
+
 ### 破坏性：精简 Rolling 协议，会话随模式切换，批次用 ROS 时间
 
 - **接口**：
