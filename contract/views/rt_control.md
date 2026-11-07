@@ -9,7 +9,7 @@
 本文只列 RT-Control 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（41 条）
+## 本域提供（44 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -27,6 +27,9 @@
 | R-IN-05L | `/rt/vacuum/left_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | Motion | — |
 | R-IN-05R | `/rt/vacuum/right_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | Motion | — |
 | R-IN-06 | `/rt/arms/set_control_mode` | Service | `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion | — |
+| R-IN-23 | `/rt/base/set_control_mode` | Service | `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion | — |
+| R-IN-24 | `/rt/base/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | Motion | ROS 标准类型；底盘 8 个轮关节 steer1..4_joint、wheel1..4_joint；行走轮为连续关节，位置为累计转角；allow_partial_joints_goal=false |
+| R-IN-25 | `/rt/base/joint_trajectory` | Topic | `trajectory_msgs/msg/JointTrajectory` | Motion | Q_CONTROL；ROS 标准类型；流式下发；与 R-IN-24 同一控制器，新消息替换尚未执行的轨迹；断流后保持最后目标 |
 | R-IN-12 | `/rt/led/set_rgbw` | Service | `robot_rt_control_interfaces/srv/SetLedRgbw` | Autonomy | — |
 | R-IN-16 | `/rt/head/move` | Action | `robot_rt_control_interfaces/action/MoveHead` | Perception | — |
 | R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Perception、Motion、Autonomy | ROS 标准类型；robot_state_publisher 发布本体动态 TF |

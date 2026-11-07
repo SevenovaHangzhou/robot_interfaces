@@ -55,6 +55,13 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：底盘 CSV/CSP 运行时切换与底盘轮子轨迹入口
+
+- **接口**：R-IN-23 `/rt/base/set_control_mode`（`SetJointControlMode`）；R-IN-24 `/rt/base/follow_joint_trajectory`（`control_msgs/action/FollowJointTrajectory`）；R-IN-25 `/rt/base/joint_trajectory`（`trajectory_msgs/msg/JointTrajectory`）；`axis_sets.v3_swerve_wheels`（steer1..4_joint、wheel1..4_joint）；`JointControlMode` 新增 `VELOCITY_READY=4`；N-04 `/rt/base/cmd_vel` 与 R-IN-06 的约束补充模式条件。
+- **原因**：用户 2026-11-07 要求保留底盘行走轮 CSV/CSP 运行时切换（来自已关闭的 robot_driver#189），由 Motion 发起切换并在 CSP 下发送轮子位置轨迹；现有契约只有底盘速度入口，没有切换服务和轮子轨迹入口，Motion 无法使用位置模式。
+- **提出人**：@kkozia188（rt_control）
+- **影响域**：motion 新增可选调用，无需同批升级；不调用时底盘行为不变（使能后默认 VELOCITY_READY）。rt_control 提供服务与轮子轨迹控制器（robot_driver 后续 PR）。准入限值与底盘导航同一组（转向 35°/s、35°/s²；行走轮轮面 2 m/s、2 m/s²）。
+
 ### 新增：Rolling 发送端 C++ 客户端 `robot_interfaces_rolling_client`
 
 - **接口**：M-09 `RollingJointTargetBatch` 的发送与 R-OUT-07 `RollingJointControlState` 的跟随；不新增、不修改任何 IDL 或 endpoint。

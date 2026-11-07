@@ -31,7 +31,7 @@
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 
-## 本域消费（20 条）
+## 本域消费（23 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -45,6 +45,9 @@
 | R-IN-05L | `/rt/vacuum/left_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
 | R-IN-05R | `/rt/vacuum/right_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
 | R-IN-06 | `/rt/arms/set_control_mode` | Service | `robot_rt_control_interfaces/srv/SetJointControlMode` | RT-Control | — |
+| R-IN-23 | `/rt/base/set_control_mode` | Service | `robot_rt_control_interfaces/srv/SetJointControlMode` | RT-Control | — |
+| R-IN-24 | `/rt/base/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | RT-Control | ROS 标准类型；底盘 8 个轮关节 steer1..4_joint、wheel1..4_joint；行走轮为连续关节，位置为累计转角；allow_partial_joints_goal=false |
+| R-IN-25 | `/rt/base/joint_trajectory` | Topic | `trajectory_msgs/msg/JointTrajectory` | RT-Control | Q_CONTROL；ROS 标准类型；流式下发；与 R-IN-24 同一控制器，新消息替换尚未执行的轨迹；断流后保持最后目标 |
 | R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
 | R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
 | R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；ROS 标准类型；整机各受管模块按真实采样时间发布不重叠关节子集；一关节一个权威来源；有效性与时效由模块状态配套表达 |
