@@ -1,0 +1,14 @@
+# N-IF-16 /navigation/detect_dropped_boxes。一个 Goal 执行一轮检测。
+# 必须能检出请求发出前已经落地的箱子。
+# 填 0，无业务含义。
+uint8 unused
+---
+# 本轮检测是否有效完成。false 时 candidates 为空，且不能当作“现场没有箱子”。
+bool ok
+bool detected
+# frame_id 为 odom；stamp 是产生结果的点云时间，不是掉落时间。
+std_msgs/Header observation_header
+DroppedBoxCandidate[] candidates
+robot_system_interfaces/ErrorInfo error
+---
+string stage

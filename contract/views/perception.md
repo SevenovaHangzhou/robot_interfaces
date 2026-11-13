@@ -9,7 +9,7 @@
 本文只列 Perception 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（4 条）
+## 本域提供（10 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -17,6 +17,12 @@
 | P-02 | `/perception/refine_sequence_poses` | Action | `robot_perception_interfaces/action/RefineSequencePoses` | Autonomy | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 序列精定位协议；不代表 V3 墙图更新和掉箱识别 |
 | P-03 | `/perception/obstacle_cloud` | Topic | `robot_perception_interfaces/msg/ObstacleCloud` | Motion | Q_STATE；**产品预留，Demo 不部署** |
 | P-04 | `/perception/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
+| P-IF-01 | `/perception/set_sku_catalog` | Service | `robot_perception_interfaces/srv/SetSkuCatalog` | Autonomy | — |
+| P-IF-03 | `/perception/get_wall_map` | Service | `robot_perception_interfaces/srv/GetWallMap` | Autonomy | — |
+| P-IF-04 | `/perception/wall_map` | Topic | `robot_perception_interfaces/msg/WallMap` | Autonomy、外部/本地入口 | Q_LATCHED |
+| P-IF-05 | `/perception/wall_map_status` | Topic | `robot_perception_interfaces/msg/WallMapStatus` | Autonomy、外部/本地入口 | Q_STATE |
+| P-IF-06 | `/perception/recognize_dropped_boxes` | Action | `robot_perception_interfaces/action/RecognizeDroppedBoxes` | Autonomy | — |
+| P-IF-08 | `/perception/update_wall_map` | Action | `robot_perception_interfaces/action/UpdateWallMap` | Autonomy | — |
 
 ## 本域消费（14 条）
 

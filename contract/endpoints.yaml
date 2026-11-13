@@ -131,7 +131,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "`target_name + map_version` 由 Motion 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次"
+    constraint: "`target_name + map_version` 由 Motion 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次；SUCCEEDED 必须同时满足位置和朝向到位、定位有效、实际运动反馈确认已停稳，不以零速指令或 Nav2 自身成功代替；CANCELED 必须对应车已停止，无法确认时返回失败；目标与当前位置 XY 相同时原地旋转；受理时固定目标位姿"
 
 
   - id: N-04
@@ -779,6 +779,100 @@ endpoints:
     note: 不得替代 Action Result 或 readiness 证据
     constraint: "`Q_DIAGNOSTIC`；不替代 Action Result、readiness 或硬安全链"
 
+  # ---- V0.4 卸箱流程（Autonomy 编排）。流程与逐项要求见 robot_autonomy/docs。 ----
+
+  - id: M-IF-02
+    ros_name: /motion/pick_and_carry
+    kind: action
+    type: robot_motion_interfaces/action/PickAndCarry
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "一个 Action 内完成检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位，不设独立可行性接口；tcp_target 为 base_link 下 TCP，Motion 不再叠加工具偏移；Motion 不启停泵；开阀后收到参与侧 p<=-60 kPa 的有效新压力样本即抽离，不加固定延时或多帧稳定等待，抽离不需要 Autonomy 批准；source_observed_at 只作记录，不作为拒绝条件；分臂给出成功/失败/取消/未知，一侧成功一侧失败时 overall=PARTIAL 并以 ABORTED 返回，保留成功侧事实；同时只接受一个 Goal，忙时拒绝；取消时停止并确认，不自动松阀、不关泵；purpose=DROPPED_BOX_RECOVERY 使用地面回收场景配置"
+
+  - id: M-IF-03
+    ros_name: /motion/place_carried_boxes
+    kind: action
+    type: robot_motion_interfaces/action/PlaceCarriedBoxes
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "前提是导航已到卸货朝向并停稳；顺序为 LM 运动到 Motion 配置的默认放置位、关闭所选阀并读回确认、延时、回 Home、确认停稳；不关泵；允许只释放实际仍持箱的一侧，并按剩余载荷规划；箱 ID 与持箱记录不一致时在释放前拒绝；阀已释放但回 Home 失败时整体不成功，保留已释放的事实，不重新释放；取消不反转已释放的输出"
+
+  - id: M-IF-05
+    ros_name: /motion/state
+    kind: topic
+    type: robot_motion_interfaces/msg/ManipulationState
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_STATE
+    rate_hz: [10, 10]
+    constraint: "持续发布执行事实：当前操作、分臂阶段、关联箱 ID、吸附事实、阀输出是否已确认释放、上部是否停稳；Action 结束后继续发布；持箱与否的业务判断由 Autonomy 做；各项观测带自己的时间，重发不刷新旧观测时间"
+
+  - id: N-IF-16
+    ros_name: /navigation/detect_dropped_boxes
+    kind: action
+    type: robot_motion_interfaces/action/DetectDroppedBoxes
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "一个 Goal 执行一轮检测，不常驻监听；必须能检出请求发出前已经落地的箱子；同时只接受一个 Goal；有效完成且有候选：SUCCEEDED/ok=true/detected=true；有效完成无候选：SUCCEEDED/ok=true/detected=false；点云不可用、TF 失败或超时：ABORTED/ok=false，不能当作现场无箱；取消：CANCELED，只停检测，不发停车指令；超时计时独立于点云回调；结果只在 Result 里一次返回；候选为 odom 下粗定位，数量不限于 2"
+
+  - id: P-IF-01
+    ros_name: /perception/set_sku_catalog
+    kind: service
+    type: robot_perception_interfaces/srv/SetSkuCatalog
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "尺寸为有限正数，单位米，按箱体局部轴 X 宽/Y 深/Z 高；SKU ID 唯一；同 ID 同版本但内容不同时拒绝，相同内容重复设置返回已加载结果；accepted 只表示字典已加载，不表示已有箱子快照；一次观测内不混用两版字典"
+
+  - id: P-IF-03
+    ros_name: /perception/get_wall_map
+    kind: service
+    type: robot_perception_interfaces/srv/GetWallMap
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "只读已有数据：不拍照、不转头、不等待新观测；返回全局箱子库的全部箱子，不按场景或墙面筛选；库未建好时 success=false，已确认的空库 success=true 且 boxes 为空；一次响应只对应一个已提交版本；重复读取不递增版本、不刷新观测时间；精确读取不存在的版本时失败，不回退到最新；坐标有效性用导航地图版本、定位状态和 TF 判断"
+
+  - id: P-IF-04
+    ros_name: /perception/wall_map
+    kind: topic
+    type: robot_perception_interfaces/msg/WallMap
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_LATCHED
+    constraint: "每次成功提交时发布完整全局快照；晚加入的订阅者收到最近一份；Autonomy 的正常更新以 P-IF-08 的 Result 为准，本 Topic 供显示和其他消费者使用"
+
+  - id: P-IF-05
+    ros_name: /perception/wall_map_status
+    kind: topic
+    type: robot_perception_interfaces/msg/WallMapStatus
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_STATE
+    constraint: "最近提交的快照引用、当前更新阶段、最近一次尝试的结果；仅作可观测性，不作为主流程握手"
+
+  - id: P-IF-06
+    ros_name: /perception/recognize_dropped_boxes
+    kind: action
+    type: robot_perception_interfaces/action/RecognizeDroppedBoxes
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "每次 1 或 2 个区域，各数组同长同序；detection_goal_id 为导航检测的 Goal UUID，原样返回；按候选观测时刻的 TF 把 odom 下 XY 转到 map；必须配置真实的地面高度和搜索高度，缺失时明确失败，不假设 z=0；候选区域必须进入相机视野；输出 map 下箱体中心、朝向和尺寸；看不到时返回 NOT_OBSERVABLE，不报 NOT_FOUND；不修改正常箱子库；与 P-IF-08 共用相机和头部，冲突时后到的请求返回忙"
+
+  - id: P-IF-08
+    ros_name: /perception/update_wall_map
+    kind: action
+    type: robot_perception_interfaces/action/UpdateWallMap
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "Autonomy 在 PickAndCarry 整组终态且有成功侧到运输位后发一次；必须是受理之后取得的新观测；Result 直接带本次提交的完整快照，调用方不再读取箱墙；是否更新看 map_committed，提交后被取消或出故障仍返回已提交快照，提交前失败则旧库不变；不提供强制删箱，不返回逐箱移除核对，箱子是否移除由视觉证据决定；expected_map 版本比当前旧可接受，超前则拒绝；处理可与转向、卸货并行，usable_view_obtained 不是底盘运动许可"
+
+
 # 成员类型：被上述 endpoint 的载荷间接引用，不单独出现在 ROS graph。
 member_types:
   - robot_system_interfaces/msg/ErrorCode
@@ -795,6 +889,18 @@ member_types:
   - robot_perception_interfaces/msg/CameraViewPose
   - robot_perception_interfaces/msg/PickSequence
   - robot_perception_interfaces/msg/WallTaskPlan
+  - robot_system_interfaces/msg/OperationContext
+  - robot_motion_interfaces/msg/PickTarget
+  - robot_motion_interfaces/msg/PickPair
+  - robot_motion_interfaces/msg/ArmExecutionState
+  - robot_motion_interfaces/msg/ArmTaskResult
+  - robot_motion_interfaces/msg/DroppedBoxCandidate
+  - robot_perception_interfaces/msg/SkuSpec
+  - robot_perception_interfaces/msg/SkuCatalog
+  - robot_perception_interfaces/msg/WallMapReference
+  - robot_perception_interfaces/msg/WallBox
+  - robot_perception_interfaces/msg/RecoveryObservation
+  - robot_perception_interfaces/msg/SearchRegionResult
 
 # 禁止的通信边。各域 CI 与联调 ros2 node info 复核。
 forbidden_edges:

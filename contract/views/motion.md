@@ -9,7 +9,7 @@
 本文只列 Motion 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（17 条）
+## 本域提供（21 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -30,6 +30,10 @@
 | M-09 | `/rt/arms/rolling/target_batch` | Topic | `robot_motion_interfaces/msg/RollingJointTargetBatch` | RT-Control | Q_ROLLING_COMMAND；30 Hz；三代双七轴：right_joint1..7 后接 left_joint1..7；全部 rad/rad/s；从 replace_from 起替换缓冲轨迹，非运动臂仍须包含 |
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
+| M-IF-02 | `/motion/pick_and_carry` | Action | `robot_motion_interfaces/action/PickAndCarry` | Autonomy | — |
+| M-IF-03 | `/motion/place_carried_boxes` | Action | `robot_motion_interfaces/action/PlaceCarriedBoxes` | Autonomy | — |
+| M-IF-05 | `/motion/state` | Topic | `robot_motion_interfaces/msg/ManipulationState` | Autonomy | Q_STATE；10 Hz |
+| N-IF-16 | `/navigation/detect_dropped_boxes` | Action | `robot_motion_interfaces/action/DetectDroppedBoxes` | Autonomy | — |
 
 ## 本域消费（23 条）
 

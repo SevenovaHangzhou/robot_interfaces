@@ -55,6 +55,24 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：V0.4 卸箱流程的抓放、全局箱子快照与掉箱检测接口
+
+- **接口**：
+  - Motion：M-IF-02 `/motion/pick_and_carry`（`PickAndCarry`）、M-IF-03 `/motion/place_carried_boxes`（`PlaceCarriedBoxes`）、M-IF-05 `/motion/state`（`ManipulationState`）；成员类型 `PickTarget`、`PickPair`、`ArmExecutionState`、`ArmTaskResult`。
+  - Navigation：N-IF-16 `/navigation/detect_dropped_boxes`（`robot_motion_interfaces/action/DetectDroppedBoxes`）；成员类型 `DroppedBoxCandidate`。
+  - Perception：P-IF-01 `/perception/set_sku_catalog`（`SetSkuCatalog`）、P-IF-03 `/perception/get_wall_map`（`GetWallMap`）、P-IF-08 `/perception/update_wall_map`（`UpdateWallMap`）、P-IF-06 `/perception/recognize_dropped_boxes`（`RecognizeDroppedBoxes`）、P-IF-04 `/perception/wall_map`（`WallMap`）、P-IF-05 `/perception/wall_map_status`（`WallMapStatus`）；成员类型 `SkuSpec`、`SkuCatalog`、`WallMapReference`、`WallBox`、`RecoveryObservation`、`SearchRegionResult`。
+  - 共享：`robot_system_interfaces/msg/OperationContext`。
+- **原因**：2026-11-11 至 11-13 盘点发现运控的抓放接口只在私有包 `alfa_motion_v03` 里、视觉的箱墙接口只在 NX 的本地副本里、导航的掉箱检测只有内部 Trigger 服务，三者都不在本仓库，Autonomy 无法用同一套类型编译和调用。本条把用户确认的 V0.4 流程所需接口登记进来，作为四域联调的同一份类型。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：motion（从 `alfa_motion_v03` 迁到 `robot_motion_interfaces`；`ErrorInfo`、`OperationContext` 改用共享类型；`ArmExecutionState` 去掉载荷判断字段，持箱判断归 Autonomy；`PickTarget` 去掉 `source_face_id`；`PickPair` 去掉 `wall_scene_id`）、perception（相对 NX 本地候选：快照引用去掉 task、scene 和 SpatialContext；`WallBox`、`RecoveryObservation` 去掉 `faces`；`WallMap` 去掉单面墙几何；`SkuCatalog` 去掉 `task_id`；掉箱搜索用 `detection_goal_id` 取代 `drop_event`）、navigation（新增 Action 的服务端）、autonomy（新消费者）。各域按本分支同一 SHA 编译后联调；旧的 P-01、P-02、M-08、G-01 保持不变。本条未包含 R-IN-02 改为含 `arm_carriage` 的 15 轴，该项涉及 rt_control 的轴集合与 Rolling 轴哈希，由 rt_control 另行提交。
+
+### 非破坏性：N-01 导航成功必须确认实际停稳
+
+- **接口**：N-01 `/navigation/navigate_to_pose`（`NavigateToPoseTask`），IDL 字段不变，只补充终态约束。
+- **原因**：Autonomy 在导航成功后立即用当前 TF 换算 base_link 下的 TCP 并下发抓取。现有适配器的成功路径沿用 Nav2 结果，车可能仍在减速，TCP 会带着底盘位移误差发给 Motion。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：motion（Navigation 在成功路径加入停稳确认和定位有效检查；同 XY 目标原地旋转）。autonomy 依赖该语义，不再自行等待里程计。
+
 ### 新增：底盘 CSV/CSP 运行时切换与底盘轮子轨迹入口
 
 - **接口**：R-IN-23 `/rt/base/set_control_mode`（`SetJointControlMode`）；R-IN-24 `/rt/base/follow_joint_trajectory`（`control_msgs/action/FollowJointTrajectory`）；R-IN-25 `/rt/base/joint_trajectory`（`trajectory_msgs/msg/JointTrajectory`）；`axis_sets.v3_swerve_wheels`（steer1..4_joint、wheel1..4_joint）；`JointControlMode` 新增 `VELOCITY_READY=4`；N-04 `/rt/base/cmd_vel` 与 R-IN-06 的约束补充模式条件。

@@ -1,0 +1,25 @@
+# P-IF-08 /perception/update_wall_map。
+# 受理后取得新观测，更新全局箱子库，Result 直接返回本次提交的完整快照。
+robot_system_interfaces/OperationContext context
+# 调用方最后已知的快照。版本比当前旧可以接受；版本超前则拒绝。
+WallMapReference expected_map
+string observation_profile_id
+# 可留空。Autonomy 已执行取走的箱子，只作为观测先验；
+# 不会据此删除箱子，Result 也不返回逐箱核对结论。
+string[] successfully_carried_box_ids
+---
+robot_system_interfaces/OperationContext context
+# 本次请求是否真的提交了新快照。判断是否更新看它，不能只看 Action 终态。
+bool map_committed
+# 仅 map_committed=true 时有效。
+WallMap map
+robot_system_interfaces/ErrorInfo error
+---
+uint8 AIMING=1
+uint8 CAPTURING=2
+uint8 PROCESSING=3
+uint8 COMMITTING=4
+robot_system_interfaces/OperationContext context
+uint8 phase
+# 已取得可用视图。只是进度，不是底盘运动许可。
+bool usable_view_obtained

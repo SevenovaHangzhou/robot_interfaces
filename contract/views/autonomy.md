@@ -15,7 +15,7 @@
 | --- | --- | --- | --- | --- | --- |
 | G-01 | `/autonomy/execute_demo_task` | Action | `robot_autonomy_interfaces/action/ExecuteDemoTask` | 外部/本地入口 | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 Demo schema；不能直接用于 V3 任务；V3 Autonomy 仅按注册表调用泵/LED/保护复位，不直接控制阀/运动 |
 
-## 本域消费（34 条）
+## 本域消费（44 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -53,6 +53,16 @@
 | R-OUT-20 | `/rt/sensors/state` | Topic | `robot_rt_control_interfaces/msg/SensorStatusArray` | RT-Control | Q_STATE |
 | R-OUT-21 | `/rt/infrared/state` | Topic | `robot_rt_control_interfaces/msg/DigitalInputStateArray` | RT-Control | Q_STATE |
 | R-OUT-09 | `/rt/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | RT-Control | Q_LATCHED；1 Hz |
+| M-IF-02 | `/motion/pick_and_carry` | Action | `robot_motion_interfaces/action/PickAndCarry` | Motion | — |
+| M-IF-03 | `/motion/place_carried_boxes` | Action | `robot_motion_interfaces/action/PlaceCarriedBoxes` | Motion | — |
+| M-IF-05 | `/motion/state` | Topic | `robot_motion_interfaces/msg/ManipulationState` | Motion | Q_STATE；10 Hz |
+| N-IF-16 | `/navigation/detect_dropped_boxes` | Action | `robot_motion_interfaces/action/DetectDroppedBoxes` | Motion | — |
+| P-IF-01 | `/perception/set_sku_catalog` | Service | `robot_perception_interfaces/srv/SetSkuCatalog` | Perception | — |
+| P-IF-03 | `/perception/get_wall_map` | Service | `robot_perception_interfaces/srv/GetWallMap` | Perception | — |
+| P-IF-04 | `/perception/wall_map` | Topic | `robot_perception_interfaces/msg/WallMap` | Perception | Q_LATCHED |
+| P-IF-05 | `/perception/wall_map_status` | Topic | `robot_perception_interfaces/msg/WallMapStatus` | Perception | Q_STATE |
+| P-IF-06 | `/perception/recognize_dropped_boxes` | Action | `robot_perception_interfaces/action/RecognizeDroppedBoxes` | Perception | — |
+| P-IF-08 | `/perception/update_wall_map` | Action | `robot_perception_interfaces/action/UpdateWallMap` | Perception | — |
 
 ## 本域禁止的通信边
 

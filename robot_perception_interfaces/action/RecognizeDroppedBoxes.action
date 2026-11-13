@@ -1,0 +1,29 @@
+# P-IF-06 /perception/recognize_dropped_boxes。不修改正常箱子库。
+robot_system_interfaces/OperationContext context
+# 导航 DetectDroppedBoxes 的 ROS Goal UUID，Result 原样返回。
+unique_identifier_msgs/UUID detection_goal_id
+string navigation_map_version
+# 以下数组同长同序，每次 1 或 2 项。
+string[] candidate_ids
+# 沿用导航结果的坐标系（odom）。
+string frame_id
+builtin_interfaces/Time[] coarse_position_stamps
+float64[] coarse_x_m
+float64[] coarse_y_m
+float64[] search_radius_m
+# 未知填空串。
+string[] expected_sku_ids
+string observation_profile_id
+---
+robot_system_interfaces/OperationContext context
+unique_identifier_msgs/UUID detection_goal_id
+RecoveryObservation[] observations
+SearchRegionResult[] region_results
+bool all_requested_regions_observed
+robot_system_interfaces/ErrorInfo error
+---
+uint8 AIMING=1
+uint8 CAPTURING=2
+uint8 PROCESSING=3
+uint8 phase
+string active_candidate_id

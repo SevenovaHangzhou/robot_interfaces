@@ -1,0 +1,10 @@
+# P-IF-03 /perception/get_wall_map。只读：不拍照，不转头，不等待新观测。
+# true：读取当前全局快照，requested_map 不解析。
+# false：按 requested_map 精确读取保留的历史版本，不存在时失败，不回退到最新。
+bool latest
+WallMapReference requested_map
+---
+# 库还没建好时为 false；已确认的空库为 true 且 boxes 为空。
+bool success
+WallMap map
+robot_system_interfaces/ErrorInfo error
