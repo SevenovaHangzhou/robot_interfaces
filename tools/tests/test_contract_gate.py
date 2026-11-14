@@ -89,8 +89,9 @@ class ContractGateTest(unittest.TestCase):
             valve = endpoints[f"R-IN-05{side[0].upper()}"]
             self.assertEqual(valve["ros_name"], f"/rt/vacuum/{side}_valve/set_enabled")
             self.assertEqual(valve["type"], "robot_rt_control_interfaces/srv/SetEnabled")
-            self.assertEqual(valve["consumers"], ["motion"])
-            self.assertIn(
+            # Autonomy 只在重置流程和联调操作页的人工开关时调用阀。
+            self.assertEqual(valve["consumers"], ["motion", "autonomy"])
+            self.assertNotIn(
                 {"from": "autonomy", "to": valve["ros_name"]},
                 self.document["forbidden_edges"],
             )

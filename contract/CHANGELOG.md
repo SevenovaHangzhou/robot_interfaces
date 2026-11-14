@@ -55,6 +55,20 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：回 Home 接口与相机压缩图像，供联调操作页重置和显示
+
+- **接口**：M-IF-04 `/motion/move_to_posture`（`robot_motion_interfaces/action/MoveToPosture`）；P-IF-09、P-IF-10、P-IF-11 三个 `sensor_msgs/msg/CompressedImage` 话题（头部彩色图、胸部彩色图、头部标注图）；P-IF-12、P-IF-13 两个 `sensor_msgs/msg/CameraInfo` 话题。
+- **原因**：联调中故障后要让机器人回到确定的起点再继续：人工取走箱子、手臂回 Home、车回抓货位、重新观测。运控私有包里已有回 Home 的 Action，但不在本仓库，且抓取中途失败后会因内部仍记着持箱而拒绝回 Home 和下一次抓取。操作页还要常驻显示头部和胸部视野；视觉现有图像话题是未压缩的，跨机传输占用带宽过大。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：motion（迁入 `MoveToPosture`；回 Home 按实际压力判断空载，成功后清掉旧任务记录）、perception（新增三个压缩图像话题并默认开启胸部相机；相机坐标系进入 TF）。autonomy 是新消费者。
+
+### 非破坏性：允许 Autonomy 在重置和人工操作时开关阀，允许人工停泵
+
+- **接口**：R-IN-05L `/rt/vacuum/left_valve/set_enabled`、R-IN-05R `/rt/vacuum/right_valve/set_enabled` 的消费方增加 autonomy，并从禁止通信边中移除这两条；R-IN-04 `/rt/vacuum/pump/set_enabled` 的约束补充人工停泵。IDL 字段不变。
+- **原因**：抓取中途失败时运控不会自动关阀，而原约定只有运控能调阀、且阀未释放时不允许停泵，重置流程因此无法把泵和阀恢复到初始状态。联调时操作员还需要在操作页上直接开关泵和左右阀来人工卸箱。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：rt_control（阀服务接受 autonomy 的调用；`reason` 为 `manual` 的停泵不做原有准入检查）。motion 的正常抓放调用不受影响。人工停泵时箱子会松脱，由操作员保证箱子已有人扶住。
+
 ### 新增：V0.4 卸箱流程的抓放、全局箱子快照与掉箱检测接口
 
 - **接口**：

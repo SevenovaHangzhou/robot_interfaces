@@ -24,6 +24,11 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | P-IF-05 | `/perception/wall_map_status` | Topic / `robot_perception_interfaces/msg/WallMapStatus` | Perception → Autonomy、外部/本地入口 | 最近提交的快照引用、当前更新阶段、最近一次尝试的结果；仅作可观测性，不作为主流程握手 |
 | P-IF-06 | `/perception/recognize_dropped_boxes` | Action / `robot_perception_interfaces/action/RecognizeDroppedBoxes` | Autonomy ⇄ Perception | 每次 1 或 2 个区域，各数组同长同序；detection_goal_id 为导航检测的 Goal UUID，原样返回；按候选观测时刻的 TF 把 odom 下 XY 转到 map；必须配置真实的地面高度和搜索高度，缺失时明确失败，不假设 z=0；候选区域必须进入相机视野；输出 map 下箱体中心、朝向和尺寸；看不到时返回 NOT_OBSERVABLE，不报 NOT_FOUND；不修改正常箱子库；与 P-IF-08 共用相机和头部，冲突时后到的请求返回忙 |
 | P-IF-08 | `/perception/update_wall_map` | Action / `robot_perception_interfaces/action/UpdateWallMap` | Autonomy ⇄ Perception | Autonomy 在 PickAndCarry 整组终态且有成功侧到运输位后发一次；必须是受理之后取得的新观测；Result 直接带本次提交的完整快照，调用方不再读取箱墙；是否更新看 map_committed，提交后被取消或出故障仍返回已提交快照，提交前失败则旧库不变；不提供强制删箱，不返回逐箱移除核对，箱子是否移除由视觉证据决定；expected_map 版本比当前旧可接受，超前则拒绝；处理可与转向、卸货并行，usable_view_obtained 不是底盘运动许可 |
+| P-IF-09 | `/perception/camera/head/color/image_rect/compressed` | Topic / `sensor_msgs/msg/CompressedImage` | Perception → Autonomy、外部/本地入口 | 头部彩色图，JPEG；视觉栈启动后持续发布，不需要请求；不低于 2 Hz，长边不超过 1280 像素；header.stamp 为曝光时刻，frame_id 为相机坐标系且能在 TF 中查到；发布端使用 best-effort、keep last 1 |
+| P-IF-10 | `/perception/camera/chest/color/image_rect/compressed` | Topic / `sensor_msgs/msg/CompressedImage` | Perception → Autonomy、外部/本地入口 | 胸部彩色图，其余同 P-IF-09；胸部相机随视觉栈默认开启 |
+| P-IF-11 | `/perception/boxes/head/image_annotated/compressed` | Topic / `sensor_msgs/msg/CompressedImage` | Perception → Autonomy、外部/本地入口 | 头部标注图，每个箱子上写箱号，箱号与箱子快照里的 box_id 一致；其余同 P-IF-09 |
+| P-IF-12 | `/perception/camera/head/camera_info` | Topic / `sensor_msgs/msg/CameraInfo` | Perception → Autonomy、外部/本地入口 | 头部相机内参，与 P-IF-09 同一相机、同一分辨率 |
+| P-IF-13 | `/perception/camera/chest/camera_info` | Topic / `sensor_msgs/msg/CameraInfo` | Perception → Autonomy、外部/本地入口 | 胸部相机内参，与 P-IF-10 同一相机、同一分辨率 |
 
 ### 5.3 Motion 提供
 
@@ -50,6 +55,7 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | M-IF-03 | `/motion/place_carried_boxes` | Action / `robot_motion_interfaces/action/PlaceCarriedBoxes` | Autonomy ⇄ Motion | 前提是导航已到卸货朝向并停稳；顺序为 LM 运动到 Motion 配置的默认放置位、关闭所选阀并读回确认、延时、回 Home、确认停稳；不关泵；允许只释放实际仍持箱的一侧，并按剩余载荷规划；箱 ID 与持箱记录不一致时在释放前拒绝；阀已释放但回 Home 失败时整体不成功，保留已释放的事实，不重新释放；取消不反转已释放的输出 |
 | M-IF-05 | `/motion/state` | Topic / `robot_motion_interfaces/msg/ManipulationState` | Motion → Autonomy | 持续发布执行事实：当前操作、分臂阶段、关联箱 ID、吸附事实、阀输出是否已确认释放、上部是否停稳；Action 结束后继续发布；持箱与否的业务判断由 Autonomy 做；各项观测带自己的时间，重发不刷新旧观测时间 |
 | N-IF-16 | `/navigation/detect_dropped_boxes` | Action / `robot_motion_interfaces/action/DetectDroppedBoxes` | Autonomy ⇄ Motion | 一个 Goal 执行一轮检测，不常驻监听；必须能检出请求发出前已经落地的箱子；同时只接受一个 Goal；有效完成且有候选：SUCCEEDED/ok=true/detected=true；有效完成无候选：SUCCEEDED/ok=true/detected=false；点云不可用、TF 失败或超时：ABORTED/ok=false，不能当作现场无箱；取消：CANCELED，只停检测，不发停车指令；超时计时独立于点云回调；结果只在 Result 里一次返回；候选为 odom 下粗定位，数量不限于 2 |
+| M-IF-04 | `/motion/move_to_posture` | Action / `robot_motion_interfaces/action/MoveToPosture` | Autonomy ⇄ Motion | posture_id=home 时回到默认 Home；按两侧实际压力判断空载，不按内部任务记录；压力显示仍吸着时拒绝并说明是哪一侧；从当前实际关节位置规划；不启停泵、不动阀；成功后清掉旧的任务记录，使下一次 PickAndCarry 能被受理 |
 
 ### 5.4 RT-Control 输入
 
@@ -65,9 +71,9 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | R-IN-19 | `/rt/disable` | Service / `robot_rt_control_interfaces/srv/RtEnable` | 外部/本地入口 ⇄ RT-Control | 停用运动控制器后有序失能全部受管设备；已失能时直接成功 |
 | R-IN-20 | `/rt/reset_fault` | Service / `robot_rt_control_interfaces/srv/RtEnable` | 外部/本地入口 ⇄ RT-Control | 对作用域内全部故障设备做一次组复位；任一从站不在 OP 或反馈过期时拒绝（device_offline）；需要重启时拒绝（restart_required）；不使能 |
 | R-IN-21 | `/rt/run_self_check` | Service / `std_srvs/srv/Trigger` | 外部/本地入口 ⇄ RT-Control | 用最新一组设备状态重跑启动自检规则；success=false 表示有阻断项；message 给出阻断/警告数量；不写总线、不改变使能状态 |
-| R-IN-04 | `/rt/vacuum/pump/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetEnabled` | Autonomy ⇄ RT-Control | Autonomy 设置共用泵目标状态；普通停泵要求左右阀回读有效且为释放、左右压力有效且 >= -1 kPa、无活动阀操作；检查与执行期间阻止新吸附；enabled 为输出回读，输出未确认或未知时 accepted=false 并在 error 给出原因 |
-| R-IN-05L | `/rt/vacuum/left_valve/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetEnabled` | Motion ⇄ RT-Control | enabled=true 吸附、false 释放；输出回读确认即返回 accepted=true，不等待建立真空；同侧忙拒绝；RT 不自动重试；输出未确认或未知时 accepted=false 并在 error 给出原因 |
-| R-IN-05R | `/rt/vacuum/right_valve/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetEnabled` | Motion ⇄ RT-Control | 同 R-IN-05L，作用于右阀 |
+| R-IN-04 | `/rt/vacuum/pump/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetEnabled` | Autonomy ⇄ RT-Control | Autonomy 设置共用泵目标状态；普通停泵要求左右阀回读有效且为释放、左右压力有效且 >= -1 kPa、无活动阀操作；检查与执行期间阻止新吸附；enabled 为输出回读，输出未确认或未知时 accepted=false 并在 error 给出原因；reason 为 manual 的人工停泵不受上述停泵准入限制，由操作员保证箱子已有人扶住 |
+| R-IN-05L | `/rt/vacuum/left_valve/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetEnabled` | Motion、Autonomy ⇄ RT-Control | enabled=true 吸附、false 释放；输出回读确认即返回 accepted=true，不等待建立真空；同侧忙拒绝；RT 不自动重试；输出未确认或未知时 accepted=false 并在 error 给出原因；正常抓放由 Motion 调用；Autonomy 只在重置流程和联调操作页的人工开关时调用，流程自动执行期间不调用 |
+| R-IN-05R | `/rt/vacuum/right_valve/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetEnabled` | Motion、Autonomy ⇄ RT-Control | 同 R-IN-05L，作用于右阀 |
 | R-IN-06 | `/rt/arms/set_control_mode` | Service / `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion ⇄ RT-Control | 仅在已使能且手臂静止时切换 FJT_READY/ROLLING_READY（VELOCITY_READY 只用于底盘 R-IN-23，手臂拒绝）；切换前 Motion 取消并等待 R-IN-02 Action 终态；新控制器以当前位置保持起步；失败时 accepted=false 并给出 ErrorInfo，mode 为调用后的实际模式；歧义切换进入 RESTART_REQUIRED（见 R-OUT-09） |
 | R-IN-23 | `/rt/base/set_control_mode` | Service / `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion ⇄ RT-Control | 仅在已使能且底盘静止时在 VELOCITY_READY（舵轮控制器接受 N-04，行走轮 CSV）与 FJT_READY（R-IN-24/R-IN-25 的轮子轨迹控制器接管 8 个轮关节位置，行走轮 CSP）之间切换；使能后默认 VELOCITY_READY；切换前 Motion 停发 N-04、取消并等待 R-IN-24 Action 终态；新控制器以当前位置保持起步，行走轮驱动器确认新模式后才返回成功；ROLLING_READY 拒绝；失败时 accepted=false 并给出 ErrorInfo，mode 为调用后的实际模式；歧义切换进入 RESTART_REQUIRED（见 R-OUT-09） |
 | R-IN-24 | `/rt/base/follow_joint_trajectory` | Action / `control_msgs/action/FollowJointTrajectory` | Motion ⇄ RT-Control | 仅在 R-IN-23 为 FJT_READY 时接受；完整 8 轴；位置 rad、速度 rad/s；转向位置在机器人模型限位内；`allow_partial_joints_goal=false`；整组取消。准入（RT-Control 实时侧）：每点必须带速度、末点速度为 0；首点时间为 0 时距实测位置 ≤ 1°，首点在未来时距实测位置 ≤ 速度上限×首点时间；速度与加速度不超过底盘导航限值（转向 35°/s、35°/s²；行走轮轮面 2 m/s、2 m/s²，按轮半径换算为关节单位；由 RT-Control 底盘导航配置拥有，与 N-04 同一组）；不满足时整条拒绝（INVALID_GOAL），不执行半条 |

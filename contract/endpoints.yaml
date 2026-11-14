@@ -398,7 +398,7 @@ endpoints:
     producer: rt_control
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "Autonomy 设置共用泵目标状态；普通停泵要求左右阀回读有效且为释放、左右压力有效且 >= -1 kPa、无活动阀操作；检查与执行期间阻止新吸附；enabled 为输出回读，输出未确认或未知时 accepted=false 并在 error 给出原因"
+    constraint: "Autonomy 设置共用泵目标状态；普通停泵要求左右阀回读有效且为释放、左右压力有效且 >= -1 kPa、无活动阀操作；检查与执行期间阻止新吸附；enabled 为输出回读，输出未确认或未知时 accepted=false 并在 error 给出原因；reason 为 manual 的人工停泵不受上述停泵准入限制，由操作员保证箱子已有人扶住"
 
 
   - id: R-IN-05L
@@ -406,16 +406,16 @@ endpoints:
     kind: service
     type: robot_rt_control_interfaces/srv/SetEnabled
     producer: rt_control
-    consumers: [motion]
+    consumers: [motion, autonomy]
     qos: Q_DEFAULT
-    constraint: "enabled=true 吸附、false 释放；输出回读确认即返回 accepted=true，不等待建立真空；同侧忙拒绝；RT 不自动重试；输出未确认或未知时 accepted=false 并在 error 给出原因"
+    constraint: "enabled=true 吸附、false 释放；输出回读确认即返回 accepted=true，不等待建立真空；同侧忙拒绝；RT 不自动重试；输出未确认或未知时 accepted=false 并在 error 给出原因；正常抓放由 Motion 调用；Autonomy 只在重置流程和联调操作页的人工开关时调用，流程自动执行期间不调用"
 
   - id: R-IN-05R
     ros_name: /rt/vacuum/right_valve/set_enabled
     kind: service
     type: robot_rt_control_interfaces/srv/SetEnabled
     producer: rt_control
-    consumers: [motion]
+    consumers: [motion, autonomy]
     qos: Q_DEFAULT
     constraint: "同 R-IN-05L，作用于右阀"
 
@@ -873,6 +873,67 @@ endpoints:
     constraint: "Autonomy 在 PickAndCarry 整组终态且有成功侧到运输位后发一次；必须是受理之后取得的新观测；Result 直接带本次提交的完整快照，调用方不再读取箱墙；是否更新看 map_committed，提交后被取消或出故障仍返回已提交快照，提交前失败则旧库不变；不提供强制删箱，不返回逐箱移除核对，箱子是否移除由视觉证据决定；expected_map 版本比当前旧可接受，超前则拒绝；处理可与转向、卸货并行，usable_view_obtained 不是底盘运动许可"
 
 
+  # ---- 联调操作页：重置与显示 ----
+
+  - id: M-IF-04
+    ros_name: /motion/move_to_posture
+    kind: action
+    type: robot_motion_interfaces/action/MoveToPosture
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "posture_id=home 时回到默认 Home；按两侧实际压力判断空载，不按内部任务记录；压力显示仍吸着时拒绝并说明是哪一侧；从当前实际关节位置规划；不启停泵、不动阀；成功后清掉旧的任务记录，使下一次 PickAndCarry 能被受理"
+
+  - id: P-IF-09
+    ros_name: /perception/camera/head/color/image_rect/compressed
+    kind: topic
+    type: sensor_msgs/msg/CompressedImage
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_DEFAULT
+    external_type: true
+    constraint: "头部彩色图，JPEG；视觉栈启动后持续发布，不需要请求；不低于 2 Hz，长边不超过 1280 像素；header.stamp 为曝光时刻，frame_id 为相机坐标系且能在 TF 中查到；发布端使用 best-effort、keep last 1"
+
+  - id: P-IF-10
+    ros_name: /perception/camera/chest/color/image_rect/compressed
+    kind: topic
+    type: sensor_msgs/msg/CompressedImage
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_DEFAULT
+    external_type: true
+    constraint: "胸部彩色图，其余同 P-IF-09；胸部相机随视觉栈默认开启"
+
+  - id: P-IF-11
+    ros_name: /perception/boxes/head/image_annotated/compressed
+    kind: topic
+    type: sensor_msgs/msg/CompressedImage
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_DEFAULT
+    external_type: true
+    constraint: "头部标注图，每个箱子上写箱号，箱号与箱子快照里的 box_id 一致；其余同 P-IF-09"
+
+  - id: P-IF-12
+    ros_name: /perception/camera/head/camera_info
+    kind: topic
+    type: sensor_msgs/msg/CameraInfo
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_DEFAULT
+    external_type: true
+    constraint: "头部相机内参，与 P-IF-09 同一相机、同一分辨率"
+
+  - id: P-IF-13
+    ros_name: /perception/camera/chest/camera_info
+    kind: topic
+    type: sensor_msgs/msg/CameraInfo
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_DEFAULT
+    external_type: true
+    constraint: "胸部相机内参，与 P-IF-10 同一相机、同一分辨率"
+
 # 成员类型：被上述 endpoint 的载荷间接引用，不单独出现在 ROS graph。
 member_types:
   - robot_system_interfaces/msg/ErrorCode
@@ -909,8 +970,6 @@ forbidden_edges:
   - {from: autonomy, to: /rt/enable}
   - {from: autonomy, to: /rt/disable}
   - {from: autonomy, to: /rt/reset_fault}
-  - {from: autonomy, to: /rt/vacuum/left_valve/set_enabled}
-  - {from: autonomy, to: /rt/vacuum/right_valve/set_enabled}
   - {from: motion, to: /rt/vacuum/pump/set_enabled}
   - {from: motion, to: /rt/led/set_rgbw}
   - {from: perception, to: /navigation/navigate_to_pose}

@@ -9,7 +9,7 @@
 本文只列 Perception 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（10 条）
+## 本域提供（15 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -23,6 +23,11 @@
 | P-IF-05 | `/perception/wall_map_status` | Topic | `robot_perception_interfaces/msg/WallMapStatus` | Autonomy、外部/本地入口 | Q_STATE |
 | P-IF-06 | `/perception/recognize_dropped_boxes` | Action | `robot_perception_interfaces/action/RecognizeDroppedBoxes` | Autonomy | — |
 | P-IF-08 | `/perception/update_wall_map` | Action | `robot_perception_interfaces/action/UpdateWallMap` | Autonomy | — |
+| P-IF-09 | `/perception/camera/head/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Autonomy、外部/本地入口 | ROS 标准类型 |
+| P-IF-10 | `/perception/camera/chest/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Autonomy、外部/本地入口 | ROS 标准类型 |
+| P-IF-11 | `/perception/boxes/head/image_annotated/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Autonomy、外部/本地入口 | ROS 标准类型 |
+| P-IF-12 | `/perception/camera/head/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Autonomy、外部/本地入口 | ROS 标准类型 |
+| P-IF-13 | `/perception/camera/chest/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Autonomy、外部/本地入口 | ROS 标准类型 |
 
 ## 本域消费（14 条）
 

@@ -33,6 +33,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/DroppedBoxCandidate.msg"
   "action/PickAndCarry.action"
   "action/PlaceCarriedBoxes.action"
+  "action/MoveToPosture.action"
   "action/DetectDroppedBoxes.action"
   DEPENDENCIES
     builtin_interfaces

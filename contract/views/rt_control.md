@@ -24,8 +24,8 @@
 | R-IN-20 | `/rt/reset_fault` | Service | `robot_rt_control_interfaces/srv/RtEnable` | 外部/本地入口 | — |
 | R-IN-21 | `/rt/run_self_check` | Service | `std_srvs/srv/Trigger` | 外部/本地入口 | ROS 标准类型 |
 | R-IN-04 | `/rt/vacuum/pump/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | Autonomy | — |
-| R-IN-05L | `/rt/vacuum/left_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | Motion | — |
-| R-IN-05R | `/rt/vacuum/right_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | Motion | — |
+| R-IN-05L | `/rt/vacuum/left_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | Motion、Autonomy | — |
+| R-IN-05R | `/rt/vacuum/right_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | Motion、Autonomy | — |
 | R-IN-06 | `/rt/arms/set_control_mode` | Service | `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion | — |
 | R-IN-23 | `/rt/base/set_control_mode` | Service | `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion | — |
 | R-IN-24 | `/rt/base/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | Motion | ROS 标准类型；底盘 8 个轮关节 steer1..4_joint、wheel1..4_joint；行走轮为连续关节，位置为累计转角；allow_partial_joints_goal=false |
