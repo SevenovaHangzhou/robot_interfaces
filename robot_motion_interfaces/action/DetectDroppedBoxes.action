@@ -1,7 +1,14 @@
 # N-IF-16 /navigation/detect_dropped_boxes。一个 Goal 执行一轮检测。
 # 必须能检出请求发出前已经落地的箱子。
-# 填 0，无业务含义。
-uint8 unused
+# Autonomy 在判定掉箱后取消在途的导航和运控动作，随即发出本 Goal。
+#
+# 掉箱之前箱子确实还吸在手上的时刻，已提前 1 s，导航可直接用它作为“掉箱前”的基准帧。
+# 取值为电控压力消息头的时间（与导航同在工控机，同一时钟），不是 Autonomy 本机时间。
+# Autonomy 的取法：压力历史里最后一个仍处于吸附区间的样本时间 − 1 s。
+builtin_interfaces/Time reference_stamp
+# false：压力数据中断、无效或缓慢泄漏，找不到吸附到释放的跳变；reference_stamp 为 0。
+# 此时导航按不依赖基准帧的方式检测，不得因此拒绝 Goal。
+bool reference_valid
 ---
 # 本轮检测是否有效完成。false 时 candidates 为空，且不能当作“现场没有箱子”。
 bool ok

@@ -55,6 +55,13 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：掉箱检测请求带上掉箱前时刻
+
+- **接口**：N-IF-16 `/navigation/detect_dropped_boxes`（`robot_motion_interfaces/action/DetectDroppedBoxes`）：Goal 去掉占位字段 `unused`，新增 `builtin_interfaces/Time reference_stamp`、`bool reference_valid`。该 Action 由本分支新增、尚未发布，对 main 而言仍是新增。
+- **原因**：导航需要掉箱之前的点云作为基准帧，才能把新落地的箱子和原有地面物体区分开。原 Goal 不带时间，导航只能拿请求到达时的数据，而 Autonomy 原来要等当前步骤结束、再等操作员确认才发检测，掉箱时刻早已滚出导航的历史窗口。现改为 Autonomy 判定掉箱后立即取消在途动作并发起检测，同时用电控压力历史给出掉箱前时刻。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：navigation（按 `reference_stamp` 取基准帧，保留至少 10 s 历史；`reference_valid=false` 时照常检测）、autonomy（生产 Goal）。rt_control 的压力消息头须为采样时刻，而非发布或接收时刻。
+
 ### 新增：回 Home 接口与相机压缩图像，供联调操作页重置和显示
 
 - **接口**：M-IF-04 `/motion/move_to_posture`（`robot_motion_interfaces/action/MoveToPosture`）；P-IF-09、P-IF-10、P-IF-11 三个 `sensor_msgs/msg/CompressedImage` 话题（头部彩色图、胸部彩色图、头部标注图）；P-IF-12、P-IF-13 两个 `sensor_msgs/msg/CameraInfo` 话题。
