@@ -55,6 +55,13 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：运控独立终止任务接口，统一运控 Action 的取消语义
+
+- **接口**：新增 M-IF-06 `/motion/terminate_task`（`robot_motion_interfaces/srv/TerminateTask`）。修改 M-IF-02 `/motion/pick_and_carry`、M-IF-03 `/motion/place_carried_boxes`、M-IF-04 `/motion/move_to_posture` 的约束：取消时手臂原地停下并确认停稳，以 CANCELED 返回，不松阀、不回 Home；M-IF-04 不再负责清除旧任务记录。IDL 字段除新增文件外不变，三者均为本分支新增、尚未发布。
+- **原因**：联调重置需要先让运控彻底停下并忘掉上一次任务。原方案让 `move_to_posture` 成功后顺带清掉旧任务记录，但抓取中途失败、手臂停在半路时，回 Home 之前运控仍记着旧任务，可能拒绝回 Home，形成死锁；重置也需要一个不依赖“哪个 Action 正在跑”的统一停止入口。掉箱时 Autonomy 会取消在途的运控 Action，取消后的手臂行为必须确定，恢复流程才能接着放箱和回 Home。运控已同意新增 `/motion/terminate_task` 并沿用发布包已有的 `/motion/move_to_posture`。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：motion（实现 TerminateTask 服务；三个 Action 的取消按上述语义执行）、autonomy（重置流程第一步调用 TerminateTask；掉箱时取消在途 Action）。
+
 ### 新增：掉箱检测请求带上掉箱前时刻
 
 - **接口**：N-IF-16 `/navigation/detect_dropped_boxes`（`robot_motion_interfaces/action/DetectDroppedBoxes`）：Goal 去掉占位字段 `unused`，新增 `builtin_interfaces/Time reference_stamp`、`bool reference_valid`。该 Action 由本分支新增、尚未发布，对 main 而言仍是新增。

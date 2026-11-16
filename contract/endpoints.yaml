@@ -788,7 +788,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "一个 Action 内完成检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位，不设独立可行性接口；tcp_target 为 base_link 下 TCP，Motion 不再叠加工具偏移；Motion 不启停泵；开阀后收到参与侧 p<=-60 kPa 的有效新压力样本即抽离，不加固定延时或多帧稳定等待，抽离不需要 Autonomy 批准；source_observed_at 只作记录，不作为拒绝条件；分臂给出成功/失败/取消/未知，一侧成功一侧失败时 overall=PARTIAL 并以 ABORTED 返回，保留成功侧事实；同时只接受一个 Goal，忙时拒绝；取消时停止并确认，不自动松阀、不关泵；purpose=DROPPED_BOX_RECOVERY 使用地面回收场景配置"
+    constraint: "一个 Action 内完成检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位，不设独立可行性接口；tcp_target 为 base_link 下 TCP，Motion 不再叠加工具偏移；Motion 不启停泵；开阀后收到参与侧 p<=-60 kPa 的有效新压力样本即抽离，不加固定延时或多帧稳定等待，抽离不需要 Autonomy 批准；source_observed_at 只作记录，不作为拒绝条件；分臂给出成功/失败/取消/未知，一侧成功一侧失败时 overall=PARTIAL 并以 ABORTED 返回，保留成功侧事实；同时只接受一个 Goal，忙时拒绝；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不自动松阀、不关泵、不回 Home；purpose=DROPPED_BOX_RECOVERY 使用地面回收场景配置"
 
   - id: M-IF-03
     ros_name: /motion/place_carried_boxes
@@ -797,7 +797,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "前提是导航已到卸货朝向并停稳；顺序为 LM 运动到 Motion 配置的默认放置位、关闭所选阀并读回确认、延时、回 Home、确认停稳；不关泵；允许只释放实际仍持箱的一侧，并按剩余载荷规划；箱 ID 与持箱记录不一致时在释放前拒绝；阀已释放但回 Home 失败时整体不成功，保留已释放的事实，不重新释放；取消不反转已释放的输出"
+    constraint: "前提是导航已到卸货朝向并停稳；顺序为 LM 运动到 Motion 配置的默认放置位、关闭所选阀并读回确认、延时、回 Home、确认停稳；不关泵；允许只释放实际仍持箱的一侧，并按剩余载荷规划；箱 ID 与持箱记录不一致时在释放前拒绝；阀已释放但回 Home 失败时整体不成功，保留已释放的事实，不重新释放；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不松阀、不回 Home，不反转已释放的输出"
 
   - id: M-IF-05
     ros_name: /motion/state
@@ -882,7 +882,16 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "posture_id=home 时回到默认 Home；按两侧实际压力判断空载，不按内部任务记录；压力显示仍吸着时拒绝并说明是哪一侧；从当前实际关节位置规划；不启停泵、不动阀；成功后清掉旧的任务记录，使下一次 PickAndCarry 能被受理"
+    constraint: "posture_id=home 时回到默认 Home；按两侧实际压力判断空载，不按内部任务记录；压力显示仍吸着时拒绝并说明是哪一侧；从当前实际关节位置规划；不启停泵、不动阀；取消时手臂原地停下并以 CANCELED 返回；旧的任务记录由 M-IF-06 清除，本接口不依赖也不清除"
+
+  - id: M-IF-06
+    ros_name: /motion/terminate_task
+    kind: service
+    type: robot_motion_interfaces/srv/TerminateTask
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "联调重置的第一步，独立于各 Action 的取消；手臂原地停下并确认停稳后才返回；在途的 PickAndCarry、PlaceCarriedBoxes、MoveToPosture 均以 CANCELED 结束；清除内部任务记录（目标集合、持箱记录），之后 MoveToPosture 和 PickAndCarry 必须能被受理；不动阀、不启停泵、不回 Home、不规划新动作；幂等，空闲时也返回 terminated=true；停稳确认超时返回 terminated=false 并在 error 中说明"
 
   - id: P-IF-09
     ros_name: /perception/camera/head/color/image_rect/compressed

@@ -9,7 +9,7 @@
 本文只列 Motion 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（22 条）
+## 本域提供（23 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -35,6 +35,7 @@
 | M-IF-05 | `/motion/state` | Topic | `robot_motion_interfaces/msg/ManipulationState` | Autonomy | Q_STATE；10 Hz |
 | N-IF-16 | `/navigation/detect_dropped_boxes` | Action | `robot_motion_interfaces/action/DetectDroppedBoxes` | Autonomy | — |
 | M-IF-04 | `/motion/move_to_posture` | Action | `robot_motion_interfaces/action/MoveToPosture` | Autonomy | — |
+| M-IF-06 | `/motion/terminate_task` | Service | `robot_motion_interfaces/srv/TerminateTask` | Autonomy | — |
 
 ## 本域消费（23 条）
 
