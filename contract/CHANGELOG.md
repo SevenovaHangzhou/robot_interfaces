@@ -55,6 +55,13 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 非破坏性：注明 RT-Control 操作网页是底盘速度与 Rolling 批次的台架替代发送方
+
+- **接口**：N-04 `/rt/base/cmd_vel`（`geometry_msgs/msg/Twist`）、M-09 `/rt/arms/rolling/target_batch`（`RollingJointTargetBatch`）的 `constraint`；不修改任何 IDL、QoS 或生产/消费域。
+- **原因**：ELECTRI-209 把 RT-Control 操作网页拆成独立仓库 `robot_operator_web`。网页在台架上发布底盘速度并经 Rolling 客户端发批次，而注册表只写了 Motion 一个发送方；拆分后这条事实需要写在唯一注册表里，避免被当成未授权的第二 writer。
+- **提出人**：@kkozia188（rt_control）
+- **影响域**：无。网页仍属 rt_control 域，与 Motion 互斥发送的规则不变，生产者和消费者无需升级。
+
 ### 新增：底盘 CSV/CSP 运行时切换与底盘轮子轨迹入口
 
 - **接口**：R-IN-23 `/rt/base/set_control_mode`（`SetJointControlMode`）；R-IN-24 `/rt/base/follow_joint_trajectory`（`control_msgs/action/FollowJointTrajectory`）；R-IN-25 `/rt/base/joint_trajectory`（`trajectory_msgs/msg/JointTrajectory`）；`axis_sets.v3_swerve_wheels`（steer1..4_joint、wheel1..4_joint）；`JointControlMode` 新增 `VELOCITY_READY=4`；N-04 `/rt/base/cmd_vel` 与 R-IN-06 的约束补充模式条件。

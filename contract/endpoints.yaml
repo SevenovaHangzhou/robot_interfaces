@@ -145,7 +145,7 @@ endpoints:
     watchdog_ms: 500
     external_type: true
     note: "当前 Navigation 职责由 motion 域承载；Twist 无 header，看门狗只使用 RT 本地接收间隔；后续 Motion 接管底盘另立协议"
-    constraint: "底盘速度入口，仅在 R-IN-23 为 VELOCITY_READY（使能后默认）时生效，FJT_READY 时不被接受；20～50 Hz；500 ms 本地接收超时；不与旧 `/cmd_vel_safe` 或未来第二 writer 并行生效"
+    constraint: "底盘速度入口，仅在 R-IN-23 为 VELOCITY_READY（使能后默认）时生效，FJT_READY 时不被接受；20～50 Hz；500 ms 本地接收超时；不与旧 `/cmd_vel_safe` 或未来第二 writer 并行生效；台架调试时 RT-Control 操作网页可替代 Motion 发送，与 Motion 互斥，同一时间只允许一个发送方"
 
 
   - id: N-05
@@ -264,7 +264,7 @@ endpoints:
     rate_hz: [30, 30]
     axis_set: v3_dual_arm
     note: "三代双七轴：right_joint1..7 后接 left_joint1..7；全部 rad/rad/s；从 replace_from 起替换缓冲轨迹，非运动臂仍须包含"
-    constraint: "仅在 /rt/arms/set_control_mode 切到 ROLLING_READY 后生效；epoch 等于 R-OUT-07 当前 epoch；sequence 在同一 epoch 内严格递增；replace_from 为 ROS 时间（运控与 RT-Control 同机），不早于当前时刻 + 替换提前量；首点 time_from_start=0，位置与速度在拼接容差内等于缓冲轨迹在 replace_from 处的值；点时间严格递增，1～256 点，总长不超过缓冲上限；位置/速度/加速度不超过 robot_description 关节限位，且从任一点起都能在限值内停住；不满足整批拒绝，结果见 R-OUT-07 last_result；final=true 为本段最后一批，末点各轴速度须为 0（否则 FINAL_NOT_AT_REST）；最新接受的批次为 final 时不再需要后续批次、不计更新超时，执行到末点后保持并报 STOP_COMPLETED，期间仍可用新批次从其 replace_from 起替换，替换批次非 final 时恢复更新超时；最新接受的批次非 final 时，超过更新超时未收到有效批次，或缓冲耗尽时按限值刹停并保持；best-effort/volatile/keep-last(1)，deadline/lifespan 100 ms"
+    constraint: "仅在 /rt/arms/set_control_mode 切到 ROLLING_READY 后生效；epoch 等于 R-OUT-07 当前 epoch；sequence 在同一 epoch 内严格递增；replace_from 为 ROS 时间（运控与 RT-Control 同机），不早于当前时刻 + 替换提前量；首点 time_from_start=0，位置与速度在拼接容差内等于缓冲轨迹在 replace_from 处的值；点时间严格递增，1～256 点，总长不超过缓冲上限；位置/速度/加速度不超过 robot_description 关节限位，且从任一点起都能在限值内停住；不满足整批拒绝，结果见 R-OUT-07 last_result；final=true 为本段最后一批，末点各轴速度须为 0（否则 FINAL_NOT_AT_REST）；最新接受的批次为 final 时不再需要后续批次、不计更新超时，执行到末点后保持并报 STOP_COMPLETED，期间仍可用新批次从其 replace_from 起替换，替换批次非 final 时恢复更新超时；最新接受的批次非 final 时，超过更新超时未收到有效批次，或缓冲耗尽时按限值刹停并保持；best-effort/volatile/keep-last(1)，deadline/lifespan 100 ms；台架调试时 RT-Control 操作网页可经 `robot_interfaces_rolling_client` 替代 Motion 发送，与 Motion 互斥，同一时间只允许一个发送方"
 
 
   - id: M-06
