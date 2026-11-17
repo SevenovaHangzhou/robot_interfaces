@@ -35,6 +35,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/PlaceCarriedBoxes.action"
   "action/MoveToPosture.action"
   "srv/TerminateTask.srv"
+  "srv/ResetTask.srv"
+  "srv/GetEndEffectorPoseAtTime.srv"
   "action/DetectDroppedBoxes.action"
   DEPENDENCIES
     builtin_interfaces

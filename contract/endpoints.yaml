@@ -788,7 +788,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "一个 Action 内完成检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位，不设独立可行性接口；tcp_target 为 base_link 下 TCP，Motion 不再叠加工具偏移；Motion 不启停泵；开阀后收到参与侧 p<=-60 kPa 的有效新压力样本即抽离，不加固定延时或多帧稳定等待，抽离不需要 Autonomy 批准；source_observed_at 只作记录，不作为拒绝条件；分臂给出成功/失败/取消/未知，一侧成功一侧失败时 overall=PARTIAL 并以 ABORTED 返回，保留成功侧事实；同时只接受一个 Goal，忙时拒绝；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不自动松阀、不关泵、不回 Home；purpose=DROPPED_BOX_RECOVERY 使用地面回收场景配置"
+    constraint: "一个 Action 内完成检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位，不设独立可行性接口；tcp_target 为 base_link 下 TCP，Motion 不再叠加工具偏移；Motion 不启停泵；开阀后收到参与侧 p<=-60 kPa 的有效新压力样本即抽离，不加固定延时或多帧稳定等待；source_observed_at 只作记录，不作为拒绝条件；有效压力样本未达标或吸附1秒超时作为业务警告继续，传感器状态无效/过期或持箱期间无有效压力作为阻断故障，停止并等待RT终态和关节停稳，不自动续跑；分臂给出成功/失败/取消/未知，一侧成功一侧失败时 overall=PARTIAL 并以 ABORTED 返回，保留成功侧事实；同时只接受一个 Goal，忙时拒绝；客户端取消须停止并确认停稳，确认后 ROS CANCELED/业务4，无法确认时 ROS ABORTED/业务5；不自动松阀、关泵、回 Home；本版仅 NORMAL_PICK=1，DROPPED_BOX_RECOVERY 暂拒绝"
 
   - id: M-IF-03
     ros_name: /motion/place_carried_boxes
@@ -797,7 +797,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "前提是导航已到卸货朝向并停稳；顺序为 LM 运动到 Motion 配置的默认放置位、关闭所选阀并读回确认、延时、回 Home、确认停稳；不关泵；允许只释放实际仍持箱的一侧，并按剩余载荷规划；箱 ID 与持箱记录不一致时在释放前拒绝；阀已释放但回 Home 失败时整体不成功，保留已释放的事实，不重新释放；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不松阀、不回 Home，不反转已释放的输出"
+    constraint: "前提是导航已到卸货朝向并停稳；顺序为 LM 运动到 Motion 配置的默认放置位、关闭所选阀并读回确认、等待释放、回 Home、确认停稳；不关泵；本版要求释放侧等于当前任务记录的全部持箱侧，不支持单侧剩余箱恢复或部分释放；箱 ID 与持箱记录不一致时在释放前拒绝；阀已释放但回 Home 失败时整体不成功，保留已释放事实且不重放释放；取消/异常停止须确认停稳，确认后客户端取消为 CANCELED/业务4，无法确认不得报 CANCELED；不松阀、不回 Home、不反转已释放输出"
 
   - id: M-IF-05
     ros_name: /motion/state
@@ -807,7 +807,7 @@ endpoints:
     consumers: [autonomy]
     qos: Q_STATE
     rate_hz: [10, 10]
-    constraint: "持续发布执行事实：当前操作、分臂阶段、关联箱 ID、吸附事实、阀输出是否已确认释放、上部是否停稳；Action 结束后继续发布；持箱与否的业务判断由 Autonomy 做；各项观测带自己的时间，重发不刷新旧观测时间"
+    constraint: "持续发布执行事实：当前操作、分臂阶段、关联箱 ID、吸附事实、阀输出是否已确认释放、上部是否停稳；Action 结束后继续发布；持箱与否的业务判断由 Autonomy 做；各项观测带自己的时间，重发不刷新旧观测时间；warnings[] 报告业务警告和阻断故障，error 只表达任务级错误"
 
   - id: N-IF-16
     ros_name: /navigation/detect_dropped_boxes
@@ -882,7 +882,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "posture_id=home 时回到默认 Home；按两侧实际压力判断空载，不按内部任务记录；压力显示仍吸着时拒绝并说明是哪一侧；从当前实际关节位置规划；不启停泵、不动阀；取消时手臂原地停下并以 CANCELED 返回；旧的任务记录由 M-IF-06 清除，本接口不依赖也不清除"
+    constraint: "posture_id=home 时回到默认 Home；不以压力或旧任务记录拒绝，是否适合移动由上层判断；从实时实测关节起点规划、碰撞检查并时间化后执行；不启停泵、不动阀；取消须确认停稳，客户端取消 ROS CANCELED、服务 terminate 时 ROS ABORTED 但业务为停止；不清旧任务记录，由 M-IF-07 负责"
 
   - id: M-IF-06
     ros_name: /motion/terminate_task
@@ -891,7 +891,25 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "联调重置的第一步，独立于各 Action 的取消；手臂原地停下并确认停稳后才返回；在途的 PickAndCarry、PlaceCarriedBoxes、MoveToPosture 均以 CANCELED 结束；清除内部任务记录（目标集合、持箱记录），之后 MoveToPosture 和 PickAndCarry 必须能被受理；不动阀、不启停泵、不回 Home、不规划新动作；幂等，空闲时也返回 terminated=true；停稳确认超时返回 terminated=false 并在 error 中说明"
+    constraint: "使用 OperationContext 匹配当前活动 attempt；只停止当前任务，不自动清理任务记录、不松阀、不关泵、不回 Home、不规划新动作；in-flight PickAndCarry/PlaceCarriedBoxes/MoveToPosture 结束，客户端取消为 CANCELED，服务终止为 ABORTED 但业务仍为取消；必须等待 RT 终态和真实关节反馈确认停稳，accepted 只表示受理，stopped/stop_confirmation_valid 才表示停止；停稳超时 stopped=false/stop_confirmation_valid=false 并在 error 说明；无匹配活动 attempt 时 accepted=false；复位由 M-IF-07 执行"
+
+  - id: M-IF-07
+    ros_name: /motion/reset_task
+    kind: service
+    type: robot_motion_interfaces/srv/ResetTask
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "使用 OperationContext 匹配原 attempt；只要求没有执行中任务、没有受理中或终态未确认的 RT 目标；清理目标集合、持箱记录和任务锁；不移动、不松阀、不关泵、不清 RT 故障、不清 attempt 去重记录；不检查压力或额外停稳窗口；现场负载处置由上层负责"
+
+  - id: M-IF-08
+    ros_name: /motion/get_end_effector_pose_at_time
+    kind: service
+    type: robot_motion_interfaces/srv/GetEndEffectorPoseAtTime
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "查询指定操作事件时刻的 TCP；reference_frame 仅支持 base_link；只使用前后真实关节反馈样本插值，不外推、不用当前位姿替代；事件来源/实例/序号只用于关联追溯；无支持样本时 pose_valid=false 并在 per_arm_errors 说明；不改变业务状态"
 
   - id: P-IF-09
     ros_name: /perception/camera/head/color/image_rect/compressed
