@@ -22,8 +22,16 @@ string box_id
 bool sku_known
 string sku_id
 # 箱体局部轴尺寸，米：X 宽、Y 深、Z 高。
+# 0 表示该轴未知，不是零厚度实物；使用各中心自己的有效标记。
 geometry_msgs/Vector3 dimensions_m
-# map 下的箱体中心和朝向。valid=false 时不能用来换算 TCP。
+# map 下三种中心，均使用箱体轴 X=宽、Y=由正面向箱内、Z=高。
+# 各中心独立有效；stamp 保留该几何的观测时间。
+# 正面为局部 -Y，顶面为局部 +Z。侧吸从正面中心生成 TCP，顶吸从顶面中心生成，不重复减半深度。
+geometry_msgs/PoseStamped face_center_pose
+bool face_center_pose_valid
+geometry_msgs/PoseStamped top_center_pose
+bool top_center_pose_valid
+# 体心仅在尺寸足以推导时有效；无深度不使已知面心失效。
 geometry_msgs/PoseStamped box_center_pose
 bool box_center_pose_valid
 uint8 lifecycle_state

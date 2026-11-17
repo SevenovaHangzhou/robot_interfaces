@@ -55,6 +55,13 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 破坏性：箱子快照增加独立的面心、顶心位姿，明确抓后更新与转向、掉箱识别的时序
+
+- **接口**：`robot_perception_interfaces/msg/WallBox` 新增 `face_center_pose`、`face_center_pose_valid`、`top_center_pose`、`top_center_pose_valid`，影响 P-IF-03 `/perception/get_wall_map`、P-IF-04 `/perception/wall_map`、P-IF-08 `/perception/update_wall_map`；`WallMapReference.navigation_map_version` 注明承载视觉部署配置的 map 坐标身份。约束更新：P-IF-01 缺失轴可用同 SKU 共识补先验；P-IF-03 首次搜索完成以 readiness 判断、重启恢复后需重新观测；P-IF-06 与更新互斥、等在途更新结束；P-IF-08 抓后更新填成功持箱 ID、采集结束前不转向；P-04 三条 readiness 名称。该分支尚未发布。
+- **原因**：视觉 11 月 16 日 V0.4 接口说明及其本地补丁（基于 2a6f509）。正面可可靠定位时常缺箱深，只传体心会丢失可抓位置；抓后更新需要转头并在每个视角采至少 8 帧、跨度至少 1 秒，底盘转向中采集未验收；更新、首次搜索和掉箱识别共用头部和相机，忙时拒绝不排队。把视觉的本地扩展并入中央分支，所有消费方同批升级。
+- **提出人**：@kkozia188（autonomy，合入视觉域本地补丁）
+- **影响域**：perception（按本分支最新提交重新编译，替换本地补丁）、autonomy（侧吸用面心、顶吸用顶心生成 TCP；抓后更新填成功持箱 ID；等首次搜索与在途更新）。WallBox 字段变化改变类型哈希，未同批升级时消费方收不到快照且两侧都不报错。
+
 ### 非破坏性：SKU 目录允许未知轴填 0，写明默认容差和观测中拒绝
 
 - **接口**：P-IF-01 `/perception/set_sku_catalog`（`robot_perception_interfaces/srv/SetSkuCatalog`，成员类型 `SkuSpec`）：约束由“三轴均为有限正数”改为“至少两个轴为有限正数，未知轴填 0”；写明 `dimension_tolerance_known=false` 时默认容差 0.04 m、观测进行中拒绝设置、目录不含数量。IDL 字段不变，只改注释。

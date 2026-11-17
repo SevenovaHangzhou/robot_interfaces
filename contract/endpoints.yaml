@@ -95,7 +95,7 @@ endpoints:
     consumers: [autonomy]
     qos: Q_LATCHED
     rate_hz: [1, 1]
-    constraint: "`Q_LATCHED`；故障立即 `ready=false`；变化立即发；稳定 1 Hz"
+    constraint: "`Q_LATCHED`；故障立即 `ready=false`；变化立即发；稳定 1 Hz；V0.4 依次发布 readiness_name 为 wall_map_read、wall_observation、dropped_box_recognition 的三条，按 domain+readiness_name 分别缓存，只用 ready 作为准入结论"
 
 
   - id: P-NAV-01
@@ -825,7 +825,7 @@ endpoints:
     producer: perception
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "标称尺寸单位米，按箱体局部轴 X 宽/Y 深/Z 高；至少两个轴为有限正数，未知轴填 0，负数、NaN、Inf 拒绝；dimension_tolerance_known=false 时用视觉默认容差 0.04 m，为 true 时容差为有限非负数；目录只描述箱型，不含数量；SKU ID 唯一；观测进行中拒绝设置，调用方等本轮结束后重试；同 ID 同版本但内容不同时拒绝，相同内容重复设置返回已加载结果；accepted 只表示字典已加载，不表示已有箱子快照；一次观测内不混用两版字典"
+    constraint: "标称尺寸单位米，按箱体局部轴 X 宽/Y 深/Z 高；至少两个轴为有限正数，未知轴填 0，负数、NaN、Inf 拒绝；dimension_tolerance_known=false 时用视觉默认容差 0.04 m，为 true 时容差为有限非负数；目录只描述箱型，不含数量；本箱实测轴唯一匹配 SKU 后，缺失轴可用至少两个同 SKU 已确认箱子的可靠一致实测补为先验，不改目录、不标成实测；SKU ID 唯一；观测进行中拒绝设置，调用方等本轮结束后重试；同 ID 同版本但内容不同时拒绝，相同内容重复设置返回已加载结果；accepted 只表示字典已加载，不表示已有箱子快照；一次观测内不混用两版字典"
 
   - id: P-IF-03
     ros_name: /perception/get_wall_map
@@ -834,7 +834,7 @@ endpoints:
     producer: perception
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "只读已有数据：不拍照、不转头、不等待新观测；返回全局箱子库的全部箱子，不按场景或墙面筛选；库未建好时 success=false，已确认的空库 success=true 且 boxes 为空；一次响应只对应一个已提交版本；重复读取不递增版本、不刷新观测时间；精确读取不存在的版本时失败，不回退到最新；坐标有效性用导航地图版本、定位状态和 TF 判断"
+    constraint: "只读已有数据：不拍照、不转头、不等待新观测；返回 map 下全局箱子库的全部箱子，不按场景或墙面筛选；库未建好时 success=false，已确认的空库 success=true 且 boxes 为空；首次自动搜索期间可读到中间快照，Autonomy 以 readiness wall_observation 判断首次搜索已完成；一次响应只对应一个已提交版本；重复读取不递增版本、不刷新观测时间；精确读取不存在的版本时失败，不回退到最新；map 坐标身份由视觉部署配置，不订阅导航定位状态；观测必须有真实曝光时 TF；单文件恢复保留箱号、三心与原观测时间，恢复后 grasp_candidate=false 直到重新观测"
 
   - id: P-IF-04
     ros_name: /perception/wall_map
@@ -843,7 +843,7 @@ endpoints:
     producer: perception
     consumers: [autonomy, external]
     qos: Q_LATCHED
-    constraint: "每次成功提交时发布完整全局快照；晚加入的订阅者收到最近一份；Autonomy 的正常更新以 P-IF-08 的 Result 为准，本 Topic 供显示和其他消费者使用"
+    constraint: "每次成功提交时发布完整 map 全局快照；晚加入的订阅者收到最近一份；Autonomy 的正常更新以 P-IF-08 的 Result 为准；每箱包含独立有效的面心/顶心/体心，均为箱体轴 X 宽/Y 向内/Z 高；面心为 -Y 面中心，顶心为 +Z 面中心；未知深度不得伪造体心，也不使可靠面心失效；侧吸从面心、顶吸从顶心生成 TCP，发送时使用当前 map 到 base_link TF，不维护 base_link 箱体快照"
 
   - id: P-IF-05
     ros_name: /perception/wall_map_status
@@ -861,7 +861,7 @@ endpoints:
     producer: perception
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "每次 1 或 2 个区域，各数组同长同序；detection_goal_id 为导航检测的 Goal UUID，原样返回；按候选观测时刻的 TF 把 odom 下 XY 转到 map；必须配置真实的地面高度和搜索高度，缺失时明确失败，不假设 z=0；候选区域必须进入相机视野；输出 map 下箱体中心、朝向和尺寸；看不到时返回 NOT_OBSERVABLE，不报 NOT_FOUND；不修改正常箱子库；与 P-IF-08 共用相机和头部，冲突时后到的请求返回忙"
+    constraint: "每次 1 或 2 个区域，各数组同长同序；detection_goal_id 为导航检测的 Goal UUID，原样返回；按候选观测时刻的 TF 把 odom 下 XY 转到 map；必须配置真实的地面高度和搜索高度，缺失时明确失败，不假设 z=0；候选区域必须进入相机视野；输出 map 下箱体中心、朝向和尺寸；看不到时返回 NOT_OBSERVABLE，不报 NOT_FOUND；不修改正常箱子库；与 P-IF-08 共用相机和头部，冲突时后到的请求返回忙；navigation_map_version 填快照里的 map 坐标身份；与 P-IF-08 和首次搜索互斥，忙时拒绝、不排队，Autonomy 等在途更新结束且 readiness dropped_box_recognition 就绪后再发"
 
   - id: P-IF-08
     ros_name: /perception/update_wall_map
@@ -870,7 +870,7 @@ endpoints:
     producer: perception
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "Autonomy 在 PickAndCarry 整组终态且有成功侧到运输位后发一次；必须是受理之后取得的新观测；Result 直接带本次提交的完整快照，调用方不再读取箱墙；是否更新看 map_committed，提交后被取消或出故障仍返回已提交快照，提交前失败则旧库不变；不提供强制删箱，不返回逐箱移除核对，箱子是否移除由视觉证据决定；expected_map 版本比当前旧可接受，超前则拒绝；处理可与转向、卸货并行，usable_view_obtained 不是底盘运动许可"
+    constraint: "Autonomy 在 PickAndCarry 整组终态且有成功侧到运输位后发一次；必须是受理之后取得的新观测；Result 直接带本次提交的完整快照，调用方不再读取箱墙；是否更新看 map_committed，提交后被取消或出故障仍返回已提交快照，提交前失败则旧库不变；不提供强制删箱，不返回逐箱移除核对，箱子是否移除由视觉证据决定；expected_map 版本比当前旧可接受，超前则拒绝；抓后更新填 successfully_carried_box_ids（只填停止确认有效的成功侧），切换为 after_pick 观察；采集结束前底盘不得转向，usable_view_obtained 不是底盘运动许可；“采集已结束”信号由视觉补充（待定），之前 Autonomy 等到 Result 再转向；采集结束后的处理可与转向、卸货并行"
 
 
   # ---- 联调操作页：重置与显示 ----
