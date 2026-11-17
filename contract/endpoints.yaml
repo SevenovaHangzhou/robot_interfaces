@@ -825,7 +825,7 @@ endpoints:
     producer: perception
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "尺寸为有限正数，单位米，按箱体局部轴 X 宽/Y 深/Z 高；SKU ID 唯一；同 ID 同版本但内容不同时拒绝，相同内容重复设置返回已加载结果；accepted 只表示字典已加载，不表示已有箱子快照；一次观测内不混用两版字典"
+    constraint: "标称尺寸单位米，按箱体局部轴 X 宽/Y 深/Z 高；至少两个轴为有限正数，未知轴填 0，负数、NaN、Inf 拒绝；dimension_tolerance_known=false 时用视觉默认容差 0.04 m，为 true 时容差为有限非负数；目录只描述箱型，不含数量；SKU ID 唯一；观测进行中拒绝设置，调用方等本轮结束后重试；同 ID 同版本但内容不同时拒绝，相同内容重复设置返回已加载结果；accepted 只表示字典已加载，不表示已有箱子快照；一次观测内不混用两版字典"
 
   - id: P-IF-03
     ros_name: /perception/get_wall_map

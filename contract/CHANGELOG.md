@@ -55,6 +55,13 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 非破坏性：SKU 目录允许未知轴填 0，写明默认容差和观测中拒绝
+
+- **接口**：P-IF-01 `/perception/set_sku_catalog`（`robot_perception_interfaces/srv/SetSkuCatalog`，成员类型 `SkuSpec`）：约束由“三轴均为有限正数”改为“至少两个轴为有限正数，未知轴填 0”；写明 `dimension_tolerance_known=false` 时默认容差 0.04 m、观测进行中拒绝设置、目录不含数量。IDL 字段不变，只改注释。
+- **原因**：视觉 11 月 16 日的 V0.4 接口说明按“至少两轴已知”实现：箱深常常看不到，若要求三轴全正，要么拒绝目录，要么只能填一个猜测的深度，从而丢失可靠的面心。按视觉的实现统一约束。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：perception（与现有实现一致，无需改动）、autonomy（按新约束填写目录）。
+
 ### 新增：运控独立终止任务接口，统一运控 Action 的取消语义
 
 - **接口**：新增 M-IF-06 `/motion/terminate_task`（`robot_motion_interfaces/srv/TerminateTask`）。修改 M-IF-02 `/motion/pick_and_carry`、M-IF-03 `/motion/place_carried_boxes`、M-IF-04 `/motion/move_to_posture` 的约束：取消时手臂原地停下并确认停稳，以 CANCELED 返回，不松阀、不回 Home；M-IF-04 不再负责清除旧任务记录。IDL 字段除新增文件外不变，三者均为本分支新增、尚未发布。
