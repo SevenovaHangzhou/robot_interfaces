@@ -62,12 +62,26 @@
 - **提出人**：@kkozia188（autonomy）
 - **影响域**：perception（与现有实现一致，无需改动）、autonomy（按新约束填写目录）。
 
-### 新增：运控独立终止任务接口，统一运控 Action 的取消语义
+### 破坏性：运控终止/复位、取消停稳与分臂警告契约对齐
 
-- **接口**：新增 M-IF-06 `/motion/terminate_task`（`robot_motion_interfaces/srv/TerminateTask`）。修改 M-IF-02 `/motion/pick_and_carry`、M-IF-03 `/motion/place_carried_boxes`、M-IF-04 `/motion/move_to_posture` 的约束：取消时手臂原地停下并确认停稳，以 CANCELED 返回，不松阀、不回 Home；M-IF-04 不再负责清除旧任务记录。IDL 字段除新增文件外不变，三者均为本分支新增、尚未发布。
-- **原因**：联调重置需要先让运控彻底停下并忘掉上一次任务。原方案让 `move_to_posture` 成功后顺带清掉旧任务记录，但抓取中途失败、手臂停在半路时，回 Home 之前运控仍记着旧任务，可能拒绝回 Home，形成死锁；重置也需要一个不依赖“哪个 Action 正在跑”的统一停止入口。掉箱时 Autonomy 会取消在途的运控 Action，取消后的手臂行为必须确定，恢复流程才能接着放箱和回 Home。运控已同意新增 `/motion/terminate_task` 并沿用发布包已有的 `/motion/move_to_posture`。
-- **提出人**：@kkozia188（autonomy）
-- **影响域**：motion（实现 TerminateTask 服务；三个 Action 的取消按上述语义执行）、autonomy（重置流程第一步调用 TerminateTask；掉箱时取消在途 Action）。
+- **接口**：M-IF-02 `/motion/pick_and_carry`、M-IF-03 `/motion/place_carried_boxes`、M-IF-04 `/motion/move_to_posture`、M-IF-05 `/motion/state`、M-IF-06 `/motion/terminate_task`，以及 `robot_motion_interfaces` 的 `PickAndCarry`、`PlaceCarriedBoxes`、`MoveToPosture`、`ManipulationState`、`TerminateTask`。Action Result/Feedback/State 增加 `warnings[]`；`TerminateTask` 改为 `OperationContext` 请求和 `accepted/stopped/stop_confirmation_valid/final_state/context/error` 响应；`MoveToPosture` 不再按压力或旧任务记录拒绝；取消未确认停稳不得返回 CANCELED。
+- **原因**：原V0.4分支把终止和清任务记录合并，且MoveToPosture在压力仍吸着时拒绝，导致联调复位死锁；现场要求终止只停止、复位单独清理。取消请求只发 RT cancel 不能证明机械已停稳；传感器通信异常也不能继续自动跑。分臂压力/阀/停稳事实需要独立的 `warnings[]` 和每侧错误，不能让一侧异常覆盖另一侧。该变更是破坏性语义变更，未原子升级时 ROS 2 类型哈希不匹配会静默断通信，旧客户端也可能把未确认停止误读为安全取消。
+- **提出人**：@kkozia188（motion）
+- **影响域**：motion（生产全部上述接口）、autonomy（同 SHA 重编译并处理新 `warnings[]`、`accepted/stopped`、`PARTIAL/UNKNOWN`）、rt_control（服务终止后的 RT 终态与 FJT 取消语义需联调）。本条目不改变 R-IN-02 的 14/15 轴合同；15轴 FJT 由 RT-Control 单独评审和发布。
+
+### 新增：运控复位任务接口 M-IF-07
+
+- **接口**：新增 M-IF-07 `/motion/reset_task`（`robot_motion_interfaces/srv/ResetTask`），请求 `OperationContext`，响应 `accepted/context/error`。
+- **原因**：终止只负责停住并保留任务事实，不能同时清记录；联调需要一个只在没有执行中任务、没有受理中或终态未知 RT 目标时清理目标集合/持箱记录/任务锁的独立入口，且不移动、不松阀、不清 RT 故障。
+- **提出人**：@kkozia188（motion）
+- **影响域**：motion（实现服务）、autonomy（重置流程在 terminate 停稳后调用；现场负载由上层处置）。
+
+### 新增：历史TCP查询接口 M-IF-08
+
+- **接口**：新增 M-IF-08 `/motion/get_end_effector_pose_at_time`（`robot_motion_interfaces/srv/GetEndEffectorPoseAtTime`），按操作事件时间和臂列表查询历史 TCP，返回支撑样本时间和逐臂错误。
+- **原因**：联调需要把任务发生时实际执行的末端位姿和视觉/压力事件对齐；当前没有公共历史查询，不能用当前位姿替代历史值，也不能在无前后反馈样本时外推。
+- **提出人**：@kkozia188（motion）
+- **影响域**：motion（生产服务）、autonomy（按事件时间查询并处理 `pose_valid=false`）。不改变实时执行接口。
 
 ### 新增：掉箱检测请求带上掉箱前时刻
 

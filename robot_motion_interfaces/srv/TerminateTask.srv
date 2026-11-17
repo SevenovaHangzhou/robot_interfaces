@@ -1,13 +1,16 @@
 # M-IF-06 /motion/terminate_task。终止运控当前的任务。
-# 用于联调重置的第一步：手臂原地停下，结束在途的 PickAndCarry / PlaceCarriedBoxes / MoveToPosture，
-# 清掉运控内部的任务记录（目标集合、持箱记录），使之后的 MoveToPosture 和 PickAndCarry 能被受理。
-# 不动阀、不启停泵、不回 Home、不规划新动作。手里的箱子由操作员人工取走。
+# 只停止当前任务并确认停稳；不清除任务记录、不松阀、不关泵、不回 Home。
+# 需要接受新任务时，由 M-IF-07 reset_task 在任务真正结束后清理上下文。
 robot_system_interfaces/OperationContext context
 # 写进运控日志便于追溯，例如 reset、manual。
 string reason
 ---
-robot_system_interfaces/OperationContext context
-# true：手臂已停稳，在途 Action 已以 CANCELED 结束，任务记录已清除。原本空闲时也为 true。
-bool terminated
+# true：终止请求已被当前任务接受；不代表已经停稳。
+bool accepted
+# true：RT 终态已确认，且真实关节反馈确认停稳。
+bool stopped
+# stopped 的证据是否有效；false 时 stopped 必须为 false。
+bool stop_confirmation_valid
 ManipulationState final_state
+robot_system_interfaces/OperationContext context
 robot_system_interfaces/ErrorInfo error

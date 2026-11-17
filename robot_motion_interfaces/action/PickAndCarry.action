@@ -18,7 +18,9 @@ bool carry_configuration_reached
 bool upper_motion_stopped
 bool stop_confirmation_valid
 robot_system_interfaces/ErrorInfo error
+robot_system_interfaces/ErrorInfo[] warnings
 ---
 robot_system_interfaces/OperationContext context
 ArmExecutionState left
 ArmExecutionState right
+robot_system_interfaces/ErrorInfo[] warnings
