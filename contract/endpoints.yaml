@@ -816,7 +816,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "一个 Goal 执行一轮检测，不常驻监听；必须能检出请求发出前已经落地的箱子；Autonomy 判定掉箱后先取消在途导航与运控动作再立即发起；reference_valid=true 时 reference_stamp 是掉箱前仍在吸附的时刻再提前 1 s（电控压力消息头时钟），导航须保留至少 10 s 的点云/高度图历史以便回看该时刻；reference_valid=false 时按无基准方式检测，不得拒绝；同时只接受一个 Goal；有效完成且有候选：SUCCEEDED/ok=true/detected=true；有效完成无候选：SUCCEEDED/ok=true/detected=false；点云不可用、TF 失败或超时：ABORTED/ok=false，不能当作现场无箱；取消：CANCELED，只停检测，不发停车指令；超时计时独立于点云回调；结果只在 Result 里一次返回；候选为 odom 下粗定位，数量不限于 2"
+    constraint: "一个 Goal 执行一轮检测，不常驻监听；必须能检出请求发出前已经落地的箱子；Autonomy 判定掉箱后先取消在途导航与运控动作再立即发起；reference_valid=true 时 reference_stamp 是掉箱前仍在吸附的时刻再提前 1 s（电控压力消息头时钟），导航须保留至少 5 s 的点云/高度图历史以便回看该时刻（导航已确认）；导航 Goal 被取消时先停车再以 CANCELED 结束（见 N-01）；reference_valid=false 时按无基准方式检测，不得拒绝；同时只接受一个 Goal；有效完成且有候选：SUCCEEDED/ok=true/detected=true；有效完成无候选：SUCCEEDED/ok=true/detected=false；点云不可用、TF 失败或超时：ABORTED/ok=false，不能当作现场无箱；取消：CANCELED，只停检测，不发停车指令；超时计时独立于点云回调；结果只在 Result 里一次返回；候选为 odom 下粗定位，数量不限于 2"
 
   - id: P-IF-01
     ros_name: /perception/set_sku_catalog
