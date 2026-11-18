@@ -680,6 +680,18 @@ endpoints:
     constraint: "同 R-OUT-19E；通道与安装外参须由版本化配置确认"
 
 
+  - id: R-OUT-29
+    ros_name: /rt/base/wheel_observations
+    kind: topic
+    type: robot_rt_control_interfaces/msg/WheelObservationArray
+    producer: rt_control
+    consumers: [autonomy]
+    qos: Q_FAST_STATE
+    rate_hz: [100, 100]
+    note: "逐轮观测，供导航（autonomy 域）逐轮融合；与 R-OUT-02 同源，导航不得把两者同时作为独立观测"
+    constraint: "只发硬件实测反馈，不发指令或融合速度；四轮固定 FL/FR/RL/RR 且带 wheel_id；行走位置与速度同一样本；两路转向角分开、无效不互相填补；逐通道采样时间、时间来源、样本序号与连续性代号，重复样本不刷新时间和序号；底盘失能时照常发布"
+
+
   - id: R-OUT-20
     ros_name: /rt/sensors/state
     kind: topic
@@ -791,6 +803,8 @@ member_types:
   - robot_rt_control_interfaces/msg/MotionExecutionState
   - robot_rt_control_interfaces/msg/DigitalInputState
   - robot_rt_control_interfaces/msg/SensorStatus
+  - robot_rt_control_interfaces/msg/WheelFeedbackChannel
+  - robot_rt_control_interfaces/msg/WheelObservation
   - robot_perception_interfaces/msg/BoxPose
   - robot_perception_interfaces/msg/CameraViewPose
   - robot_perception_interfaces/msg/PickSequence

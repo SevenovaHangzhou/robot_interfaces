@@ -85,6 +85,7 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | R-OUT-19F | `/rt/ultrasonic/channel6/range` | Topic / `sensor_msgs/msg/Range` | RT-Control → Autonomy | 同 R-OUT-19E；通道与安装外参须由版本化配置确认 |
 | R-OUT-19G | `/rt/ultrasonic/channel7/range` | Topic / `sensor_msgs/msg/Range` | RT-Control → Autonomy | 同 R-OUT-19E；通道与安装外参须由版本化配置确认 |
 | R-OUT-19H | `/rt/ultrasonic/channel8/range` | Topic / `sensor_msgs/msg/Range` | RT-Control → Autonomy | 同 R-OUT-19E；通道与安装外参须由版本化配置确认 |
+| R-OUT-29 | `/rt/base/wheel_observations` | Topic / `robot_rt_control_interfaces/msg/WheelObservationArray` | RT-Control → Autonomy | 只发硬件实测反馈，不发指令或融合速度；四轮固定 FL/FR/RL/RR 且带 wheel_id；行走位置与速度同一样本；两路转向角分开、无效不互相填补；逐通道采样时间、时间来源、样本序号与连续性代号，重复样本不刷新时间和序号；底盘失能时照常发布 |
 | R-OUT-20 | `/rt/sensors/state` | Topic / `robot_rt_control_interfaces/msg/SensorStatusArray` | RT-Control → Motion、Autonomy | 逐传感器声明有效、无目标、协议异常、通信错误、过期或未配置；每项保留真实样本时间，数组发布时间不刷新旧观测 |
 | R-OUT-21 | `/rt/infrared/state` | Topic / `robot_rt_control_interfaces/msg/DigitalInputStateArray` | RT-Control → Autonomy | 手臂红外只表示目标检测开关量；逐通道标识、原始电平、语义状态和有效性；未知不得当成未检测，不直接触发运动停止 |
 | R-OUT-22 | `/rt/imu/data` | Topic / `sensor_msgs/msg/Imu` | RT-Control → Motion | 当前 Navigation 职责由 motion 域消费；SI 单位；时间为主机发布/接收链语义，不声明设备同步；无效拼接不重发旧测量；独立磁场不公开 |

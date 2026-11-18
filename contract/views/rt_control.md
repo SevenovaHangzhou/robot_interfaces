@@ -9,7 +9,7 @@
 本文只列 RT-Control 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（44 条）
+## 本域提供（45 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -48,6 +48,7 @@
 | R-OUT-19F | `/rt/ultrasonic/channel6/range` | Topic | `sensor_msgs/msg/Range` | Autonomy | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
 | R-OUT-19G | `/rt/ultrasonic/channel7/range` | Topic | `sensor_msgs/msg/Range` | Autonomy | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
 | R-OUT-19H | `/rt/ultrasonic/channel8/range` | Topic | `sensor_msgs/msg/Range` | Autonomy | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
+| R-OUT-29 | `/rt/base/wheel_observations` | Topic | `robot_rt_control_interfaces/msg/WheelObservationArray` | Autonomy | Q_FAST_STATE；100 Hz；逐轮观测，供导航（autonomy 域）逐轮融合；与 R-OUT-02 同源，导航不得把两者同时作为独立观测 |
 | R-OUT-20 | `/rt/sensors/state` | Topic | `robot_rt_control_interfaces/msg/SensorStatusArray` | Motion、Autonomy | Q_STATE |
 | R-OUT-21 | `/rt/infrared/state` | Topic | `robot_rt_control_interfaces/msg/DigitalInputStateArray` | Autonomy | Q_STATE |
 | R-OUT-22 | `/rt/imu/data` | Topic | `sensor_msgs/msg/Imu` | Motion | Q_FAST_STATE；ROS 标准类型 |
