@@ -55,6 +55,13 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：底盘逐轮观测 `/rt/base/wheel_observations`
+
+- **接口**：R-OUT-29 `/rt/base/wheel_observations`（`robot_rt_control_interfaces/msg/WheelObservationArray`）；成员类型 `WheelObservation`、`WheelFeedbackChannel`。不修改任何既有 IDL 或 endpoint。
+- **原因**：导航部门《逐轮观测融合：驱动输出接口口径 v0.1》（NAV-144 三源融合里程计）要求逐轮融合。现有 R-OUT-02 只有融合后的底盘速度与位姿，丢失各轮的转角来源、采样时间与连续性；R-OUT-03 不含外置编码器、没有逐通道时间与有效性，且舵轮控制器未激活（失能或轮子轨迹模式）时没有任何底盘观测。
+- **提出人**：@kkozia188（rt_control）
+- **影响域**：rt_control 新增发布（robot_driver 后续 PR）；autonomy 新增可选订阅，无需同批升级。时间来源沿用 `ObservationMeta.TIME_SOURCE_*`，不新建枚举；噪声与时间误差属标定制品，不逐帧发布。
+
 ### 非破坏性：注明 RT-Control 操作网页是底盘速度与 Rolling 批次的台架替代发送方
 
 - **接口**：N-04 `/rt/base/cmd_vel`（`geometry_msgs/msg/Twist`）、M-09 `/rt/arms/rolling/target_batch`（`RollingJointTargetBatch`）的 `constraint`；不修改任何 IDL、QoS 或生产/消费域。
