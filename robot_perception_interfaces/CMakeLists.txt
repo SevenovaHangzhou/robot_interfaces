@@ -28,6 +28,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/SearchRegionResult.msg"
   "srv/SetSkuCatalog.srv"
   "srv/GetWallMap.srv"
+  "srv/FinishWallObservation.srv"
   "action/UpdateWallMap.action"
   "action/RecognizeDroppedBoxes.action"
   DEPENDENCIES

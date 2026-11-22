@@ -15,7 +15,7 @@
 | --- | --- | --- | --- | --- | --- |
 | G-01 | `/autonomy/execute_demo_task` | Action | `robot_autonomy_interfaces/action/ExecuteDemoTask` | 外部/本地入口 | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 Demo schema；不能直接用于 V3 任务；V3 Autonomy 仅按注册表调用泵/LED/保护复位，不直接控制阀/运动 |
 
-## 本域消费（53 条）
+## 本域消费（54 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -64,6 +64,7 @@
 | P-IF-04 | `/perception/wall_map` | Topic | `robot_perception_interfaces/msg/WallMap` | Perception | Q_LATCHED |
 | P-IF-05 | `/perception/wall_map_status` | Topic | `robot_perception_interfaces/msg/WallMapStatus` | Perception | Q_STATE |
 | P-IF-06 | `/perception/recognize_dropped_boxes` | Action | `robot_perception_interfaces/action/RecognizeDroppedBoxes` | Perception | — |
+| P-IF-14 | `/perception/finish_wall_observation` | Service | `robot_perception_interfaces/srv/FinishWallObservation` | Perception | — |
 | P-IF-08 | `/perception/update_wall_map` | Action | `robot_perception_interfaces/action/UpdateWallMap` | Perception | — |
 | M-IF-04 | `/motion/move_to_posture` | Action | `robot_motion_interfaces/action/MoveToPosture` | Motion | — |
 | M-IF-06 | `/motion/terminate_task` | Service | `robot_motion_interfaces/srv/TerminateTask` | Motion | — |

@@ -55,6 +55,13 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：抓后更新由 Autonomy 决定采样结束，视觉给出采样结束信号
+
+- **接口**：新增 P-IF-14 `/perception/finish_wall_observation`（`robot_perception_interfaces/srv/FinishWallObservation`）；P-IF-08 `UpdateWallMap` 的 Feedback 新增 `capture_complete`、`valid_frames`，约束改为单视角、Autonomy 计时并可提前结束采样。该 Action 为本分支新增、尚未发布。
+- **原因**：抓后更新先采样（约 1.6 s）再离线处理（约 4～6 s）。采样期间底盘不能转，处理期间可以；原接口没有“采样已结束”信号，Autonomy 只能等整个 Result 再转向，每轮多等 4～6 s。取消只能放弃整次更新，无法“采到这里为止、照常处理”。用户确认：运控抓取返回后保持运输姿态，Autonomy 发起更新，从进入 CAPTURING 起计 2 s，视觉先凑够帧就自行结束，否则 Autonomy 调用结束服务，采样停止后立即下发转身。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：perception（实现结束服务与 Feedback 字段；抓后观察改为单视角）、autonomy（按采样结束转向）。Feedback 字段变化改变 UpdateWallMap 类型哈希，两侧须同批升级。
+
 ### 破坏性：箱子快照增加独立的面心、顶心位姿，明确抓后更新与转向、掉箱识别的时序
 
 - **接口**：`robot_perception_interfaces/msg/WallBox` 新增 `face_center_pose`、`face_center_pose_valid`、`top_center_pose`、`top_center_pose_valid`，影响 P-IF-03 `/perception/get_wall_map`、P-IF-04 `/perception/wall_map`、P-IF-08 `/perception/update_wall_map`；`WallMapReference.navigation_map_version` 注明承载视觉部署配置的 map 坐标身份。约束更新：P-IF-01 缺失轴可用同 SKU 共识补先验；P-IF-03 首次搜索完成以 readiness 判断、重启恢复后需重新观测；P-IF-06 与更新互斥、等在途更新结束；P-IF-08 抓后更新填成功持箱 ID、采集结束前不转向；P-04 三条 readiness 名称。该分支尚未发布。

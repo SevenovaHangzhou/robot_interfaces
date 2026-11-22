@@ -20,6 +20,12 @@ uint8 CAPTURING=2
 uint8 PROCESSING=3
 uint8 COMMITTING=4
 robot_system_interfaces/OperationContext context
+# 进入 CAPTURING 的时刻起，调用方开始计采样时长。
 uint8 phase
 # 已取得可用视图。只是进度，不是底盘运动许可。
 bool usable_view_obtained
+# true：采样已结束，不再接收新帧，头部已停稳、头部与相机已释放，之后只剩离线处理。
+# 这是底盘可以转向的信号。视觉凑够有效帧时自行结束，或收到 P-IF-14 后结束；之后不再变回 false。
+bool capture_complete
+# 本次已采到的有效帧数，供显示和诊断。
+uint32 valid_frames
