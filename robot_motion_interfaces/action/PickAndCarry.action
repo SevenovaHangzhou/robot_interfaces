@@ -1,0 +1,24 @@
+# M-IF-02 /motion/pick_and_carry。
+# 一个 Action 内完成：检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位。
+# Motion 不启停泵。开阀后收到达到吸附阈值的有效新压力样本即抽离，不加固定等待。
+PickPair target
+---
+uint8 OUTCOME_UNSPECIFIED=0
+uint8 ALL_SUCCEEDED=1
+uint8 PARTIAL=2
+uint8 FAILED=3
+uint8 CANCELED=4
+uint8 UNKNOWN=5
+
+robot_system_interfaces/OperationContext context
+uint8 overall_outcome
+ArmTaskResult left
+ArmTaskResult right
+bool carry_configuration_reached
+bool upper_motion_stopped
+bool stop_confirmation_valid
+robot_system_interfaces/ErrorInfo error
+---
+robot_system_interfaces/OperationContext context
+ArmExecutionState left
+ArmExecutionState right

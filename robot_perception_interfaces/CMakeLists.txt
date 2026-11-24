@@ -18,6 +18,19 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/WallTaskPlan.msg"
   "action/BuildWallTaskPlan.action"
   "action/RefineSequencePoses.action"
+  "msg/SkuSpec.msg"
+  "msg/SkuCatalog.msg"
+  "msg/WallMapReference.msg"
+  "msg/WallBox.msg"
+  "msg/WallMap.msg"
+  "msg/WallMapStatus.msg"
+  "msg/RecoveryObservation.msg"
+  "msg/SearchRegionResult.msg"
+  "srv/SetSkuCatalog.srv"
+  "srv/GetWallMap.srv"
+  "srv/FinishWallObservation.srv"
+  "action/UpdateWallMap.action"
+  "action/RecognizeDroppedBoxes.action"
   DEPENDENCIES
     std_msgs
     sensor_msgs

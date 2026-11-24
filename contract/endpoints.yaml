@@ -21,7 +21,7 @@ package_owners:
   robot_motion_interfaces: motion
   robot_autonomy_interfaces: autonomy
 
-qos_profiles: [Q_CONTROL, Q_ROLLING_COMMAND, Q_ROLLING_STATE, Q_FAST_STATE, Q_STATE, Q_LATCHED, Q_DIAGNOSTIC, Q_DEFAULT]
+qos_profiles: [Q_CONTROL, Q_ROLLING_COMMAND, Q_ROLLING_STATE, Q_FAST_STATE, Q_STATE, Q_LATCHED, Q_SENSOR, Q_DIAGNOSTIC, Q_DEFAULT]
 
 axis_sets:
   v3_dual_arm:
@@ -95,7 +95,7 @@ endpoints:
     consumers: [autonomy]
     qos: Q_LATCHED
     rate_hz: [1, 1]
-    constraint: "`Q_LATCHED`；故障立即 `ready=false`；变化立即发；稳定 1 Hz"
+    constraint: "`Q_LATCHED`；故障立即 `ready=false`；变化立即发；稳定 1 Hz；V0.4 依次发布 readiness_name 为 wall_map_read、wall_observation、dropped_box_recognition 的三条，按 domain+readiness_name 分别缓存，只用 ready 作为准入结论"
 
 
   - id: P-NAV-01
@@ -131,7 +131,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "`target_name + map_version` 由 Motion 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次"
+    constraint: "`target_name + map_version` 由 Motion 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次；SUCCEEDED 必须同时满足位置和朝向到位、定位有效、实际运动反馈确认已停稳，不以零速指令或 Nav2 自身成功代替；CANCELED 必须对应车已停止，无法确认时返回失败；目标与当前位置 XY 相同时原地旋转；受理时固定目标位姿"
 
 
   - id: N-04
@@ -398,7 +398,7 @@ endpoints:
     producer: rt_control
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "Autonomy 设置共用泵目标状态；普通停泵要求左右阀回读有效且为释放、左右压力有效且 >= -1 kPa、无活动阀操作；检查与执行期间阻止新吸附；enabled 为输出回读，输出未确认或未知时 accepted=false 并在 error 给出原因"
+    constraint: "Autonomy 设置共用泵目标状态；普通停泵要求左右阀回读有效且为释放、左右压力有效且 >= -1 kPa、无活动阀操作；检查与执行期间阻止新吸附；enabled 为输出回读，输出未确认或未知时 accepted=false 并在 error 给出原因；reason 为 manual 的人工停泵不受上述停泵准入限制，由操作员保证箱子已有人扶住"
 
 
   - id: R-IN-05L
@@ -406,16 +406,16 @@ endpoints:
     kind: service
     type: robot_rt_control_interfaces/srv/SetEnabled
     producer: rt_control
-    consumers: [motion]
+    consumers: [motion, autonomy]
     qos: Q_DEFAULT
-    constraint: "enabled=true 吸附、false 释放；输出回读确认即返回 accepted=true，不等待建立真空；同侧忙拒绝；RT 不自动重试；输出未确认或未知时 accepted=false 并在 error 给出原因"
+    constraint: "enabled=true 吸附、false 释放；输出回读确认即返回 accepted=true，不等待建立真空；同侧忙拒绝；RT 不自动重试；输出未确认或未知时 accepted=false 并在 error 给出原因；正常抓放由 Motion 调用；Autonomy 只在重置流程和联调操作页的人工开关时调用，流程自动执行期间不调用"
 
   - id: R-IN-05R
     ros_name: /rt/vacuum/right_valve/set_enabled
     kind: service
     type: robot_rt_control_interfaces/srv/SetEnabled
     producer: rt_control
-    consumers: [motion]
+    consumers: [motion, autonomy]
     qos: Q_DEFAULT
     constraint: "同 R-IN-05L，作用于右阀"
 
@@ -791,6 +791,179 @@ endpoints:
     note: 不得替代 Action Result 或 readiness 证据
     constraint: "`Q_DIAGNOSTIC`；不替代 Action Result、readiness 或硬安全链"
 
+  # ---- V0.4 卸箱流程（Autonomy 编排）。流程与逐项要求见 robot_autonomy/docs。 ----
+
+  - id: M-IF-02
+    ros_name: /motion/pick_and_carry
+    kind: action
+    type: robot_motion_interfaces/action/PickAndCarry
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "一个 Action 内完成检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位，不设独立可行性接口；tcp_target 为 base_link 下 TCP，Motion 不再叠加工具偏移；uses_wall_map=true 时 navigation_map_version、wall_producer_instance_id、wall_map_version 取自换算 TCP 所用的同一份视觉快照引用，其中 navigation_map_version 是视觉的物理地图身份，不是导航语义地图版本；Motion 不启停泵；开阀后收到参与侧 p<=-60 kPa 的有效新压力样本即抽离，不加固定延时或多帧稳定等待，抽离不需要 Autonomy 批准；source_observed_at 只作记录，不作为拒绝条件；分臂给出成功/失败/取消/未知，一侧成功一侧失败时 overall=PARTIAL 并以 ABORTED 返回，保留成功侧事实；同时只接受一个 Goal，忙时拒绝；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不自动松阀、不关泵、不回 Home；purpose=DROPPED_BOX_RECOVERY 使用地面回收场景配置"
+
+  - id: M-IF-03
+    ros_name: /motion/place_carried_boxes
+    kind: action
+    type: robot_motion_interfaces/action/PlaceCarriedBoxes
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "前提是导航已到卸货朝向并停稳；顺序为 LM 运动到 Motion 配置的默认放置位、关闭所选阀并读回确认、延时、回 Home、确认停稳；不关泵；允许只释放实际仍持箱的一侧，并按剩余载荷规划；箱 ID 与持箱记录不一致时在释放前拒绝；阀已释放但回 Home 失败时整体不成功，保留已释放的事实，不重新释放；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不松阀、不回 Home，不反转已释放的输出"
+
+  - id: M-IF-05
+    ros_name: /motion/state
+    kind: topic
+    type: robot_motion_interfaces/msg/ManipulationState
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_STATE
+    rate_hz: [10, 10]
+    constraint: "持续发布执行事实：当前操作、分臂阶段、关联箱 ID、吸附事实、阀输出是否已确认释放、上部是否停稳；Action 结束后继续发布；持箱与否的业务判断由 Autonomy 做；各项观测带自己的时间，重发不刷新旧观测时间"
+
+  - id: N-IF-16
+    ros_name: /navigation/detect_dropped_boxes
+    kind: action
+    type: robot_motion_interfaces/action/DetectDroppedBoxes
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "一个 Goal 执行一轮检测，不常驻监听；必须能检出请求发出前已经落地的箱子；Autonomy 判定掉箱后先取消在途导航与运控动作再立即发起；reference_valid=true 时 reference_stamp 是掉箱前仍在吸附的时刻再提前 1 s（电控压力消息头时钟），导航须保留至少 5 s 的点云/高度图历史以便回看该时刻（导航已确认）；导航 Goal 被取消时先停车再以 CANCELED 结束（见 N-01）；reference_valid=false 时按无基准方式检测，不得拒绝；同时只接受一个 Goal；有效完成且有候选：SUCCEEDED/ok=true/detected=true；有效完成无候选：SUCCEEDED/ok=true/detected=false；点云不可用、TF 失败或超时：ABORTED/ok=false，不能当作现场无箱；取消：CANCELED，只停检测，不发停车指令；超时计时独立于点云回调；结果只在 Result 里一次返回；候选为 odom 下粗定位，数量不限于 2"
+
+  - id: P-IF-01
+    ros_name: /perception/set_sku_catalog
+    kind: service
+    type: robot_perception_interfaces/srv/SetSkuCatalog
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "标称尺寸单位米，按箱体局部轴 X 宽/Y 深/Z 高；至少两个轴为有限正数，未知轴填 0，负数、NaN、Inf 拒绝；dimension_tolerance_known=false 时用视觉默认容差 0.04 m，为 true 时容差为有限非负数；目录只描述箱型，不含数量；本箱实测轴唯一匹配 SKU 后，缺失轴可用至少两个同 SKU 已确认箱子的可靠一致实测补为先验，不改目录、不标成实测；SKU ID 唯一；观测进行中拒绝设置，调用方等本轮结束后重试；同 ID 同版本但内容不同时拒绝，相同内容重复设置返回已加载结果；accepted 只表示字典已加载，不表示已有箱子快照；一次观测内不混用两版字典"
+
+  - id: P-IF-03
+    ros_name: /perception/get_wall_map
+    kind: service
+    type: robot_perception_interfaces/srv/GetWallMap
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "只读已有数据：不拍照、不转头、不等待新观测；返回 map 下全局箱子库的全部箱子，不按场景或墙面筛选；库未建好时 success=false，已确认的空库 success=true 且 boxes 为空；首次自动搜索期间可读到中间快照，Autonomy 以 readiness wall_observation 判断首次搜索已完成；一次响应只对应一个已提交版本；重复读取不递增版本、不刷新观测时间；精确读取不存在的版本时失败，不回退到最新；map 坐标身份由视觉部署配置，不订阅导航定位状态；观测必须有真实曝光时 TF；单文件恢复保留箱号、三心与原观测时间，恢复后 grasp_candidate=false 直到重新观测"
+
+  - id: P-IF-04
+    ros_name: /perception/wall_map
+    kind: topic
+    type: robot_perception_interfaces/msg/WallMap
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_LATCHED
+    constraint: "每次成功提交时发布完整 map 全局快照；晚加入的订阅者收到最近一份；Autonomy 的正常更新以 P-IF-08 的 Result 为准；每箱包含独立有效的面心/顶心/体心，均为箱体轴 X 宽/Y 向内/Z 高；面心为 -Y 面中心，顶心为 +Z 面中心；未知深度不得伪造体心，也不使可靠面心失效；侧吸从面心、顶吸从顶心生成 TCP，发送时使用当前 map 到 base_link TF，不维护 base_link 箱体快照"
+
+  - id: P-IF-05
+    ros_name: /perception/wall_map_status
+    kind: topic
+    type: robot_perception_interfaces/msg/WallMapStatus
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_STATE
+    constraint: "最近提交的快照引用、当前更新阶段、最近一次尝试的结果；仅作可观测性，不作为主流程握手"
+
+  - id: P-IF-06
+    ros_name: /perception/recognize_dropped_boxes
+    kind: action
+    type: robot_perception_interfaces/action/RecognizeDroppedBoxes
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "每次 1 或 2 个区域，各数组同长同序；detection_goal_id 为导航检测的 Goal UUID，原样返回；按候选观测时刻的 TF 把 odom 下 XY 转到 map；必须配置真实的地面高度和搜索高度，缺失时明确失败，不假设 z=0；候选区域必须进入相机视野；输出 map 下箱体中心、朝向和尺寸；看不到时返回 NOT_OBSERVABLE，不报 NOT_FOUND；不修改正常箱子库；与 P-IF-08 共用相机和头部，冲突时后到的请求返回忙；navigation_map_version 填快照里的 map 坐标身份；与 P-IF-08 和首次搜索互斥，忙时拒绝、不排队，Autonomy 等在途更新结束且 readiness dropped_box_recognition 就绪后再发"
+
+  - id: P-IF-14
+    ros_name: /perception/finish_wall_observation
+    kind: service
+    type: robot_perception_interfaces/srv/FinishWallObservation
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "结束正在进行的 P-IF-08 的采样，用已采到的有效帧继续离线处理，结果仍由 P-IF-08 的 Result 返回；与取消不同，不放弃本次更新；采样真正停止（不再接收新帧、头部已停稳）后才返回，返回后 Feedback.capture_complete 同为 true；视觉已自行结束采样时也返回 accepted=true；operation_id 与正在进行的更新不匹配或没有更新在进行时拒绝；有效帧是否足够由视觉判断，不足时 P-IF-08 以 map_committed=false 结束"
+
+  - id: P-IF-08
+    ros_name: /perception/update_wall_map
+    kind: action
+    type: robot_perception_interfaces/action/UpdateWallMap
+    producer: perception
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "Autonomy 在 PickAndCarry 整组终态且有成功侧到运输位后发一次；必须是受理之后取得的新观测；Result 直接带本次提交的完整快照，调用方不再读取箱墙；是否更新看 map_committed，提交后被取消或出故障仍返回已提交快照，提交前失败则旧库不变；不提供强制删箱，不返回逐箱移除核对，箱子是否移除由视觉证据决定；expected_map 版本比当前旧可接受，超前则拒绝；抓后更新填 successfully_carried_box_ids（只填停止确认有效的成功侧），切换为 after_pick 观察；采集结束前底盘不得转向，usable_view_obtained 不是底盘运动许可；抓后观察只用一个视角，看不全的部分留给下一次更新；Feedback 进入 CAPTURING 起由 Autonomy 计采样时长；视觉凑够有效帧即自行结束采样，到了 Autonomy 配置的上限（当前 2 s）仍未结束时由 Autonomy 调用 P-IF-14 结束；capture_complete=true 表示采样已结束、头部已停稳并释放，是底盘可以转向的信号，之后的离线处理（约 4～6 s）与转向、卸货并行；有效帧不足时 map_committed=false，Autonomy 继续用旧快照"
+
+
+  # ---- 联调操作页：重置与显示 ----
+
+  - id: M-IF-04
+    ros_name: /motion/move_to_posture
+    kind: action
+    type: robot_motion_interfaces/action/MoveToPosture
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "posture_id=home 时回到默认 Home；按两侧实际压力判断空载，不按内部任务记录；压力显示仍吸着时拒绝并说明是哪一侧；从当前实际关节位置规划；不启停泵、不动阀；取消时手臂原地停下并以 CANCELED 返回；旧的任务记录由 M-IF-06 清除，本接口不依赖也不清除"
+
+  - id: M-IF-06
+    ros_name: /motion/terminate_task
+    kind: service
+    type: robot_motion_interfaces/srv/TerminateTask
+    producer: motion
+    consumers: [autonomy]
+    qos: Q_DEFAULT
+    constraint: "联调重置的第一步，独立于各 Action 的取消；手臂原地停下并确认停稳后才返回；在途的 PickAndCarry、PlaceCarriedBoxes、MoveToPosture 均以 CANCELED 结束；清除内部任务记录（目标集合、持箱记录），之后 MoveToPosture 和 PickAndCarry 必须能被受理；不动阀、不启停泵、不回 Home、不规划新动作；幂等，空闲时也返回 terminated=true；停稳确认超时返回 terminated=false 并在 error 中说明"
+
+  - id: P-IF-09
+    ros_name: /perception/camera/head/color/image_rect/compressed
+    kind: topic
+    type: sensor_msgs/msg/CompressedImage
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_SENSOR
+    external_type: true
+    constraint: "头部彩色图，JPEG；视觉栈启动、相机出图后持续发布，不需要请求；只发布新曝光，输入停止后不重发旧图，订阅端按接收时间判断断流；不低于 2 Hz，长边不超过 1280 像素；header.stamp 为曝光时刻，不是编码或发送时刻；header.frame_id 为相机光学坐标系；`Q_SENSOR`，订阅端不得用 reliable"
+
+  - id: P-IF-10
+    ros_name: /perception/camera/chest/color/image_rect/compressed
+    kind: topic
+    type: sensor_msgs/msg/CompressedImage
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_SENSOR
+    external_type: true
+    constraint: "胸部彩色图，其余同 P-IF-09；胸部相机随视觉栈默认开启"
+
+  - id: P-IF-11
+    ros_name: /perception/boxes/head/image_annotated/compressed
+    kind: topic
+    type: sensor_msgs/msg/CompressedImage
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_SENSOR
+    external_type: true
+    constraint: "头部标注图，每个箱子上写箱号，已确认的箱号与同曝光对应快照里的 box_id 一致；身份未核实时显示 pending，不借用其他帧的箱号；为匹配地图结果约有 2.5 s 延迟，与彩色原图可能不是同一曝光；仅供人看，不得从图上识别箱号作为抓取指令；其余同 P-IF-09"
+
+  - id: P-IF-12
+    ros_name: /perception/camera/head/camera_info
+    kind: topic
+    type: sensor_msgs/msg/CameraInfo
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_SENSOR
+    external_type: true
+    constraint: "头部相机内参，与 P-IF-09 同一相机；内参为原始采集分辨率（width/height 为原始尺寸），压缩图可能缩小，使用方按压缩图与内参的尺寸比例缩放焦距和主点后再做像素投影；`Q_SENSOR`"
+
+  - id: P-IF-13
+    ros_name: /perception/camera/chest/camera_info
+    kind: topic
+    type: sensor_msgs/msg/CameraInfo
+    producer: perception
+    consumers: [autonomy, external]
+    qos: Q_SENSOR
+    external_type: true
+    constraint: "胸部相机内参，与 P-IF-10 同一相机，其余同 P-IF-12"
+
 # 成员类型：被上述 endpoint 的载荷间接引用，不单独出现在 ROS graph。
 member_types:
   - robot_system_interfaces/msg/ErrorCode
@@ -809,6 +982,18 @@ member_types:
   - robot_perception_interfaces/msg/CameraViewPose
   - robot_perception_interfaces/msg/PickSequence
   - robot_perception_interfaces/msg/WallTaskPlan
+  - robot_system_interfaces/msg/OperationContext
+  - robot_motion_interfaces/msg/PickTarget
+  - robot_motion_interfaces/msg/PickPair
+  - robot_motion_interfaces/msg/ArmExecutionState
+  - robot_motion_interfaces/msg/ArmTaskResult
+  - robot_motion_interfaces/msg/DroppedBoxCandidate
+  - robot_perception_interfaces/msg/SkuSpec
+  - robot_perception_interfaces/msg/SkuCatalog
+  - robot_perception_interfaces/msg/WallMapReference
+  - robot_perception_interfaces/msg/WallBox
+  - robot_perception_interfaces/msg/RecoveryObservation
+  - robot_perception_interfaces/msg/SearchRegionResult
 
 # 禁止的通信边。各域 CI 与联调 ros2 node info 复核。
 forbidden_edges:
@@ -817,8 +1002,6 @@ forbidden_edges:
   - {from: autonomy, to: /rt/enable}
   - {from: autonomy, to: /rt/disable}
   - {from: autonomy, to: /rt/reset_fault}
-  - {from: autonomy, to: /rt/vacuum/left_valve/set_enabled}
-  - {from: autonomy, to: /rt/vacuum/right_valve/set_enabled}
   - {from: motion, to: /rt/vacuum/pump/set_enabled}
   - {from: motion, to: /rt/led/set_rgbw}
   - {from: perception, to: /navigation/navigate_to_pose}

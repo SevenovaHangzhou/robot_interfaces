@@ -14,6 +14,7 @@ __all__ = [
     "fast_state",
     "state",
     "latched",
+    "sensor",
     "diagnostic",
 ]
 
@@ -85,6 +86,19 @@ def latched() -> QoSProfile:
         depth=1,
         reliability=ReliabilityPolicy.RELIABLE,
         durability=DurabilityPolicy.TRANSIENT_LOCAL,
+    )
+
+
+def sensor() -> QoSProfile:
+    """实时传感器流（相机压缩图像、相机内参）。
+
+    只要最新一帧，丢帧不重传，不保留历史。订阅端不得配置为 RELIABLE，
+    否则与发布端不匹配、收不到数据。
+    """
+    return QoSProfile(
+        depth=1,
+        reliability=ReliabilityPolicy.BEST_EFFORT,
+        durability=DurabilityPolicy.VOLATILE,
     )
 
 

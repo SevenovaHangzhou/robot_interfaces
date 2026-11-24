@@ -78,6 +78,16 @@ inline rclcpp::QoS latched()
   return qos;
 }
 
+/// 实时传感器流（相机压缩图像、相机内参）。只要最新一帧，丢帧不重传，不保留历史。
+/// 订阅端不得配置为 reliable，否则与发布端不匹配、收不到数据。
+inline rclcpp::QoS sensor()
+{
+  rclcpp::QoS qos{rclcpp::KeepLast(1)};
+  qos.best_effort();
+  qos.durability_volatile();
+  return qos;
+}
+
 /// /diagnostics。
 inline rclcpp::QoS diagnostic()
 {

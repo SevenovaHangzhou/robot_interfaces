@@ -55,6 +55,87 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：传感器流 QoS 剖面 Q_SENSOR，相机话题改用它并写明内参分辨率
+
+- **接口**：`robot_interfaces_qos` 新增 `sensor()`（C++ / Python）与命名剖面 `Q_SENSOR`（best-effort、volatile、keep last 1）；P-IF-09、P-IF-10、P-IF-11（`sensor_msgs/msg/CompressedImage`）与 P-IF-12、P-IF-13（`sensor_msgs/msg/CameraInfo`）的 qos 由 `Q_DEFAULT` 改为 `Q_SENSOR`，约束按视觉 2026-11-20《Autonomy 视觉图像订阅接口说明》更新。IDL 不变。
+- **原因**：这五个话题登记的 `Q_DEFAULT` 是 Service/Action 的默认可靠传输，而视觉实际以 best-effort 发布；按登记值配置 reliable 订阅会与发布端不匹配、收不到图且不报错。原约束写“内参与图像同一分辨率”，视觉实际是压缩图缩小而内参保留原始尺寸；用户确认按视觉实现，由使用方缩放。标注图有约 2.5 s 关联延迟、未核实时显示 pending，需写明不能当抓取依据。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：perception（与现有实现一致）、autonomy 与外部订阅方（订阅改用 `Q_SENSOR`；用内参投影时按尺寸比例缩放）。
+
+### 非破坏性：写明 PickPair.navigation_map_version 是视觉的物理地图身份
+
+- **接口**：M-IF-02 `/motion/pick_and_carry`，成员类型 `robot_motion_interfaces/msg/PickPair` 的 `navigation_map_version`：只改注释与约束，字段不变。
+- **原因**：该字段名与导航语义地图的 `map_version` 相近，Autonomy 原先填导航地图版本（如 `real_nav_20261028`），而运控按视觉快照引用校验（`WallMapReference.navigation_map_version`，默认 `physical_map_v1`），两者不等会使每个抓取请求以版本不一致被拒。用户 2026-11-24 确认统一填视觉快照里的身份。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：autonomy（改填视觉快照身份）、motion（按快照引用校验，与其 11-24 对接说明一致）。
+
+### 新增：抓后更新由 Autonomy 决定采样结束，视觉给出采样结束信号
+
+- **接口**：新增 P-IF-14 `/perception/finish_wall_observation`（`robot_perception_interfaces/srv/FinishWallObservation`）；P-IF-08 `UpdateWallMap` 的 Feedback 新增 `capture_complete`、`valid_frames`，约束改为单视角、Autonomy 计时并可提前结束采样。该 Action 为本分支新增、尚未发布。
+- **原因**：抓后更新先采样（约 1.6 s）再离线处理（约 4～6 s）。采样期间底盘不能转，处理期间可以；原接口没有“采样已结束”信号，Autonomy 只能等整个 Result 再转向，每轮多等 4～6 s。取消只能放弃整次更新，无法“采到这里为止、照常处理”。用户确认：运控抓取返回后保持运输姿态，Autonomy 发起更新，从进入 CAPTURING 起计 2 s，视觉先凑够帧就自行结束，否则 Autonomy 调用结束服务，采样停止后立即下发转身。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：perception（实现结束服务与 Feedback 字段；抓后观察改为单视角）、autonomy（按采样结束转向）。Feedback 字段变化改变 UpdateWallMap 类型哈希，两侧须同批升级。
+
+### 破坏性：箱子快照增加独立的面心、顶心位姿，明确抓后更新与转向、掉箱识别的时序
+
+- **接口**：`robot_perception_interfaces/msg/WallBox` 新增 `face_center_pose`、`face_center_pose_valid`、`top_center_pose`、`top_center_pose_valid`，影响 P-IF-03 `/perception/get_wall_map`、P-IF-04 `/perception/wall_map`、P-IF-08 `/perception/update_wall_map`；`WallMapReference.navigation_map_version` 注明承载视觉部署配置的 map 坐标身份。约束更新：P-IF-01 缺失轴可用同 SKU 共识补先验；P-IF-03 首次搜索完成以 readiness 判断、重启恢复后需重新观测；P-IF-06 与更新互斥、等在途更新结束；P-IF-08 抓后更新填成功持箱 ID、采集结束前不转向；P-04 三条 readiness 名称。该分支尚未发布。
+- **原因**：视觉 11 月 16 日 V0.4 接口说明及其本地补丁（基于 2a6f509）。正面可可靠定位时常缺箱深，只传体心会丢失可抓位置；抓后更新需要转头并在每个视角采至少 8 帧、跨度至少 1 秒，底盘转向中采集未验收；更新、首次搜索和掉箱识别共用头部和相机，忙时拒绝不排队。把视觉的本地扩展并入中央分支，所有消费方同批升级。
+- **提出人**：@kkozia188（autonomy，合入视觉域本地补丁）
+- **影响域**：perception（按本分支最新提交重新编译，替换本地补丁）、autonomy（侧吸用面心、顶吸用顶心生成 TCP；抓后更新填成功持箱 ID；等首次搜索与在途更新）。WallBox 字段变化改变类型哈希，未同批升级时消费方收不到快照且两侧都不报错。
+
+### 非破坏性：SKU 目录允许未知轴填 0，写明默认容差和观测中拒绝
+
+- **接口**：P-IF-01 `/perception/set_sku_catalog`（`robot_perception_interfaces/srv/SetSkuCatalog`，成员类型 `SkuSpec`）：约束由“三轴均为有限正数”改为“至少两个轴为有限正数，未知轴填 0”；写明 `dimension_tolerance_known=false` 时默认容差 0.04 m、观测进行中拒绝设置、目录不含数量。IDL 字段不变，只改注释。
+- **原因**：视觉 11 月 16 日的 V0.4 接口说明按“至少两轴已知”实现：箱深常常看不到，若要求三轴全正，要么拒绝目录，要么只能填一个猜测的深度，从而丢失可靠的面心。按视觉的实现统一约束。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：perception（与现有实现一致，无需改动）、autonomy（按新约束填写目录）。
+
+### 新增：运控独立终止任务接口，统一运控 Action 的取消语义
+
+- **接口**：新增 M-IF-06 `/motion/terminate_task`（`robot_motion_interfaces/srv/TerminateTask`）。修改 M-IF-02 `/motion/pick_and_carry`、M-IF-03 `/motion/place_carried_boxes`、M-IF-04 `/motion/move_to_posture` 的约束：取消时手臂原地停下并确认停稳，以 CANCELED 返回，不松阀、不回 Home；M-IF-04 不再负责清除旧任务记录。IDL 字段除新增文件外不变，三者均为本分支新增、尚未发布。
+- **原因**：联调重置需要先让运控彻底停下并忘掉上一次任务。原方案让 `move_to_posture` 成功后顺带清掉旧任务记录，但抓取中途失败、手臂停在半路时，回 Home 之前运控仍记着旧任务，可能拒绝回 Home，形成死锁；重置也需要一个不依赖“哪个 Action 正在跑”的统一停止入口。掉箱时 Autonomy 会取消在途的运控 Action，取消后的手臂行为必须确定，恢复流程才能接着放箱和回 Home。运控已同意新增 `/motion/terminate_task` 并沿用发布包已有的 `/motion/move_to_posture`。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：motion（实现 TerminateTask 服务；三个 Action 的取消按上述语义执行）、autonomy（重置流程第一步调用 TerminateTask；掉箱时取消在途 Action）。
+
+### 新增：掉箱检测请求带上掉箱前时刻
+
+- **接口**：N-IF-16 `/navigation/detect_dropped_boxes`（`robot_motion_interfaces/action/DetectDroppedBoxes`）：Goal 去掉占位字段 `unused`，新增 `builtin_interfaces/Time reference_stamp`、`bool reference_valid`。该 Action 由本分支新增、尚未发布，对 main 而言仍是新增。
+- **原因**：导航需要掉箱之前的点云作为基准帧，才能把新落地的箱子和原有地面物体区分开。原 Goal 不带时间，导航只能拿请求到达时的数据，而 Autonomy 原来要等当前步骤结束、再等操作员确认才发检测，掉箱时刻早已滚出导航的历史窗口。现改为 Autonomy 判定掉箱后立即取消在途动作并发起检测，同时用电控压力历史给出掉箱前时刻。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：navigation（按 `reference_stamp` 取基准帧，保留至少 5 s 历史；`reference_valid=false` 时照常检测）、autonomy（生产 Goal）。rt_control 的压力消息头须为采样时刻，而非发布或接收时刻。
+
+### 新增：回 Home 接口与相机压缩图像，供联调操作页重置和显示
+
+- **接口**：M-IF-04 `/motion/move_to_posture`（`robot_motion_interfaces/action/MoveToPosture`）；P-IF-09、P-IF-10、P-IF-11 三个 `sensor_msgs/msg/CompressedImage` 话题（头部彩色图、胸部彩色图、头部标注图）；P-IF-12、P-IF-13 两个 `sensor_msgs/msg/CameraInfo` 话题。
+- **原因**：联调中故障后要让机器人回到确定的起点再继续：人工取走箱子、手臂回 Home、车回抓货位、重新观测。运控私有包里已有回 Home 的 Action，但不在本仓库，且抓取中途失败后会因内部仍记着持箱而拒绝回 Home 和下一次抓取。操作页还要常驻显示头部和胸部视野；视觉现有图像话题是未压缩的，跨机传输占用带宽过大。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：motion（迁入 `MoveToPosture`；回 Home 按实际压力判断空载，成功后清掉旧任务记录）、perception（新增三个压缩图像话题并默认开启胸部相机；相机坐标系进入 TF）。autonomy 是新消费者。
+
+### 非破坏性：允许 Autonomy 在重置和人工操作时开关阀，允许人工停泵
+
+- **接口**：R-IN-05L `/rt/vacuum/left_valve/set_enabled`、R-IN-05R `/rt/vacuum/right_valve/set_enabled` 的消费方增加 autonomy，并从禁止通信边中移除这两条；R-IN-04 `/rt/vacuum/pump/set_enabled` 的约束补充人工停泵。IDL 字段不变。
+- **原因**：抓取中途失败时运控不会自动关阀，而原约定只有运控能调阀、且阀未释放时不允许停泵，重置流程因此无法把泵和阀恢复到初始状态。联调时操作员还需要在操作页上直接开关泵和左右阀来人工卸箱。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：rt_control（阀服务接受 autonomy 的调用；`reason` 为 `manual` 的停泵不做原有准入检查）。motion 的正常抓放调用不受影响。人工停泵时箱子会松脱，由操作员保证箱子已有人扶住。
+
+### 新增：V0.4 卸箱流程的抓放、全局箱子快照与掉箱检测接口
+
+- **接口**：
+  - Motion：M-IF-02 `/motion/pick_and_carry`（`PickAndCarry`）、M-IF-03 `/motion/place_carried_boxes`（`PlaceCarriedBoxes`）、M-IF-05 `/motion/state`（`ManipulationState`）；成员类型 `PickTarget`、`PickPair`、`ArmExecutionState`、`ArmTaskResult`。
+  - Navigation：N-IF-16 `/navigation/detect_dropped_boxes`（`robot_motion_interfaces/action/DetectDroppedBoxes`）；成员类型 `DroppedBoxCandidate`。
+  - Perception：P-IF-01 `/perception/set_sku_catalog`（`SetSkuCatalog`）、P-IF-03 `/perception/get_wall_map`（`GetWallMap`）、P-IF-08 `/perception/update_wall_map`（`UpdateWallMap`）、P-IF-06 `/perception/recognize_dropped_boxes`（`RecognizeDroppedBoxes`）、P-IF-04 `/perception/wall_map`（`WallMap`）、P-IF-05 `/perception/wall_map_status`（`WallMapStatus`）；成员类型 `SkuSpec`、`SkuCatalog`、`WallMapReference`、`WallBox`、`RecoveryObservation`、`SearchRegionResult`。
+  - 共享：`robot_system_interfaces/msg/OperationContext`。
+- **原因**：2026-11-11 至 11-13 盘点发现运控的抓放接口只在私有包 `alfa_motion_v03` 里、视觉的箱墙接口只在 NX 的本地副本里、导航的掉箱检测只有内部 Trigger 服务，三者都不在本仓库，Autonomy 无法用同一套类型编译和调用。本条把用户确认的 V0.4 流程所需接口登记进来，作为四域联调的同一份类型。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：motion（从 `alfa_motion_v03` 迁到 `robot_motion_interfaces`；`ErrorInfo`、`OperationContext` 改用共享类型；`ArmExecutionState` 去掉载荷判断字段，持箱判断归 Autonomy；`PickTarget` 去掉 `source_face_id`；`PickPair` 去掉 `wall_scene_id`）、perception（相对 NX 本地候选：快照引用去掉 task、scene 和 SpatialContext；`WallBox`、`RecoveryObservation` 去掉 `faces`；`WallMap` 去掉单面墙几何；`SkuCatalog` 去掉 `task_id`；掉箱搜索用 `detection_goal_id` 取代 `drop_event`）、navigation（新增 Action 的服务端）、autonomy（新消费者）。各域按本分支同一 SHA 编译后联调；旧的 P-01、P-02、M-08、G-01 保持不变。本条未包含 R-IN-02 改为含 `arm_carriage` 的 15 轴，该项涉及 rt_control 的轴集合与 Rolling 轴哈希，由 rt_control 另行提交。
+
+### 非破坏性：N-01 导航成功必须确认实际停稳
+
+- **接口**：N-01 `/navigation/navigate_to_pose`（`NavigateToPoseTask`），IDL 字段不变，只补充终态约束。
+- **原因**：Autonomy 在导航成功后立即用当前 TF 换算 base_link 下的 TCP 并下发抓取。现有适配器的成功路径沿用 Nav2 结果，车可能仍在减速，TCP 会带着底盘位移误差发给 Motion。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：motion（Navigation 在成功路径加入停稳确认和定位有效检查；同 XY 目标原地旋转）。autonomy 依赖该语义，不再自行等待里程计。
+
 ### 新增：底盘逐轮观测 `/rt/base/wheel_observations`
 
 - **接口**：R-OUT-29 `/rt/base/wheel_observations`（`robot_rt_control_interfaces/msg/WheelObservationArray`）；成员类型 `WheelObservation`、`WheelFeedbackChannel`。不修改任何既有 IDL 或 endpoint。

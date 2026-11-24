@@ -15,7 +15,7 @@
 | --- | --- | --- | --- | --- | --- |
 | G-01 | `/autonomy/execute_demo_task` | Action | `robot_autonomy_interfaces/action/ExecuteDemoTask` | 外部/本地入口 | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 Demo schema；不能直接用于 V3 任务；V3 Autonomy 仅按注册表调用泵/LED/保护复位，不直接控制阀/运动 |
 
-## 本域消费（35 条）
+## 本域消费（55 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -34,6 +34,8 @@
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
 | N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
 | R-IN-04 | `/rt/vacuum/pump/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
+| R-IN-05L | `/rt/vacuum/left_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
+| R-IN-05R | `/rt/vacuum/right_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
 | R-IN-12 | `/rt/led/set_rgbw` | Service | `robot_rt_control_interfaces/srv/SetLedRgbw` | RT-Control | — |
 | R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
 | R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
@@ -54,6 +56,24 @@
 | R-OUT-20 | `/rt/sensors/state` | Topic | `robot_rt_control_interfaces/msg/SensorStatusArray` | RT-Control | Q_STATE |
 | R-OUT-21 | `/rt/infrared/state` | Topic | `robot_rt_control_interfaces/msg/DigitalInputStateArray` | RT-Control | Q_STATE |
 | R-OUT-09 | `/rt/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | RT-Control | Q_LATCHED；1 Hz |
+| M-IF-02 | `/motion/pick_and_carry` | Action | `robot_motion_interfaces/action/PickAndCarry` | Motion | — |
+| M-IF-03 | `/motion/place_carried_boxes` | Action | `robot_motion_interfaces/action/PlaceCarriedBoxes` | Motion | — |
+| M-IF-05 | `/motion/state` | Topic | `robot_motion_interfaces/msg/ManipulationState` | Motion | Q_STATE；10 Hz |
+| N-IF-16 | `/navigation/detect_dropped_boxes` | Action | `robot_motion_interfaces/action/DetectDroppedBoxes` | Motion | — |
+| P-IF-01 | `/perception/set_sku_catalog` | Service | `robot_perception_interfaces/srv/SetSkuCatalog` | Perception | — |
+| P-IF-03 | `/perception/get_wall_map` | Service | `robot_perception_interfaces/srv/GetWallMap` | Perception | — |
+| P-IF-04 | `/perception/wall_map` | Topic | `robot_perception_interfaces/msg/WallMap` | Perception | Q_LATCHED |
+| P-IF-05 | `/perception/wall_map_status` | Topic | `robot_perception_interfaces/msg/WallMapStatus` | Perception | Q_STATE |
+| P-IF-06 | `/perception/recognize_dropped_boxes` | Action | `robot_perception_interfaces/action/RecognizeDroppedBoxes` | Perception | — |
+| P-IF-14 | `/perception/finish_wall_observation` | Service | `robot_perception_interfaces/srv/FinishWallObservation` | Perception | — |
+| P-IF-08 | `/perception/update_wall_map` | Action | `robot_perception_interfaces/action/UpdateWallMap` | Perception | — |
+| M-IF-04 | `/motion/move_to_posture` | Action | `robot_motion_interfaces/action/MoveToPosture` | Motion | — |
+| M-IF-06 | `/motion/terminate_task` | Service | `robot_motion_interfaces/srv/TerminateTask` | Motion | — |
+| P-IF-09 | `/perception/camera/head/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | Q_SENSOR；ROS 标准类型 |
+| P-IF-10 | `/perception/camera/chest/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | Q_SENSOR；ROS 标准类型 |
+| P-IF-11 | `/perception/boxes/head/image_annotated/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | Q_SENSOR；ROS 标准类型 |
+| P-IF-12 | `/perception/camera/head/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Perception | Q_SENSOR；ROS 标准类型 |
+| P-IF-13 | `/perception/camera/chest/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Perception | Q_SENSOR；ROS 标准类型 |
 
 ## 本域禁止的通信边
 
@@ -62,8 +82,6 @@
 - 不得访问 `/rt/enable`
 - 不得访问 `/rt/disable`
 - 不得访问 `/rt/reset_fault`
-- 不得访问 `/rt/vacuum/left_valve/set_enabled`
-- 不得访问 `/rt/vacuum/right_valve/set_enabled`
 
 ## 已删除的 endpoint
 

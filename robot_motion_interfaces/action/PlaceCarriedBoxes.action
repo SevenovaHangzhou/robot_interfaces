@@ -1,0 +1,31 @@
+# M-IF-03 /motion/place_carried_boxes。
+# 顺序：LM 运动到默认放置位，关闭所选阀并读回确认，延时，回 Home，确认停稳。不关泵。
+robot_system_interfaces/OperationContext context
+bool place_left
+bool place_right
+# 该侧应持有的箱 ID，用于对账；不释放的一侧留空。
+string expected_left_box_id
+string expected_right_box_id
+string expected_carry_posture_id
+string converged_posture_id
+string release_profile_id
+---
+uint8 OUTCOME_UNSPECIFIED=0
+uint8 ALL_SUCCEEDED=1
+uint8 PARTIAL=2
+uint8 FAILED=3
+uint8 CANCELED=4
+uint8 UNKNOWN=5
+
+robot_system_interfaces/OperationContext context
+uint8 overall_outcome
+ArmTaskResult left
+ArmTaskResult right
+bool converged_posture_reached
+bool upper_motion_stopped
+bool stop_confirmation_valid
+robot_system_interfaces/ErrorInfo error
+---
+robot_system_interfaces/OperationContext context
+ArmExecutionState left
+ArmExecutionState right

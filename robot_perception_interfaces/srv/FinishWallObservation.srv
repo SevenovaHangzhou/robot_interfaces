@@ -1,0 +1,14 @@
+# P-IF-14 /perception/finish_wall_observation。
+# 让正在进行的 UpdateWallMap 立即结束采样，用已采到的有效帧继续离线处理；
+# 结果仍由原 Action 的 Result 返回（map_committed 与完整快照）。
+# 与取消不同：取消是放弃本次更新、不提交；本服务是“采样到此为止，照常处理”。
+# 必须在采样真正停止（不再接收新帧、头部已停稳）之后才返回，调用方据此让底盘转向。
+# 有效帧是否足够由视觉判断；不够时原 Action 以 map_committed=false 结束并说明原因。
+# 填正在进行的 UpdateWallMap 的 context.operation_id；不匹配时拒绝。
+unique_identifier_msgs/UUID operation_id
+---
+# true：采样已停止（或在本请求到达前已经自行结束），之后进入离线处理。
+bool accepted
+# 停止时已采到的有效帧数。
+uint32 valid_frames
+robot_system_interfaces/ErrorInfo error

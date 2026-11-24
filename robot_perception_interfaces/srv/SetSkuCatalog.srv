@@ -1,0 +1,8 @@
+# P-IF-01 /perception/set_sku_catalog。
+SkuCatalog catalog
+---
+# true 只表示字典已加载，不表示已有箱子快照。
+bool accepted
+string loaded_catalog_id
+uint64 loaded_revision
+robot_system_interfaces/ErrorInfo error
