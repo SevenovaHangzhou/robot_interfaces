@@ -5,6 +5,9 @@ uint8 DROPPED_BOX_RECOVERY=2
 
 robot_system_interfaces/OperationContext context
 uint8 purpose
+# 目标所在 map 坐标的身份。uses_wall_map=true 时填视觉快照的
+# WallMapReference.navigation_map_version（视觉部署配置的物理地图身份，默认 physical_map_v1），
+# 三项快照引用须与同一份快照完全一致。它不是导航语义地图的版本号。
 string navigation_map_version
 # 目标是否来自视觉的箱子快照。掉箱回收时为 false，下面两个快照字段不解析。
 bool uses_wall_map

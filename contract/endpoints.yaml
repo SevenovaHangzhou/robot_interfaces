@@ -21,7 +21,7 @@ package_owners:
   robot_motion_interfaces: motion
   robot_autonomy_interfaces: autonomy
 
-qos_profiles: [Q_CONTROL, Q_ROLLING_COMMAND, Q_ROLLING_STATE, Q_FAST_STATE, Q_STATE, Q_LATCHED, Q_DIAGNOSTIC, Q_DEFAULT]
+qos_profiles: [Q_CONTROL, Q_ROLLING_COMMAND, Q_ROLLING_STATE, Q_FAST_STATE, Q_STATE, Q_LATCHED, Q_SENSOR, Q_DIAGNOSTIC, Q_DEFAULT]
 
 axis_sets:
   v3_dual_arm:
@@ -788,7 +788,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "一个 Action 内完成检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位，不设独立可行性接口；tcp_target 为 base_link 下 TCP，Motion 不再叠加工具偏移；Motion 不启停泵；开阀后收到参与侧 p<=-60 kPa 的有效新压力样本即抽离，不加固定延时或多帧稳定等待，抽离不需要 Autonomy 批准；source_observed_at 只作记录，不作为拒绝条件；分臂给出成功/失败/取消/未知，一侧成功一侧失败时 overall=PARTIAL 并以 ABORTED 返回，保留成功侧事实；同时只接受一个 Goal，忙时拒绝；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不自动松阀、不关泵、不回 Home；purpose=DROPPED_BOX_RECOVERY 使用地面回收场景配置"
+    constraint: "一个 Action 内完成检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位，不设独立可行性接口；tcp_target 为 base_link 下 TCP，Motion 不再叠加工具偏移；uses_wall_map=true 时 navigation_map_version、wall_producer_instance_id、wall_map_version 取自换算 TCP 所用的同一份视觉快照引用，其中 navigation_map_version 是视觉的物理地图身份，不是导航语义地图版本；Motion 不启停泵；开阀后收到参与侧 p<=-60 kPa 的有效新压力样本即抽离，不加固定延时或多帧稳定等待，抽离不需要 Autonomy 批准；source_observed_at 只作记录，不作为拒绝条件；分臂给出成功/失败/取消/未知，一侧成功一侧失败时 overall=PARTIAL 并以 ABORTED 返回，保留成功侧事实；同时只接受一个 Goal，忙时拒绝；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不自动松阀、不关泵、不回 Home；purpose=DROPPED_BOX_RECOVERY 使用地面回收场景配置"
 
   - id: M-IF-03
     ros_name: /motion/place_carried_boxes
@@ -908,9 +908,9 @@ endpoints:
     type: sensor_msgs/msg/CompressedImage
     producer: perception
     consumers: [autonomy, external]
-    qos: Q_DEFAULT
+    qos: Q_SENSOR
     external_type: true
-    constraint: "头部彩色图，JPEG；视觉栈启动后持续发布，不需要请求；不低于 2 Hz，长边不超过 1280 像素；header.stamp 为曝光时刻，frame_id 为相机坐标系且能在 TF 中查到；发布端使用 best-effort、keep last 1"
+    constraint: "头部彩色图，JPEG；视觉栈启动、相机出图后持续发布，不需要请求；只发布新曝光，输入停止后不重发旧图，订阅端按接收时间判断断流；不低于 2 Hz，长边不超过 1280 像素；header.stamp 为曝光时刻，不是编码或发送时刻；header.frame_id 为相机光学坐标系；`Q_SENSOR`，订阅端不得用 reliable"
 
   - id: P-IF-10
     ros_name: /perception/camera/chest/color/image_rect/compressed
@@ -918,7 +918,7 @@ endpoints:
     type: sensor_msgs/msg/CompressedImage
     producer: perception
     consumers: [autonomy, external]
-    qos: Q_DEFAULT
+    qos: Q_SENSOR
     external_type: true
     constraint: "胸部彩色图，其余同 P-IF-09；胸部相机随视觉栈默认开启"
 
@@ -928,9 +928,9 @@ endpoints:
     type: sensor_msgs/msg/CompressedImage
     producer: perception
     consumers: [autonomy, external]
-    qos: Q_DEFAULT
+    qos: Q_SENSOR
     external_type: true
-    constraint: "头部标注图，每个箱子上写箱号，箱号与箱子快照里的 box_id 一致；其余同 P-IF-09"
+    constraint: "头部标注图，每个箱子上写箱号，已确认的箱号与同曝光对应快照里的 box_id 一致；身份未核实时显示 pending，不借用其他帧的箱号；为匹配地图结果约有 2.5 s 延迟，与彩色原图可能不是同一曝光；仅供人看，不得从图上识别箱号作为抓取指令；其余同 P-IF-09"
 
   - id: P-IF-12
     ros_name: /perception/camera/head/camera_info
@@ -938,9 +938,9 @@ endpoints:
     type: sensor_msgs/msg/CameraInfo
     producer: perception
     consumers: [autonomy, external]
-    qos: Q_DEFAULT
+    qos: Q_SENSOR
     external_type: true
-    constraint: "头部相机内参，与 P-IF-09 同一相机、同一分辨率"
+    constraint: "头部相机内参，与 P-IF-09 同一相机；内参为原始采集分辨率（width/height 为原始尺寸），压缩图可能缩小，使用方按压缩图与内参的尺寸比例缩放焦距和主点后再做像素投影；`Q_SENSOR`"
 
   - id: P-IF-13
     ros_name: /perception/camera/chest/camera_info
@@ -948,9 +948,9 @@ endpoints:
     type: sensor_msgs/msg/CameraInfo
     producer: perception
     consumers: [autonomy, external]
-    qos: Q_DEFAULT
+    qos: Q_SENSOR
     external_type: true
-    constraint: "胸部相机内参，与 P-IF-10 同一相机、同一分辨率"
+    constraint: "胸部相机内参，与 P-IF-10 同一相机，其余同 P-IF-12"
 
 # 成员类型：被上述 endpoint 的载荷间接引用，不单独出现在 ROS graph。
 member_types:

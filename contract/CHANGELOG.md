@@ -55,6 +55,20 @@
 
 <!-- 新条目追加到本节。发布时改为 ## [x.y.z] - YYYY-MM-DD 并新建空的 Unreleased -->
 
+### 新增：传感器流 QoS 剖面 Q_SENSOR，相机话题改用它并写明内参分辨率
+
+- **接口**：`robot_interfaces_qos` 新增 `sensor()`（C++ / Python）与命名剖面 `Q_SENSOR`（best-effort、volatile、keep last 1）；P-IF-09、P-IF-10、P-IF-11（`sensor_msgs/msg/CompressedImage`）与 P-IF-12、P-IF-13（`sensor_msgs/msg/CameraInfo`）的 qos 由 `Q_DEFAULT` 改为 `Q_SENSOR`，约束按视觉 2026-11-20《Autonomy 视觉图像订阅接口说明》更新。IDL 不变。
+- **原因**：这五个话题登记的 `Q_DEFAULT` 是 Service/Action 的默认可靠传输，而视觉实际以 best-effort 发布；按登记值配置 reliable 订阅会与发布端不匹配、收不到图且不报错。原约束写“内参与图像同一分辨率”，视觉实际是压缩图缩小而内参保留原始尺寸；用户确认按视觉实现，由使用方缩放。标注图有约 2.5 s 关联延迟、未核实时显示 pending，需写明不能当抓取依据。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：perception（与现有实现一致）、autonomy 与外部订阅方（订阅改用 `Q_SENSOR`；用内参投影时按尺寸比例缩放）。
+
+### 非破坏性：写明 PickPair.navigation_map_version 是视觉的物理地图身份
+
+- **接口**：M-IF-02 `/motion/pick_and_carry`，成员类型 `robot_motion_interfaces/msg/PickPair` 的 `navigation_map_version`：只改注释与约束，字段不变。
+- **原因**：该字段名与导航语义地图的 `map_version` 相近，Autonomy 原先填导航地图版本（如 `real_nav_20261028`），而运控按视觉快照引用校验（`WallMapReference.navigation_map_version`，默认 `physical_map_v1`），两者不等会使每个抓取请求以版本不一致被拒。用户 2026-11-24 确认统一填视觉快照里的身份。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：autonomy（改填视觉快照身份）、motion（按快照引用校验，与其 11-24 对接说明一致）。
+
 ### 新增：抓后更新由 Autonomy 决定采样结束，视觉给出采样结束信号
 
 - **接口**：新增 P-IF-14 `/perception/finish_wall_observation`（`robot_perception_interfaces/srv/FinishWallObservation`）；P-IF-08 `UpdateWallMap` 的 Feedback 新增 `capture_complete`、`valid_frames`，约束改为单视角、Autonomy 计时并可提前结束采样。该 Action 为本分支新增、尚未发布。

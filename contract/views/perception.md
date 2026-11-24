@@ -24,11 +24,11 @@
 | P-IF-06 | `/perception/recognize_dropped_boxes` | Action | `robot_perception_interfaces/action/RecognizeDroppedBoxes` | Autonomy | — |
 | P-IF-14 | `/perception/finish_wall_observation` | Service | `robot_perception_interfaces/srv/FinishWallObservation` | Autonomy | — |
 | P-IF-08 | `/perception/update_wall_map` | Action | `robot_perception_interfaces/action/UpdateWallMap` | Autonomy | — |
-| P-IF-09 | `/perception/camera/head/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Autonomy、外部/本地入口 | ROS 标准类型 |
-| P-IF-10 | `/perception/camera/chest/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Autonomy、外部/本地入口 | ROS 标准类型 |
-| P-IF-11 | `/perception/boxes/head/image_annotated/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Autonomy、外部/本地入口 | ROS 标准类型 |
-| P-IF-12 | `/perception/camera/head/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Autonomy、外部/本地入口 | ROS 标准类型 |
-| P-IF-13 | `/perception/camera/chest/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Autonomy、外部/本地入口 | ROS 标准类型 |
+| P-IF-09 | `/perception/camera/head/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Autonomy、外部/本地入口 | Q_SENSOR；ROS 标准类型 |
+| P-IF-10 | `/perception/camera/chest/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Autonomy、外部/本地入口 | Q_SENSOR；ROS 标准类型 |
+| P-IF-11 | `/perception/boxes/head/image_annotated/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Autonomy、外部/本地入口 | Q_SENSOR；ROS 标准类型 |
+| P-IF-12 | `/perception/camera/head/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Autonomy、外部/本地入口 | Q_SENSOR；ROS 标准类型 |
+| P-IF-13 | `/perception/camera/chest/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Autonomy、外部/本地入口 | Q_SENSOR；ROS 标准类型 |
 
 ## 本域消费（14 条）
 

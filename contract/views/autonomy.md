@@ -68,11 +68,11 @@
 | P-IF-08 | `/perception/update_wall_map` | Action | `robot_perception_interfaces/action/UpdateWallMap` | Perception | — |
 | M-IF-04 | `/motion/move_to_posture` | Action | `robot_motion_interfaces/action/MoveToPosture` | Motion | — |
 | M-IF-06 | `/motion/terminate_task` | Service | `robot_motion_interfaces/srv/TerminateTask` | Motion | — |
-| P-IF-09 | `/perception/camera/head/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | ROS 标准类型 |
-| P-IF-10 | `/perception/camera/chest/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | ROS 标准类型 |
-| P-IF-11 | `/perception/boxes/head/image_annotated/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | ROS 标准类型 |
-| P-IF-12 | `/perception/camera/head/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Perception | ROS 标准类型 |
-| P-IF-13 | `/perception/camera/chest/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Perception | ROS 标准类型 |
+| P-IF-09 | `/perception/camera/head/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | Q_SENSOR；ROS 标准类型 |
+| P-IF-10 | `/perception/camera/chest/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | Q_SENSOR；ROS 标准类型 |
+| P-IF-11 | `/perception/boxes/head/image_annotated/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | Q_SENSOR；ROS 标准类型 |
+| P-IF-12 | `/perception/camera/head/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Perception | Q_SENSOR；ROS 标准类型 |
+| P-IF-13 | `/perception/camera/chest/camera_info` | Topic | `sensor_msgs/msg/CameraInfo` | Perception | Q_SENSOR；ROS 标准类型 |
 
 ## 本域禁止的通信边
 
