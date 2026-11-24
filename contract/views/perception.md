@@ -2,7 +2,7 @@
 
 # Perception 域接口视图
 
-> 契约版本：1.0.0
+> 契约版本：2.0.0
 > 事实源：`contract/endpoints.yaml`
 > Wire schema：本仓库对应的 `robot_*_interfaces` IDL
 
@@ -34,15 +34,15 @@
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
-| P-NAV-01 | `/odom` | Topic | `nav_msgs/msg/Odometry` | Motion | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型 |
-| P-NAV-02 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Motion | ROS 标准类型；map → odom 由 Navigation/Motion 发布；Perception 通过 TF 查询 map→odom |
-| N-10 | `/navigation/semanticmap/landmark_array` | Topic | `robot_motion_interfaces/msg/LandmarkArray` | Motion | Q_STATE |
-| N-11 | `/navigation/semanticmap/add_landmark` | Service | `robot_motion_interfaces/srv/AddLandmark` | Motion | — |
-| N-12 | `/navigation/semanticmap/add_current_landmark` | Service | `robot_motion_interfaces/srv/AddCurrentLandmark` | Motion | — |
-| N-13 | `/navigation/semanticmap/update_landmark` | Service | `robot_motion_interfaces/srv/UpdateLandmark` | Motion | — |
-| N-14 | `/navigation/semanticmap/remove_landmark` | Service | `robot_motion_interfaces/srv/RemoveLandmark` | Motion | — |
-| N-15 | `/navigation/semanticmap/get_landmark` | Service | `robot_motion_interfaces/srv/GetLandmark` | Motion | — |
-| N-16 | `/navigation/semanticmap/get_map` | Service | `robot_motion_interfaces/srv/GetSemanticMap` | Motion | — |
+| P-NAV-01 | `/odom` | Topic | `nav_msgs/msg/Odometry` | Navigation | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型 |
+| P-NAV-02 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Navigation | ROS 标准类型；map → odom 由 Navigation 发布；Perception 通过 TF 查询 map→odom |
+| N-10 | `/navigation/semanticmap/landmark_array` | Topic | `robot_navigation_interfaces/msg/LandmarkArray` | Navigation | Q_STATE |
+| N-11 | `/navigation/semanticmap/add_landmark` | Service | `robot_navigation_interfaces/srv/AddLandmark` | Navigation | — |
+| N-12 | `/navigation/semanticmap/add_current_landmark` | Service | `robot_navigation_interfaces/srv/AddCurrentLandmark` | Navigation | — |
+| N-13 | `/navigation/semanticmap/update_landmark` | Service | `robot_navigation_interfaces/srv/UpdateLandmark` | Navigation | — |
+| N-14 | `/navigation/semanticmap/remove_landmark` | Service | `robot_navigation_interfaces/srv/RemoveLandmark` | Navigation | — |
+| N-15 | `/navigation/semanticmap/get_landmark` | Service | `robot_navigation_interfaces/srv/GetLandmark` | Navigation | — |
+| N-16 | `/navigation/semanticmap/get_map` | Service | `robot_navigation_interfaces/srv/GetSemanticMap` | Navigation | — |
 | R-IN-16 | `/rt/head/move` | Action | `robot_rt_control_interfaces/action/MoveHead` | RT-Control | — |
 | R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
 | R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |

@@ -2,7 +2,7 @@
 
 # Autonomy 域接口视图
 
-> 契约版本：1.0.0
+> 契约版本：2.0.0
 > 事实源：`contract/endpoints.yaml`
 > Wire schema：本仓库对应的 `robot_*_interfaces` IDL
 
@@ -15,24 +15,24 @@
 | --- | --- | --- | --- | --- | --- |
 | G-01 | `/autonomy/execute_demo_task` | Action | `robot_autonomy_interfaces/action/ExecuteDemoTask` | 外部/本地入口 | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 Demo schema；不能直接用于 V3 任务；V3 Autonomy 仅按注册表调用泵/LED/保护复位，不直接控制阀/运动 |
 
-## 本域消费（55 条）
+## 本域消费（54 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
 | P-01 | `/perception/build_wall_task_plan` | Action | `robot_perception_interfaces/action/BuildWallTaskPlan` | Perception | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 固定计划协议：25箱/15序列/0.74m；不代表 V3 箱墙观测和选箱职责 |
 | P-02 | `/perception/refine_sequence_poses` | Action | `robot_perception_interfaces/action/RefineSequencePoses` | Perception | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 序列精定位协议；不代表 V3 墙图更新和掉箱识别 |
 | P-04 | `/perception/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Perception | Q_LATCHED；1 Hz |
-| P-NAV-01 | `/odom` | Topic | `nav_msgs/msg/Odometry` | Motion | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型 |
-| P-NAV-02 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Motion | ROS 标准类型；map → odom 由 Navigation/Motion 发布；Perception 通过 TF 查询 map→odom |
-| N-01 | `/navigation/navigate_to_pose` | Action | `robot_motion_interfaces/action/NavigateToPoseTask` | Motion | — |
-| N-05 | `/navigation/localization/status` | Topic | `robot_motion_interfaces/msg/LocalizationStatus` | Motion | Q_STATE；10～20 Hz；最大年龄 200 ms |
-| N-10 | `/navigation/semanticmap/landmark_array` | Topic | `robot_motion_interfaces/msg/LandmarkArray` | Motion | Q_STATE |
-| N-15 | `/navigation/semanticmap/get_landmark` | Service | `robot_motion_interfaces/srv/GetLandmark` | Motion | — |
-| N-16 | `/navigation/semanticmap/get_map` | Service | `robot_motion_interfaces/srv/GetSemanticMap` | Motion | — |
-| N-17 | `/navigation/mapping/set_turn_state` | Service | `robot_motion_interfaces/srv/SetMappingTurnState` | Motion | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 Turn 边界，保留既有协议；不是 V3 底盘接管或同步运动接口；turn_sequence 单调递增，同一 BEGIN_TURN/TURN_COMPLETE 重试幂等 |
+| P-NAV-01 | `/odom` | Topic | `nav_msgs/msg/Odometry` | Navigation | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型 |
+| P-NAV-02 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Navigation | ROS 标准类型；map → odom 由 Navigation 发布；Perception 通过 TF 查询 map→odom |
+| N-01 | `/navigation/navigate_to_pose` | Action | `robot_navigation_interfaces/action/NavigateToPoseTask` | Navigation | — |
+| N-05 | `/navigation/localization/status` | Topic | `robot_navigation_interfaces/msg/LocalizationStatus` | Navigation | Q_STATE；10～20 Hz；最大年龄 200 ms |
+| N-10 | `/navigation/semanticmap/landmark_array` | Topic | `robot_navigation_interfaces/msg/LandmarkArray` | Navigation | Q_STATE |
+| N-15 | `/navigation/semanticmap/get_landmark` | Service | `robot_navigation_interfaces/srv/GetLandmark` | Navigation | — |
+| N-16 | `/navigation/semanticmap/get_map` | Service | `robot_navigation_interfaces/srv/GetSemanticMap` | Navigation | — |
+| N-17 | `/navigation/mapping/set_turn_state` | Service | `robot_navigation_interfaces/srv/SetMappingTurnState` | Navigation | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 Turn 边界，保留既有协议；不是 V3 底盘接管或同步运动接口；turn_sequence 单调递增，同一 BEGIN_TURN/TURN_COMPLETE 重试幂等 |
 | M-08 | `/motion/execute_stage` | Action | `robot_motion_interfaces/action/ExecuteMotionStage` | Motion | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 分阶段机械动作：12臂轴与Turn/Updown；保留供旧消费者迁移，不是 V3 双七轴或新抓放流程；不得通过旧流程调用已退役 VacuumGrip |
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
-| N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Motion | Q_LATCHED；1 Hz |
+| N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Navigation | Q_LATCHED；1 Hz |
 | R-IN-04 | `/rt/vacuum/pump/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
 | R-IN-05L | `/rt/vacuum/left_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
 | R-IN-05R | `/rt/vacuum/right_valve/set_enabled` | Service | `robot_rt_control_interfaces/srv/SetEnabled` | RT-Control | — |
@@ -52,14 +52,13 @@
 | R-OUT-19F | `/rt/ultrasonic/channel6/range` | Topic | `sensor_msgs/msg/Range` | RT-Control | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
 | R-OUT-19G | `/rt/ultrasonic/channel7/range` | Topic | `sensor_msgs/msg/Range` | RT-Control | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
 | R-OUT-19H | `/rt/ultrasonic/channel8/range` | Topic | `sensor_msgs/msg/Range` | RT-Control | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
-| R-OUT-29 | `/rt/base/wheel_observations` | Topic | `robot_rt_control_interfaces/msg/WheelObservationArray` | RT-Control | Q_FAST_STATE；100 Hz；逐轮观测，供导航（autonomy 域）逐轮融合；与 R-OUT-02 同源，导航不得把两者同时作为独立观测 |
 | R-OUT-20 | `/rt/sensors/state` | Topic | `robot_rt_control_interfaces/msg/SensorStatusArray` | RT-Control | Q_STATE |
 | R-OUT-21 | `/rt/infrared/state` | Topic | `robot_rt_control_interfaces/msg/DigitalInputStateArray` | RT-Control | Q_STATE |
 | R-OUT-09 | `/rt/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | RT-Control | Q_LATCHED；1 Hz |
 | M-IF-02 | `/motion/pick_and_carry` | Action | `robot_motion_interfaces/action/PickAndCarry` | Motion | — |
 | M-IF-03 | `/motion/place_carried_boxes` | Action | `robot_motion_interfaces/action/PlaceCarriedBoxes` | Motion | — |
 | M-IF-05 | `/motion/state` | Topic | `robot_motion_interfaces/msg/ManipulationState` | Motion | Q_STATE；10 Hz |
-| N-IF-16 | `/navigation/detect_dropped_boxes` | Action | `robot_motion_interfaces/action/DetectDroppedBoxes` | Motion | — |
+| N-IF-16 | `/navigation/detect_dropped_boxes` | Action | `robot_navigation_interfaces/action/DetectDroppedBoxes` | Navigation | — |
 | P-IF-01 | `/perception/set_sku_catalog` | Service | `robot_perception_interfaces/srv/SetSkuCatalog` | Perception | — |
 | P-IF-03 | `/perception/get_wall_map` | Service | `robot_perception_interfaces/srv/GetWallMap` | Perception | — |
 | P-IF-04 | `/perception/wall_map` | Topic | `robot_perception_interfaces/msg/WallMap` | Perception | Q_LATCHED |

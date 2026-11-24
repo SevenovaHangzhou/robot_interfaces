@@ -82,17 +82,19 @@ AI 按以下优先级执行：
 
 | 业务域 | 自定义接口包 | 组织团队 |
 | --- | --- | --- |
-| Autonomy / 导航 | `robot_autonomy_interfaces` | `@SevenovaHangzhou/autonomy-interface-owners` |
+| Autonomy | `robot_autonomy_interfaces` | `@SevenovaHangzhou/autonomy-interface-owners` |
 | Perception / 视觉 | `robot_perception_interfaces` | `@SevenovaHangzhou/perception-interface-owners` |
+| Navigation / 导航 | `robot_navigation_interfaces` | 由导航接口负责人评审 |
 | Motion | `robot_motion_interfaces` | `@SevenovaHangzhou/motion-interface-owners` |
 | RT-Control | `robot_rt_control_interfaces` | `@SevenovaHangzhou/rt-control-interface-owners` |
-| 四域共享 | `robot_system_interfaces` | 根据实际生产者和消费者共同评审 |
-| 四域共享 | `robot_interfaces_qos` | 根据受影响 endpoint 共同评审 |
+| 五域共享 | `robot_system_interfaces` | 根据实际生产者和消费者共同评审 |
+| 五域共享 | `robot_interfaces_qos` | 根据受影响 endpoint 共同评审 |
 | Motion 使用 | `robot_interfaces_rolling_client`（发送端代码，无 IDL） | RT-Control 与 Motion 共同评审 |
 
 允许的 schema 依赖方向：
 
 ```text
+robot_navigation_interfaces -> robot_system_interfaces
 robot_autonomy_interfaces   -> robot_system_interfaces
 robot_perception_interfaces -> robot_system_interfaces
 robot_rt_control_interfaces -> robot_system_interfaces
@@ -512,8 +514,10 @@ repositories:
 | --- | --- |
 | RT-Control | `robot_rt_control_interfaces`、`robot_system_interfaces`、`robot_interfaces_qos` |
 | Perception | `robot_perception_interfaces`、`robot_rt_control_interfaces`、`robot_system_interfaces`、`robot_interfaces_qos` |
+| Navigation / 导航 | `robot_navigation_interfaces` | 由导航接口负责人评审 |
 | Motion | `robot_motion_interfaces`、`robot_perception_interfaces`、`robot_rt_control_interfaces`、`robot_system_interfaces`、`robot_interfaces_qos` |
-| Autonomy | `robot_autonomy_interfaces`、`robot_perception_interfaces`、`robot_motion_interfaces`、`robot_rt_control_interfaces`、`robot_system_interfaces`、`robot_interfaces_qos` |
+| Navigation | `robot_navigation_interfaces`、`robot_system_interfaces`、`robot_interfaces_qos` |
+| Autonomy | `robot_navigation_interfaces`、`robot_autonomy_interfaces`、`robot_perception_interfaces`、`robot_motion_interfaces`、`robot_rt_control_interfaces`、`robot_system_interfaces`、`robot_interfaces_qos` |
 
 下游构建建议：
 
