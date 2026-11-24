@@ -3,8 +3,7 @@
   <name>robot_motion_interfaces</name>
   <version>0.6.0</version>
   <description>
-    Motion 域提供的跨域公共接口：导航执行、语义地图、定位状态、
-    五阶段机械运动、固定外参切换与 rolling 关节目标。
+    Motion 域提供的跨域公共接口：抓取、放箱、具名姿态、任务终止、分阶段运动与 rolling 关节目标。
   </description>
   <maintainer email="kkozia188@gmail.com">kkozia</maintainer>
   <license>Apache-2.0</license>

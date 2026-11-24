@@ -9,5 +9,5 @@ bool navigable
 ---
 bool success
 string used_map_version
-robot_motion_interfaces/Landmark landmark
+robot_navigation_interfaces/Landmark landmark
 robot_system_interfaces/ErrorInfo error

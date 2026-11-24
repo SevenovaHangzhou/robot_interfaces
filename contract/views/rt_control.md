@@ -2,7 +2,7 @@
 
 # RT-Control 域接口视图
 
-> 契约版本：1.0.0
+> 契约版本：2.0.0
 > 事实源：`contract/endpoints.yaml`
 > Wire schema：本仓库对应的 `robot_*_interfaces` IDL
 
@@ -32,9 +32,9 @@
 | R-IN-25 | `/rt/base/joint_trajectory` | Topic | `trajectory_msgs/msg/JointTrajectory` | Motion | Q_CONTROL；ROS 标准类型；流式下发；与 R-IN-24 同一控制器，新消息替换尚未执行的轨迹；断流后保持最后目标 |
 | R-IN-12 | `/rt/led/set_rgbw` | Service | `robot_rt_control_interfaces/srv/SetLedRgbw` | Autonomy | — |
 | R-IN-16 | `/rt/head/move` | Action | `robot_rt_control_interfaces/action/MoveHead` | Perception | — |
-| R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Perception、Motion、Autonomy | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
-| R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | Perception、Motion、Autonomy | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
-| R-OUT-02 | `/rt/base/odom` | Topic | `nav_msgs/msg/Odometry` | Perception | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；frame_id=odom，child_frame_id=base_footprint；rt-control 不发 odom→base_footprint TF |
+| R-OUT-01 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Perception、Motion、Navigation、Autonomy | ROS 标准类型；robot_state_publisher 发布本体动态 TF |
+| R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | Perception、Motion、Navigation、Autonomy | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
+| R-OUT-02 | `/rt/base/odom` | Topic | `nav_msgs/msg/Odometry` | Perception、Navigation | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；frame_id=odom，child_frame_id=base_footprint；rt-control 不发 odom→base_footprint TF |
 | R-OUT-03 | `/joint_states` | Topic | `sensor_msgs/msg/JointState` | Motion、Perception、Autonomy | Q_FAST_STATE；ROS 标准类型；整机各受管模块按真实采样时间发布不重叠关节子集；一关节一个权威来源；有效性与时效由模块状态配套表达 |
 | R-OUT-04L | `/rt/battery/left/state` | Topic | `sensor_msgs/msg/BatteryState` | Autonomy | Q_STATE；0.2 Hz；ROS 标准类型；BMS 周期 5 s；只读，不作为业务控制入口 |
 | R-OUT-04R | `/rt/battery/right/state` | Topic | `sensor_msgs/msg/BatteryState` | Autonomy | Q_STATE；0.2 Hz；ROS 标准类型；BMS 周期 5 s；只读，不作为业务控制入口 |
@@ -48,10 +48,10 @@
 | R-OUT-19F | `/rt/ultrasonic/channel6/range` | Topic | `sensor_msgs/msg/Range` | Autonomy | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
 | R-OUT-19G | `/rt/ultrasonic/channel7/range` | Topic | `sensor_msgs/msg/Range` | Autonomy | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
 | R-OUT-19H | `/rt/ultrasonic/channel8/range` | Topic | `sensor_msgs/msg/Range` | Autonomy | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
-| R-OUT-29 | `/rt/base/wheel_observations` | Topic | `robot_rt_control_interfaces/msg/WheelObservationArray` | Autonomy | Q_FAST_STATE；100 Hz；逐轮观测，供导航（autonomy 域）逐轮融合；与 R-OUT-02 同源，导航不得把两者同时作为独立观测 |
+| R-OUT-29 | `/rt/base/wheel_observations` | Topic | `robot_rt_control_interfaces/msg/WheelObservationArray` | Navigation | Q_FAST_STATE；100 Hz；逐轮观测，供导航逐轮融合；与 R-OUT-02 同源，导航不得把两者同时作为独立观测 |
 | R-OUT-20 | `/rt/sensors/state` | Topic | `robot_rt_control_interfaces/msg/SensorStatusArray` | Motion、Autonomy | Q_STATE |
 | R-OUT-21 | `/rt/infrared/state` | Topic | `robot_rt_control_interfaces/msg/DigitalInputStateArray` | Autonomy | Q_STATE |
-| R-OUT-22 | `/rt/imu/data` | Topic | `sensor_msgs/msg/Imu` | Motion | Q_FAST_STATE；ROS 标准类型 |
+| R-OUT-22 | `/rt/imu/data` | Topic | `sensor_msgs/msg/Imu` | Navigation | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-23L | `/rt/force_torque/left_wrist/wrench` | Topic | `geometry_msgs/msg/WrenchStamped` | Motion | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-23R | `/rt/force_torque/right_wrist/wrench` | Topic | `geometry_msgs/msg/WrenchStamped` | Motion | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-07 | `/rt/arms/rolling/state` | Topic | `robot_rt_control_interfaces/msg/RollingJointControlState` | Motion | Q_ROLLING_STATE；50 Hz；最大年龄 200 ms；rolling 控制器激活期间发布；5 个字段：epoch、state、last_sequence、last_result、stop_reason |
@@ -63,7 +63,7 @@
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
-| N-04 | `/rt/base/cmd_vel` | Topic | `geometry_msgs/msg/Twist` | Motion | Q_CONTROL；20～50 Hz；看门狗 500 ms；ROS 标准类型；当前 Navigation 职责由 motion 域承载；Twist 无 header，看门狗只使用 RT 本地接收间隔；后续 Motion 接管底盘另立协议 |
+| N-04 | `/rt/base/cmd_vel` | Topic | `geometry_msgs/msg/Twist` | Navigation | Q_CONTROL；20～50 Hz；看门狗 500 ms；ROS 标准类型；由 navigation 域发送；Twist 无 header，看门狗只使用 RT 本地接收间隔；后续 Motion 接管底盘另立协议 |
 | M-09 | `/rt/arms/rolling/target_batch` | Topic | `robot_motion_interfaces/msg/RollingJointTargetBatch` | Motion | Q_ROLLING_COMMAND；30 Hz；三代双七轴：right_joint1..7 后接 left_joint1..7；全部 rad/rad/s；从 replace_from 起替换缓冲轨迹，非运动臂仍须包含 |
 
 ## 已删除的 endpoint

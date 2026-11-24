@@ -151,16 +151,16 @@ class ContractGateTest(unittest.TestCase):
         )
         self.assertEqual(
             endpoint["type"],
-            "robot_motion_interfaces/srv/SetMappingTurnState",
+            "robot_navigation_interfaces/srv/SetMappingTurnState",
         )
-        self.assertEqual(endpoint["producer"], "motion")
+        self.assertEqual(endpoint["producer"], "navigation")
         self.assertEqual(endpoint["consumers"], ["autonomy", "external"])
         self.assertIn("BEGIN_TURN", endpoint["constraint"])
         self.assertIn("TURN_COMPLETE", endpoint["constraint"])
         self.assertIn("连续稳定", endpoint["constraint"])
 
         schema = Path(
-            "robot_motion_interfaces/srv/SetMappingTurnState.srv"
+            "robot_navigation_interfaces/srv/SetMappingTurnState.srv"
         ).read_text(encoding="utf-8")
         for declaration in (
             "uint8 BEGIN_TURN=1",

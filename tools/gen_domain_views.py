@@ -24,6 +24,7 @@ BANNER = "<!-- 本文由 tools/gen_domain_views.py 从 contract/endpoints.yaml �
 DOMAIN_LABEL = {
     "rt_control": "RT-Control",
     "perception": "Perception",
+    "navigation": "Navigation",
     "motion": "Motion",
     "autonomy": "Autonomy",
     "external": "外部/本地入口",
@@ -142,6 +143,7 @@ SECTIONS = [
         and e["id"].startswith("R-IN")),
     ("5.5 RT-Control 输出", lambda e: e["producer"] == "rt_control"
         and not e["id"].startswith("R-IN")),
+    ("5.6 Navigation 提供", lambda e: e["producer"] == "navigation"),
 ]
 
 KIND_FORM = {"topic": "Topic", "service": "Service", "action": "Action"}
@@ -156,7 +158,7 @@ def render_master_table(doc: dict) -> str:
         "## 5. 接口总表",
         "",
         "ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，"
-        "`N` = 导航能力（Motion 或 Perception 提供），`M` = Motion 提供，"
+        "`N` = Navigation 提供，`M` = Motion 提供，"
         "`R-IN` = RT-Control 输入，`R-OUT` = RT-Control 输出。",
         "",
     ]

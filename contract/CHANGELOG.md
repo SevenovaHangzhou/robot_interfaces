@@ -37,6 +37,13 @@
 
 ## [Unreleased]
 
+### 破坏性：导航公共类型从运控包迁入独立导航包
+
+- **接口**：N-01、N-05、N-10～N-17、N-IF-16 的自定义类型从 `robot_motion_interfaces` 迁至 `robot_navigation_interfaces`，涵盖 2 个 Action、7 个 Service 和 4 个消息。注册表增加 `navigation` 域，N-04、N-06、P-NAV-01、P-NAV-02 随导航提供方归档，沿用原标准或共享类型。
+- **原因**：导航和运控分别交付服务端。联调各方开始固定依赖之前，按实际提供方确定导航公共类型的唯一位置。
+- **提出人**：@kkozia188（autonomy）
+- **影响域**：导航服务端、Autonomy、视觉、外部地标工具和仪表盘需同步切换依赖与导入。ROS 名称和业务字段保持原约定，类型全名改变，混跑时同名端点无法匹配。各方在同一窗口重新编译并切换，回滚时一起恢复到 `c7d53ac`。详见[导航包迁移](../docs/navigation-package-migration.md)。
+
 ### 破坏性：纠正 Rolling 的三代机双七轴语义与轴身份
 
 - **接口**：M-09 `RollingJointPoint/RollingJointTargetBatch`、R-IN-07

@@ -6,18 +6,19 @@
 #   - 每个 endpoint 的 type 必须真实存在于本仓库或声明为外部标准类型
 #
 # Wire schema 由本仓库对应 IDL 定义。不在本表中的跨域 endpoint 视为未授权。
-# 域取值：rt_control / perception / motion / autonomy / external
+# 域取值：rt_control / perception / motion / navigation / autonomy / external
 
-version: "1.0.0"
+version: "2.0.0"
 
-domains: [rt_control, perception, motion, autonomy, external]
+domains: [rt_control, perception, motion, navigation, autonomy, external]
 
-# 自定义 IDL 按 endpoint 提供方所属域唯一归档。shared 只承载四域共用
-# 的基础载荷，不代表第五个业务域。消费域直接依赖提供方包，不复制 IDL。
+# 自定义 IDL 按 endpoint 提供方所属域唯一归档。shared 承载跨域共用
+# 的基础载荷。消费域直接依赖提供方包，不复制 IDL。
 package_owners:
   robot_system_interfaces: shared
   robot_rt_control_interfaces: rt_control
   robot_perception_interfaces: perception
+  robot_navigation_interfaces: navigation
   robot_motion_interfaces: motion
   robot_autonomy_interfaces: autonomy
 
@@ -102,57 +103,57 @@ endpoints:
     ros_name: /odom
     kind: topic
     type: nav_msgs/msg/Odometry
-    producer: motion
+    producer: navigation
     consumers: [perception, autonomy]
     qos: Q_FAST_STATE
     rate_hz: [50, 50]
     max_age_ms: 200
     external_type: true
-    constraint: "Navigation/Motion 发布融合里程计；50 Hz；最大年龄 200 ms；Perception 可用于定位/视觉时空对齐；**最终停稳证据**"
+    constraint: "Navigation 发布融合里程计；50 Hz；最大年龄 200 ms；Perception 可用于定位/视觉时空对齐；**最终停稳证据**"
 
 
   - id: P-NAV-02
     ros_name: /tf
     kind: topic
     type: tf2_msgs/msg/TFMessage
-    producer: motion
+    producer: navigation
     consumers: [perception, autonomy]
     qos: Q_DEFAULT
     external_type: true
-    note: map → odom 由 Navigation/Motion 发布；Perception 通过 TF 查询 map→odom
-    constraint: "map→odom 定位边唯一发布者为 Navigation/Motion；/tf 按坐标边判唯一性"
+    note: map → odom 由 Navigation 发布；Perception 通过 TF 查询 map→odom
+    constraint: "map→odom 定位边唯一发布者为 Navigation；/tf 按坐标边判唯一性"
     multi_producer: true  # /tf 按坐标边判唯一性，见契约 6.11
 
 
   - id: N-01
     ros_name: /navigation/navigate_to_pose
     kind: action
-    type: robot_motion_interfaces/action/NavigateToPoseTask
-    producer: motion
+    type: robot_navigation_interfaces/action/NavigateToPoseTask
+    producer: navigation
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "`target_name + map_version` 由 Motion 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次；SUCCEEDED 必须同时满足位置和朝向到位、定位有效、实际运动反馈确认已停稳，不以零速指令或 Nav2 自身成功代替；CANCELED 必须对应车已停止，无法确认时返回失败；目标与当前位置 XY 相同时原地旋转；受理时固定目标位姿"
+    constraint: "`target_name + map_version` 由 Navigation 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次；SUCCEEDED 必须同时满足位置和朝向到位、定位有效、实际运动反馈确认已停稳，不以零速指令或 Nav2 自身成功代替；CANCELED 必须对应车已停止，无法确认时返回失败；目标与当前位置 XY 相同时原地旋转；受理时固定目标位姿"
 
 
   - id: N-04
     ros_name: /rt/base/cmd_vel
     kind: topic
     type: geometry_msgs/msg/Twist
-    producer: motion
+    producer: navigation
     consumers: [rt_control]
     qos: Q_CONTROL
     rate_hz: [20, 50]
     watchdog_ms: 500
     external_type: true
-    note: "当前 Navigation 职责由 motion 域承载；Twist 无 header，看门狗只使用 RT 本地接收间隔；后续 Motion 接管底盘另立协议"
-    constraint: "底盘速度入口，仅在 R-IN-23 为 VELOCITY_READY（使能后默认）时生效，FJT_READY 时不被接受；20～50 Hz；500 ms 本地接收超时；不与旧 `/cmd_vel_safe` 或未来第二 writer 并行生效；台架调试时 RT-Control 操作网页可替代 Motion 发送，与 Motion 互斥，同一时间只允许一个发送方"
+    note: "由 navigation 域发送；Twist 无 header，看门狗只使用 RT 本地接收间隔；后续 Motion 接管底盘另立协议"
+    constraint: "底盘速度入口，仅在 R-IN-23 为 VELOCITY_READY（使能后默认）时生效，FJT_READY 时不被接受；20～50 Hz；500 ms 本地接收超时；不与旧 `/cmd_vel_safe` 或未来第二 writer 并行生效；台架调试时 RT-Control 操作网页可替代 Navigation 发送，与 Navigation 互斥，同一时间只允许一个发送方"
 
 
   - id: N-05
     ros_name: /navigation/localization/status
     kind: topic
-    type: robot_motion_interfaces/msg/LocalizationStatus
-    producer: motion
+    type: robot_navigation_interfaces/msg/LocalizationStatus
+    producer: navigation
     consumers: [autonomy]
     qos: Q_STATE
     rate_hz: [10, 20]
@@ -163,8 +164,8 @@ endpoints:
   - id: N-10
     ros_name: /navigation/semanticmap/landmark_array
     kind: topic
-    type: robot_motion_interfaces/msg/LandmarkArray
-    producer: motion
+    type: robot_navigation_interfaces/msg/LandmarkArray
+    producer: navigation
     consumers: [perception, autonomy, external]
     qos: Q_STATE
     constraint: "当前语义地图地标列表；按 map_version 区分地图版本"
@@ -173,8 +174,8 @@ endpoints:
   - id: N-11
     ros_name: /navigation/semanticmap/add_landmark
     kind: service
-    type: robot_motion_interfaces/srv/AddLandmark
-    producer: motion
+    type: robot_navigation_interfaces/srv/AddLandmark
+    producer: navigation
     consumers: [perception, external]
     qos: Q_DEFAULT
     constraint: "按指定位姿新增语义地标；返回 used_map_version 与最终地标"
@@ -183,8 +184,8 @@ endpoints:
   - id: N-12
     ros_name: /navigation/semanticmap/add_current_landmark
     kind: service
-    type: robot_motion_interfaces/srv/AddCurrentLandmark
-    producer: motion
+    type: robot_navigation_interfaces/srv/AddCurrentLandmark
+    producer: navigation
     consumers: [perception, external]
     qos: Q_DEFAULT
     constraint: "以当前 base_footprint 位姿新增语义地标；返回 used_map_version 与最终地标"
@@ -193,8 +194,8 @@ endpoints:
   - id: N-13
     ros_name: /navigation/semanticmap/update_landmark
     kind: service
-    type: robot_motion_interfaces/srv/UpdateLandmark
-    producer: motion
+    type: robot_navigation_interfaces/srv/UpdateLandmark
+    producer: navigation
     consumers: [perception, external]
     qos: Q_DEFAULT
     constraint: "更新语义地标属性和位姿；返回 used_map_version 与最终地标"
@@ -203,8 +204,8 @@ endpoints:
   - id: N-14
     ros_name: /navigation/semanticmap/remove_landmark
     kind: service
-    type: robot_motion_interfaces/srv/RemoveLandmark
-    producer: motion
+    type: robot_navigation_interfaces/srv/RemoveLandmark
+    producer: navigation
     consumers: [perception, external]
     qos: Q_DEFAULT
     constraint: "按 name 删除指定 map_version 内的语义地标"
@@ -213,8 +214,8 @@ endpoints:
   - id: N-15
     ros_name: /navigation/semanticmap/get_landmark
     kind: service
-    type: robot_motion_interfaces/srv/GetLandmark
-    producer: motion
+    type: robot_navigation_interfaces/srv/GetLandmark
+    producer: navigation
     consumers: [perception, autonomy, external]
     qos: Q_DEFAULT
     constraint: "按 target_name 查询语义地标；N-01 服务端用它解析导航目标"
@@ -223,8 +224,8 @@ endpoints:
   - id: N-16
     ros_name: /navigation/semanticmap/get_map
     kind: service
-    type: robot_motion_interfaces/srv/GetSemanticMap
-    producer: motion
+    type: robot_navigation_interfaces/srv/GetSemanticMap
+    producer: navigation
     consumers: [perception, autonomy, external]
     qos: Q_DEFAULT
     constraint: "查询指定 map_version 下全部语义地标"
@@ -234,8 +235,8 @@ endpoints:
     legacy_only: true
     ros_name: /navigation/mapping/set_turn_state
     kind: service
-    type: robot_motion_interfaces/srv/SetMappingTurnState
-    producer: motion
+    type: robot_navigation_interfaces/srv/SetMappingTurnState
+    producer: navigation
     consumers: [autonomy, external]
     qos: Q_DEFAULT
     note: "Legacy V2 Turn 边界，保留既有协议；不是 V3 底盘接管或同步运动接口；turn_sequence 单调递增，同一 BEGIN_TURN/TURN_COMPLETE 重试幂等"
@@ -282,7 +283,7 @@ endpoints:
     ros_name: /navigation/readiness
     kind: topic
     type: robot_system_interfaces/msg/DomainReadiness
-    producer: motion
+    producer: navigation
     consumers: [autonomy]
     qos: Q_LATCHED
     rate_hz: [1, 1]
@@ -436,7 +437,7 @@ endpoints:
     producer: rt_control
     consumers: [motion]
     qos: Q_DEFAULT
-    constraint: "仅在已使能且底盘静止时在 VELOCITY_READY（舵轮控制器接受 N-04，行走轮 CSV）与 FJT_READY（R-IN-24/R-IN-25 的轮子轨迹控制器接管 8 个轮关节位置，行走轮 CSP）之间切换；使能后默认 VELOCITY_READY；切换前 Motion 停发 N-04、取消并等待 R-IN-24 Action 终态；新控制器以当前位置保持起步，行走轮驱动器确认新模式后才返回成功；ROLLING_READY 拒绝；失败时 accepted=false 并给出 ErrorInfo，mode 为调用后的实际模式；歧义切换进入 RESTART_REQUIRED（见 R-OUT-09）"
+    constraint: "仅在已使能且底盘静止时在 VELOCITY_READY（舵轮控制器接受 N-04，行走轮 CSV）与 FJT_READY（R-IN-24/R-IN-25 的轮子轨迹控制器接管 8 个轮关节位置，行走轮 CSP）之间切换；使能后默认 VELOCITY_READY；切换前协调 Navigation 停发 N-04、由 Motion 取消并等待 R-IN-24 Action 终态；新控制器以当前位置保持起步，行走轮驱动器确认新模式后才返回成功；ROLLING_READY 拒绝；失败时 accepted=false 并给出 ErrorInfo，mode 为调用后的实际模式；歧义切换进入 RESTART_REQUIRED（见 R-OUT-09）"
 
 
   - id: R-IN-24
@@ -490,7 +491,7 @@ endpoints:
     kind: topic
     type: tf2_msgs/msg/TFMessage
     producer: rt_control
-    consumers: [perception, motion, autonomy]
+    consumers: [perception, motion, navigation, autonomy]
     qos: Q_DEFAULT
     external_type: true
     note: robot_state_publisher 发布本体动态 TF
@@ -503,7 +504,7 @@ endpoints:
     kind: topic
     type: tf2_msgs/msg/TFMessage
     producer: rt_control
-    consumers: [perception, motion, autonomy]
+    consumers: [perception, motion, navigation, autonomy]
     qos: Q_LATCHED
     external_type: true
     note: robot_state_publisher 发布本体固定坐标边
@@ -515,7 +516,7 @@ endpoints:
     kind: topic
     type: nav_msgs/msg/Odometry
     producer: rt_control
-    consumers: [perception]
+    consumers: [perception, navigation]
     qos: Q_FAST_STATE
     rate_hz: [50, 50]
     max_age_ms: 200
@@ -685,10 +686,10 @@ endpoints:
     kind: topic
     type: robot_rt_control_interfaces/msg/WheelObservationArray
     producer: rt_control
-    consumers: [autonomy]
+    consumers: [navigation]
     qos: Q_FAST_STATE
     rate_hz: [100, 100]
-    note: "逐轮观测，供导航（autonomy 域）逐轮融合；与 R-OUT-02 同源，导航不得把两者同时作为独立观测"
+    note: "逐轮观测，供导航逐轮融合；与 R-OUT-02 同源，导航不得把两者同时作为独立观测"
     constraint: "只发硬件实测反馈，不发指令或融合速度；四轮固定 FL/FR/RL/RR 且带 wheel_id；行走位置与速度同一样本；两路转向角分开、无效不互相填补；逐通道采样时间、时间来源、样本序号与连续性代号，重复样本不刷新时间和序号；底盘失能时照常发布"
 
 
@@ -717,10 +718,10 @@ endpoints:
     kind: topic
     type: sensor_msgs/msg/Imu
     producer: rt_control
-    consumers: [motion]
+    consumers: [navigation]
     qos: Q_FAST_STATE
     external_type: true
-    constraint: "当前 Navigation 职责由 motion 域消费；SI 单位；时间为主机发布/接收链语义，不声明设备同步；无效拼接不重发旧测量；独立磁场不公开"
+    constraint: "由 navigation 域消费；SI 单位；时间为主机发布/接收链语义，不声明设备同步；无效拼接不重发旧测量；独立磁场不公开"
 
 
   - id: R-OUT-23L
@@ -824,8 +825,8 @@ endpoints:
   - id: N-IF-16
     ros_name: /navigation/detect_dropped_boxes
     kind: action
-    type: robot_motion_interfaces/action/DetectDroppedBoxes
-    producer: motion
+    type: robot_navigation_interfaces/action/DetectDroppedBoxes
+    producer: navigation
     consumers: [autonomy]
     qos: Q_DEFAULT
     constraint: "一个 Goal 执行一轮检测，不常驻监听；必须能检出请求发出前已经落地的箱子；Autonomy 判定掉箱后先取消在途导航与运控动作再立即发起；reference_valid=true 时 reference_stamp 是掉箱前仍在吸附的时刻再提前 1 s（电控压力消息头时钟），导航须保留至少 5 s 的点云/高度图历史以便回看该时刻（导航已确认）；导航 Goal 被取消时先停车再以 CANCELED 结束（见 N-01）；reference_valid=false 时按无基准方式检测，不得拒绝；同时只接受一个 Goal；有效完成且有候选：SUCCEEDED/ok=true/detected=true；有效完成无候选：SUCCEEDED/ok=true/detected=false；点云不可用、TF 失败或超时：ABORTED/ok=false，不能当作现场无箱；取消：CANCELED，只停检测，不发停车指令；超时计时独立于点云回调；结果只在 Result 里一次返回；候选为 odom 下粗定位，数量不限于 2"
@@ -968,7 +969,7 @@ endpoints:
 member_types:
   - robot_system_interfaces/msg/ErrorCode
   - robot_system_interfaces/msg/ErrorInfo
-  - robot_motion_interfaces/msg/Landmark
+  - robot_navigation_interfaces/msg/Landmark
   - robot_motion_interfaces/msg/DualArmPoseTargets
   - robot_motion_interfaces/msg/RollingJointPoint
   - robot_rt_control_interfaces/msg/JointControlMode
@@ -987,7 +988,7 @@ member_types:
   - robot_motion_interfaces/msg/PickPair
   - robot_motion_interfaces/msg/ArmExecutionState
   - robot_motion_interfaces/msg/ArmTaskResult
-  - robot_motion_interfaces/msg/DroppedBoxCandidate
+  - robot_navigation_interfaces/msg/DroppedBoxCandidate
   - robot_perception_interfaces/msg/SkuSpec
   - robot_perception_interfaces/msg/SkuCatalog
   - robot_perception_interfaces/msg/WallMapReference

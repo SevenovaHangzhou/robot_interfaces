@@ -2,42 +2,27 @@
 
 # Motion 域接口视图
 
-> 契约版本：1.0.0
+> 契约版本：2.0.0
 > 事实源：`contract/endpoints.yaml`
 > Wire schema：本仓库对应的 `robot_*_interfaces` IDL
 
 本文只列 Motion 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（23 条）
+## 本域提供（8 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
-| P-NAV-01 | `/odom` | Topic | `nav_msgs/msg/Odometry` | Perception、Autonomy | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型 |
-| P-NAV-02 | `/tf` | Topic | `tf2_msgs/msg/TFMessage` | Perception、Autonomy | ROS 标准类型；map → odom 由 Navigation/Motion 发布；Perception 通过 TF 查询 map→odom |
-| N-01 | `/navigation/navigate_to_pose` | Action | `robot_motion_interfaces/action/NavigateToPoseTask` | Autonomy | — |
-| N-04 | `/rt/base/cmd_vel` | Topic | `geometry_msgs/msg/Twist` | RT-Control | Q_CONTROL；20～50 Hz；看门狗 500 ms；ROS 标准类型；当前 Navigation 职责由 motion 域承载；Twist 无 header，看门狗只使用 RT 本地接收间隔；后续 Motion 接管底盘另立协议 |
-| N-05 | `/navigation/localization/status` | Topic | `robot_motion_interfaces/msg/LocalizationStatus` | Autonomy | Q_STATE；10～20 Hz；最大年龄 200 ms |
-| N-10 | `/navigation/semanticmap/landmark_array` | Topic | `robot_motion_interfaces/msg/LandmarkArray` | Perception、Autonomy、外部/本地入口 | Q_STATE |
-| N-11 | `/navigation/semanticmap/add_landmark` | Service | `robot_motion_interfaces/srv/AddLandmark` | Perception、外部/本地入口 | — |
-| N-12 | `/navigation/semanticmap/add_current_landmark` | Service | `robot_motion_interfaces/srv/AddCurrentLandmark` | Perception、外部/本地入口 | — |
-| N-13 | `/navigation/semanticmap/update_landmark` | Service | `robot_motion_interfaces/srv/UpdateLandmark` | Perception、外部/本地入口 | — |
-| N-14 | `/navigation/semanticmap/remove_landmark` | Service | `robot_motion_interfaces/srv/RemoveLandmark` | Perception、外部/本地入口 | — |
-| N-15 | `/navigation/semanticmap/get_landmark` | Service | `robot_motion_interfaces/srv/GetLandmark` | Perception、Autonomy、外部/本地入口 | — |
-| N-16 | `/navigation/semanticmap/get_map` | Service | `robot_motion_interfaces/srv/GetSemanticMap` | Perception、Autonomy、外部/本地入口 | — |
-| N-17 | `/navigation/mapping/set_turn_state` | Service | `robot_motion_interfaces/srv/SetMappingTurnState` | Autonomy、外部/本地入口 | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 Turn 边界，保留既有协议；不是 V3 底盘接管或同步运动接口；turn_sequence 单调递增，同一 BEGIN_TURN/TURN_COMPLETE 重试幂等 |
 | M-08 | `/motion/execute_stage` | Action | `robot_motion_interfaces/action/ExecuteMotionStage` | Autonomy | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 分阶段机械动作：12臂轴与Turn/Updown；保留供旧消费者迁移，不是 V3 双七轴或新抓放流程；不得通过旧流程调用已退役 VacuumGrip |
 | M-09 | `/rt/arms/rolling/target_batch` | Topic | `robot_motion_interfaces/msg/RollingJointTargetBatch` | RT-Control | Q_ROLLING_COMMAND；30 Hz；三代双七轴：right_joint1..7 后接 left_joint1..7；全部 rad/rad/s；从 replace_from 起替换缓冲轨迹，非运动臂仍须包含 |
 | M-06 | `/motion/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
-| N-06 | `/navigation/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
 | M-IF-02 | `/motion/pick_and_carry` | Action | `robot_motion_interfaces/action/PickAndCarry` | Autonomy | — |
 | M-IF-03 | `/motion/place_carried_boxes` | Action | `robot_motion_interfaces/action/PlaceCarriedBoxes` | Autonomy | — |
 | M-IF-05 | `/motion/state` | Topic | `robot_motion_interfaces/msg/ManipulationState` | Autonomy | Q_STATE；10 Hz |
-| N-IF-16 | `/navigation/detect_dropped_boxes` | Action | `robot_motion_interfaces/action/DetectDroppedBoxes` | Autonomy | — |
 | M-IF-04 | `/motion/move_to_posture` | Action | `robot_motion_interfaces/action/MoveToPosture` | Autonomy | — |
 | M-IF-06 | `/motion/terminate_task` | Service | `robot_motion_interfaces/srv/TerminateTask` | Autonomy | — |
 
-## 本域消费（23 条）
+## 本域消费（22 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -60,7 +45,6 @@
 | R-OUT-05L | `/rt/vacuum/left/pressure` | Topic | `sensor_msgs/msg/FluidPressure` | RT-Control | Q_STATE；20～50 Hz；ROS 标准类型 |
 | R-OUT-05R | `/rt/vacuum/right/pressure` | Topic | `sensor_msgs/msg/FluidPressure` | RT-Control | Q_STATE；20～50 Hz；ROS 标准类型 |
 | R-OUT-20 | `/rt/sensors/state` | Topic | `robot_rt_control_interfaces/msg/SensorStatusArray` | RT-Control | Q_STATE |
-| R-OUT-22 | `/rt/imu/data` | Topic | `sensor_msgs/msg/Imu` | RT-Control | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-23L | `/rt/force_torque/left_wrist/wrench` | Topic | `geometry_msgs/msg/WrenchStamped` | RT-Control | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-23R | `/rt/force_torque/right_wrist/wrench` | Topic | `geometry_msgs/msg/WrenchStamped` | RT-Control | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-07 | `/rt/arms/rolling/state` | Topic | `robot_rt_control_interfaces/msg/RollingJointControlState` | RT-Control | Q_ROLLING_STATE；50 Hz；最大年龄 200 ms；rolling 控制器激活期间发布；5 个字段：epoch、state、last_sequence、last_result、stop_reason |

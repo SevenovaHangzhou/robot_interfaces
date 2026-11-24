@@ -2,7 +2,7 @@
 
 ## 5. 接口总表
 
-ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = 导航能力（Motion 或 Perception 提供），`M` = Motion 提供，`R-IN` = RT-Control 输入，`R-OUT` = RT-Control 输出。
+ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = Navigation 提供，`M` = Motion 提供，`R-IN` = RT-Control 输入，`R-OUT` = RT-Control 输出。
 
 ### 5.1 任务入口（Autonomy 提供）
 
@@ -35,27 +35,12 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 
 | ID | ROS 名称 | 形式 / 类型 | 方向 | 关键约束 |
 | --- | --- | --- | --- | --- |
-| P-NAV-01 | `/odom` | Topic / `nav_msgs/msg/Odometry` | Motion → Perception、Autonomy | Navigation/Motion 发布融合里程计；50 Hz；最大年龄 200 ms；Perception 可用于定位/视觉时空对齐；**最终停稳证据** |
-| P-NAV-02 | `/tf` | Topic / `tf2_msgs/msg/TFMessage` | Motion → Perception、Autonomy | map→odom 定位边唯一发布者为 Navigation/Motion；/tf 按坐标边判唯一性 |
-| N-01 | `/navigation/navigate_to_pose` | Action / `robot_motion_interfaces/action/NavigateToPoseTask` | Autonomy ⇄ Motion | `target_name + map_version` 由 Motion 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次；SUCCEEDED 必须同时满足位置和朝向到位、定位有效、实际运动反馈确认已停稳，不以零速指令或 Nav2 自身成功代替；CANCELED 必须对应车已停止，无法确认时返回失败；目标与当前位置 XY 相同时原地旋转；受理时固定目标位姿 |
-| N-04 | `/rt/base/cmd_vel` | Topic / `geometry_msgs/msg/Twist` | Motion → RT-Control | 底盘速度入口，仅在 R-IN-23 为 VELOCITY_READY（使能后默认）时生效，FJT_READY 时不被接受；20～50 Hz；500 ms 本地接收超时；不与旧 `/cmd_vel_safe` 或未来第二 writer 并行生效；台架调试时 RT-Control 操作网页可替代 Motion 发送，与 Motion 互斥，同一时间只允许一个发送方 |
-| N-05 | `/navigation/localization/status` | Topic / `robot_motion_interfaces/msg/LocalizationStatus` | Motion → Autonomy | 发布者唯一；10～20 Hz；最大年龄 200 ms |
-| N-10 | `/navigation/semanticmap/landmark_array` | Topic / `robot_motion_interfaces/msg/LandmarkArray` | Motion → Perception、Autonomy、外部/本地入口 | 当前语义地图地标列表；按 map_version 区分地图版本 |
-| N-11 | `/navigation/semanticmap/add_landmark` | Service / `robot_motion_interfaces/srv/AddLandmark` | Perception、外部/本地入口 ⇄ Motion | 按指定位姿新增语义地标；返回 used_map_version 与最终地标 |
-| N-12 | `/navigation/semanticmap/add_current_landmark` | Service / `robot_motion_interfaces/srv/AddCurrentLandmark` | Perception、外部/本地入口 ⇄ Motion | 以当前 base_footprint 位姿新增语义地标；返回 used_map_version 与最终地标 |
-| N-13 | `/navigation/semanticmap/update_landmark` | Service / `robot_motion_interfaces/srv/UpdateLandmark` | Perception、外部/本地入口 ⇄ Motion | 更新语义地标属性和位姿；返回 used_map_version 与最终地标 |
-| N-14 | `/navigation/semanticmap/remove_landmark` | Service / `robot_motion_interfaces/srv/RemoveLandmark` | Perception、外部/本地入口 ⇄ Motion | 按 name 删除指定 map_version 内的语义地标 |
-| N-15 | `/navigation/semanticmap/get_landmark` | Service / `robot_motion_interfaces/srv/GetLandmark` | Perception、Autonomy、外部/本地入口 ⇄ Motion | 按 target_name 查询语义地标；N-01 服务端用它解析导航目标 |
-| N-16 | `/navigation/semanticmap/get_map` | Service / `robot_motion_interfaces/srv/GetSemanticMap` | Perception、Autonomy、外部/本地入口 ⇄ Motion | 查询指定 map_version 下全部语义地标 |
-| N-17 | `/navigation/mapping/set_turn_state` | Service / `robot_motion_interfaces/srv/SetMappingTurnState` | Autonomy、外部/本地入口 ⇄ Motion | 转台运动前 BEGIN_TURN 必须先暂停 FAST-LIO 到底盘的融合输入；停稳后同 caller_id、turn_sequence 的 TURN_COMPLETE 仅在实时 base_footprint←LiDAR TF 新鲜且连续稳定满配置窗口时切换固定外参，丢弃切换前排队里程计并恢复融合；乱序、并发事务或调用者不一致必须拒绝 |
 | M-08 | `/motion/execute_stage` | Action / `robot_motion_interfaces/action/ExecuteMotionStage` | Autonomy ⇄ Motion | 单一串行阶段 Action；无活动抓取流程时 TURN/CAMERA_VIEW/NAMED_JOINT_POSE 可任意独立触发；抓取流程固定 PREGRASP→APPROACH→PLACE→HOME，活动期间禁止独立任务、并发、跳步和提前触发 |
 | M-09 | `/rt/arms/rolling/target_batch` | Topic / `robot_motion_interfaces/msg/RollingJointTargetBatch` | Motion → RT-Control | 仅在 /rt/arms/set_control_mode 切到 ROLLING_READY 后生效；epoch 等于 R-OUT-07 当前 epoch；sequence 在同一 epoch 内严格递增；replace_from 为 ROS 时间（运控与 RT-Control 同机），不早于当前时刻 + 替换提前量；首点 time_from_start=0，位置与速度在拼接容差内等于缓冲轨迹在 replace_from 处的值；点时间严格递增，1～256 点，总长不超过缓冲上限；位置/速度/加速度不超过 robot_description 关节限位，且从任一点起都能在限值内停住；不满足整批拒绝，结果见 R-OUT-07 last_result；final=true 为本段最后一批，末点各轴速度须为 0（否则 FINAL_NOT_AT_REST）；最新接受的批次为 final 时不再需要后续批次、不计更新超时，执行到末点后保持并报 STOP_COMPLETED，期间仍可用新批次从其 replace_from 起替换，替换批次非 final 时恢复更新超时；最新接受的批次非 final 时，超过更新超时未收到有效批次，或缓冲耗尽时按限值刹停并保持；best-effort/volatile/keep-last(1)，deadline/lifespan 100 ms；台架调试时 RT-Control 操作网页可经 `robot_interfaces_rolling_client` 替代 Motion 发送，与 Motion 互斥，同一时间只允许一个发送方 |
 | M-06 | `/motion/readiness` | Topic / `robot_system_interfaces/msg/DomainReadiness` | Motion → Autonomy | 机械能力准入；变化立即发；稳定 1 Hz |
-| N-06 | `/navigation/readiness` | Topic / `robot_system_interfaces/msg/DomainReadiness` | Motion → Autonomy | 导航执行能力准入；变化立即发；稳定 1 Hz |
 | M-IF-02 | `/motion/pick_and_carry` | Action / `robot_motion_interfaces/action/PickAndCarry` | Autonomy ⇄ Motion | 一个 Action 内完成检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位，不设独立可行性接口；tcp_target 为 base_link 下 TCP，Motion 不再叠加工具偏移；uses_wall_map=true 时 navigation_map_version、wall_producer_instance_id、wall_map_version 取自换算 TCP 所用的同一份视觉快照引用，其中 navigation_map_version 是视觉的物理地图身份，不是导航语义地图版本；Motion 不启停泵；开阀后收到参与侧 p<=-60 kPa 的有效新压力样本即抽离，不加固定延时或多帧稳定等待，抽离不需要 Autonomy 批准；source_observed_at 只作记录，不作为拒绝条件；分臂给出成功/失败/取消/未知，一侧成功一侧失败时 overall=PARTIAL 并以 ABORTED 返回，保留成功侧事实；同时只接受一个 Goal，忙时拒绝；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不自动松阀、不关泵、不回 Home；purpose=DROPPED_BOX_RECOVERY 使用地面回收场景配置 |
 | M-IF-03 | `/motion/place_carried_boxes` | Action / `robot_motion_interfaces/action/PlaceCarriedBoxes` | Autonomy ⇄ Motion | 前提是导航已到卸货朝向并停稳；顺序为 LM 运动到 Motion 配置的默认放置位、关闭所选阀并读回确认、延时、回 Home、确认停稳；不关泵；允许只释放实际仍持箱的一侧，并按剩余载荷规划；箱 ID 与持箱记录不一致时在释放前拒绝；阀已释放但回 Home 失败时整体不成功，保留已释放的事实，不重新释放；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不松阀、不回 Home，不反转已释放的输出 |
 | M-IF-05 | `/motion/state` | Topic / `robot_motion_interfaces/msg/ManipulationState` | Motion → Autonomy | 持续发布执行事实：当前操作、分臂阶段、关联箱 ID、吸附事实、阀输出是否已确认释放、上部是否停稳；Action 结束后继续发布；持箱与否的业务判断由 Autonomy 做；各项观测带自己的时间，重发不刷新旧观测时间 |
-| N-IF-16 | `/navigation/detect_dropped_boxes` | Action / `robot_motion_interfaces/action/DetectDroppedBoxes` | Autonomy ⇄ Motion | 一个 Goal 执行一轮检测，不常驻监听；必须能检出请求发出前已经落地的箱子；Autonomy 判定掉箱后先取消在途导航与运控动作再立即发起；reference_valid=true 时 reference_stamp 是掉箱前仍在吸附的时刻再提前 1 s（电控压力消息头时钟），导航须保留至少 5 s 的点云/高度图历史以便回看该时刻（导航已确认）；导航 Goal 被取消时先停车再以 CANCELED 结束（见 N-01）；reference_valid=false 时按无基准方式检测，不得拒绝；同时只接受一个 Goal；有效完成且有候选：SUCCEEDED/ok=true/detected=true；有效完成无候选：SUCCEEDED/ok=true/detected=false；点云不可用、TF 失败或超时：ABORTED/ok=false，不能当作现场无箱；取消：CANCELED，只停检测，不发停车指令；超时计时独立于点云回调；结果只在 Result 里一次返回；候选为 odom 下粗定位，数量不限于 2 |
 | M-IF-04 | `/motion/move_to_posture` | Action / `robot_motion_interfaces/action/MoveToPosture` | Autonomy ⇄ Motion | posture_id=home 时回到默认 Home；按两侧实际压力判断空载，不按内部任务记录；压力显示仍吸着时拒绝并说明是哪一侧；从当前实际关节位置规划；不启停泵、不动阀；取消时手臂原地停下并以 CANCELED 返回；旧的任务记录由 M-IF-06 清除，本接口不依赖也不清除 |
 | M-IF-06 | `/motion/terminate_task` | Service / `robot_motion_interfaces/srv/TerminateTask` | Autonomy ⇄ Motion | 联调重置的第一步，独立于各 Action 的取消；手臂原地停下并确认停稳后才返回；在途的 PickAndCarry、PlaceCarriedBoxes、MoveToPosture 均以 CANCELED 结束；清除内部任务记录（目标集合、持箱记录），之后 MoveToPosture 和 PickAndCarry 必须能被受理；不动阀、不启停泵、不回 Home、不规划新动作；幂等，空闲时也返回 terminated=true；停稳确认超时返回 terminated=false 并在 error 中说明 |
 
@@ -77,7 +62,7 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | R-IN-05L | `/rt/vacuum/left_valve/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetEnabled` | Motion、Autonomy ⇄ RT-Control | enabled=true 吸附、false 释放；输出回读确认即返回 accepted=true，不等待建立真空；同侧忙拒绝；RT 不自动重试；输出未确认或未知时 accepted=false 并在 error 给出原因；正常抓放由 Motion 调用；Autonomy 只在重置流程和联调操作页的人工开关时调用，流程自动执行期间不调用 |
 | R-IN-05R | `/rt/vacuum/right_valve/set_enabled` | Service / `robot_rt_control_interfaces/srv/SetEnabled` | Motion、Autonomy ⇄ RT-Control | 同 R-IN-05L，作用于右阀 |
 | R-IN-06 | `/rt/arms/set_control_mode` | Service / `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion ⇄ RT-Control | 仅在已使能且手臂静止时切换 FJT_READY/ROLLING_READY（VELOCITY_READY 只用于底盘 R-IN-23，手臂拒绝）；切换前 Motion 取消并等待 R-IN-02 Action 终态；新控制器以当前位置保持起步；失败时 accepted=false 并给出 ErrorInfo，mode 为调用后的实际模式；歧义切换进入 RESTART_REQUIRED（见 R-OUT-09） |
-| R-IN-23 | `/rt/base/set_control_mode` | Service / `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion ⇄ RT-Control | 仅在已使能且底盘静止时在 VELOCITY_READY（舵轮控制器接受 N-04，行走轮 CSV）与 FJT_READY（R-IN-24/R-IN-25 的轮子轨迹控制器接管 8 个轮关节位置，行走轮 CSP）之间切换；使能后默认 VELOCITY_READY；切换前 Motion 停发 N-04、取消并等待 R-IN-24 Action 终态；新控制器以当前位置保持起步，行走轮驱动器确认新模式后才返回成功；ROLLING_READY 拒绝；失败时 accepted=false 并给出 ErrorInfo，mode 为调用后的实际模式；歧义切换进入 RESTART_REQUIRED（见 R-OUT-09） |
+| R-IN-23 | `/rt/base/set_control_mode` | Service / `robot_rt_control_interfaces/srv/SetJointControlMode` | Motion ⇄ RT-Control | 仅在已使能且底盘静止时在 VELOCITY_READY（舵轮控制器接受 N-04，行走轮 CSV）与 FJT_READY（R-IN-24/R-IN-25 的轮子轨迹控制器接管 8 个轮关节位置，行走轮 CSP）之间切换；使能后默认 VELOCITY_READY；切换前协调 Navigation 停发 N-04、由 Motion 取消并等待 R-IN-24 Action 终态；新控制器以当前位置保持起步，行走轮驱动器确认新模式后才返回成功；ROLLING_READY 拒绝；失败时 accepted=false 并给出 ErrorInfo，mode 为调用后的实际模式；歧义切换进入 RESTART_REQUIRED（见 R-OUT-09） |
 | R-IN-24 | `/rt/base/follow_joint_trajectory` | Action / `control_msgs/action/FollowJointTrajectory` | Motion ⇄ RT-Control | 仅在 R-IN-23 为 FJT_READY 时接受；完整 8 轴；位置 rad、速度 rad/s；转向位置在机器人模型限位内；`allow_partial_joints_goal=false`；整组取消。准入（RT-Control 实时侧）：每点必须带速度、末点速度为 0；首点时间为 0 时距实测位置 ≤ 1°，首点在未来时距实测位置 ≤ 速度上限×首点时间；速度与加速度不超过底盘导航限值（转向 35°/s、35°/s²；行走轮轮面 2 m/s、2 m/s²，按轮半径换算为关节单位；由 RT-Control 底盘导航配置拥有，与 N-04 同一组）；不满足时整条拒绝（INVALID_GOAL），不执行半条 |
 | R-IN-25 | `/rt/base/joint_trajectory` | Topic / `trajectory_msgs/msg/JointTrajectory` | RT-Control → Motion | 仅在 R-IN-23 为 FJT_READY 时接受；完整 8 轴；位置 rad、速度 rad/s；准入同 R-IN-24；用 header.stamp 标注首点时间基准；末点速度必须为 0；控制器从上一条指令接续新轨迹；与 R-IN-24 并发时以最后到达者为准（执行中的 action 目标被中止） |
 | R-IN-12 | `/rt/led/set_rgbw` | Service / `robot_rt_control_interfaces/srv/SetLedRgbw` | Autonomy ⇄ RT-Control | 六路灯带完整 RGBW 设置；全零灭灯；响应只证明通信写确认，不证明实际发光；退出和重启不主动改色或重放 |
@@ -87,9 +72,9 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 
 | ID | ROS 名称 | 形式 / 类型 | 方向 | 关键约束 |
 | --- | --- | --- | --- | --- |
-| R-OUT-01 | `/tf` | Topic / `tf2_msgs/msg/TFMessage` | RT-Control → Perception、Motion、Autonomy | 本体动态坐标边唯一；`map→odom` 与 `odom→base_footprint` 不由本域发布 |
-| R-OUT-01S | `/tf_static` | Topic / `tf2_msgs/msg/TFMessage` | RT-Control → Perception、Motion、Autonomy | 本体固定坐标边唯一；`Q_LATCHED`；与 `/tf` 分开登记 |
-| R-OUT-02 | `/rt/base/odom` | Topic / `nav_msgs/msg/Odometry` | RT-Control → Perception | `frame_id=odom`、`child_frame_id=base_footprint`；`Q_FAST_STATE`；50 Hz；**不作为到站或停稳最终证据** |
+| R-OUT-01 | `/tf` | Topic / `tf2_msgs/msg/TFMessage` | RT-Control → Perception、Motion、Navigation、Autonomy | 本体动态坐标边唯一；`map→odom` 与 `odom→base_footprint` 不由本域发布 |
+| R-OUT-01S | `/tf_static` | Topic / `tf2_msgs/msg/TFMessage` | RT-Control → Perception、Motion、Navigation、Autonomy | 本体固定坐标边唯一；`Q_LATCHED`；与 `/tf` 分开登记 |
+| R-OUT-02 | `/rt/base/odom` | Topic / `nav_msgs/msg/Odometry` | RT-Control → Perception、Navigation | `frame_id=odom`、`child_frame_id=base_footprint`；`Q_FAST_STATE`；50 Hz；**不作为到站或停稳最终证据** |
 | R-OUT-03 | `/joint_states` | Topic / `sensor_msgs/msg/JointState` | RT-Control → Motion、Perception、Autonomy | 双臂、PP、升降、头部及底盘相关关节使用统一入口；不填伪造零值、不刷新旧样本时间、不把多模块拼成虚假同步快照 |
 | R-OUT-04L | `/rt/battery/left/state` | Topic / `sensor_msgs/msg/BatteryState` | RT-Control → Autonomy | 左电池（BMS 地址 1）；BMS 周期 5 s（0.2 Hz）；只读，不作为业务控制入口 |
 | R-OUT-04R | `/rt/battery/right/state` | Topic / `sensor_msgs/msg/BatteryState` | RT-Control → Autonomy | 右电池（BMS 地址 2）；BMS 周期 5 s（0.2 Hz）；只读，不作为业务控制入口 |
@@ -103,13 +88,33 @@ ID 前缀含义：`G` = Gateway/本地入口，`P` = Perception 提供，`N` = �
 | R-OUT-19F | `/rt/ultrasonic/channel6/range` | Topic / `sensor_msgs/msg/Range` | RT-Control → Autonomy | 同 R-OUT-19E；通道与安装外参须由版本化配置确认 |
 | R-OUT-19G | `/rt/ultrasonic/channel7/range` | Topic / `sensor_msgs/msg/Range` | RT-Control → Autonomy | 同 R-OUT-19E；通道与安装外参须由版本化配置确认 |
 | R-OUT-19H | `/rt/ultrasonic/channel8/range` | Topic / `sensor_msgs/msg/Range` | RT-Control → Autonomy | 同 R-OUT-19E；通道与安装外参须由版本化配置确认 |
-| R-OUT-29 | `/rt/base/wheel_observations` | Topic / `robot_rt_control_interfaces/msg/WheelObservationArray` | RT-Control → Autonomy | 只发硬件实测反馈，不发指令或融合速度；四轮固定 FL/FR/RL/RR 且带 wheel_id；行走位置与速度同一样本；两路转向角分开、无效不互相填补；逐通道采样时间、时间来源、样本序号与连续性代号，重复样本不刷新时间和序号；底盘失能时照常发布 |
+| R-OUT-29 | `/rt/base/wheel_observations` | Topic / `robot_rt_control_interfaces/msg/WheelObservationArray` | RT-Control → Navigation | 只发硬件实测反馈，不发指令或融合速度；四轮固定 FL/FR/RL/RR 且带 wheel_id；行走位置与速度同一样本；两路转向角分开、无效不互相填补；逐通道采样时间、时间来源、样本序号与连续性代号，重复样本不刷新时间和序号；底盘失能时照常发布 |
 | R-OUT-20 | `/rt/sensors/state` | Topic / `robot_rt_control_interfaces/msg/SensorStatusArray` | RT-Control → Motion、Autonomy | 逐传感器声明有效、无目标、协议异常、通信错误、过期或未配置；每项保留真实样本时间，数组发布时间不刷新旧观测 |
 | R-OUT-21 | `/rt/infrared/state` | Topic / `robot_rt_control_interfaces/msg/DigitalInputStateArray` | RT-Control → Autonomy | 手臂红外只表示目标检测开关量；逐通道标识、原始电平、语义状态和有效性；未知不得当成未检测，不直接触发运动停止 |
-| R-OUT-22 | `/rt/imu/data` | Topic / `sensor_msgs/msg/Imu` | RT-Control → Motion | 当前 Navigation 职责由 motion 域消费；SI 单位；时间为主机发布/接收链语义，不声明设备同步；无效拼接不重发旧测量；独立磁场不公开 |
+| R-OUT-22 | `/rt/imu/data` | Topic / `sensor_msgs/msg/Imu` | RT-Control → Navigation | 由 navigation 域消费；SI 单位；时间为主机发布/接收链语义，不声明设备同步；无效拼接不重发旧测量；独立磁场不公开 |
 | R-OUT-23L | `/rt/force_torque/left_wrist/wrench` | Topic / `geometry_msgs/msg/WrenchStamped` | RT-Control → Motion | 左传感器坐标系、N/Nm、经设备标定与单位换算；不做工具/箱子重力补偿、不自动调零；配置未闭合时不可宣称有效 |
 | R-OUT-23R | `/rt/force_torque/right_wrist/wrench` | Topic / `geometry_msgs/msg/WrenchStamped` | RT-Control → Motion | 右传感器坐标系、N/Nm、经设备标定与单位换算；不做工具/箱子重力补偿、不自动调零；配置未闭合时不可宣称有效 |
 | R-OUT-07 | `/rt/arms/rolling/state` | Topic / `robot_rt_control_interfaces/msg/RollingJointControlState` | RT-Control → Motion | 每次激活 epoch 加 1；state 为 HOLDING（无轨迹）/STARTING（开始一段轨迹的批次已接受，等待其 replace_from）/RUNNING/STOPPING；last_sequence/last_result 只报本 epoch 最新收到的批次；stop_reason 为当前或最近一段轨迹的停止原因，自开始该段的批次被接受起为 STOP_NONE，停止后保持到下一段开始；final 轨迹执行到末点报 STOP_COMPLETED，由 RUNNING 直接进入 HOLDING；reliable/volatile/keep-last(5)，deadline 100 ms、lifespan 200 ms |
 | R-OUT-09 | `/rt/readiness` | Topic / `robot_system_interfaces/msg/DomainReadiness` | RT-Control → Autonomy | ready 表示 RT-Control 当前能接收指令：未使能、控制器或硬件未激活、设备离线或故障锁存均为 false，blockers 给出稳定标记；变化立即发；稳定 1 Hz |
 | R-OUT-28 | `/rt/capabilities` | Topic / `std_msgs/msg/String` | RT-Control → 外部/本地入口 | JSON 对象：schema_version=1、control_scope、use_mock_hardware、capabilities（本作用域提供的能力名列表）、hardware；作用域启动时发布一次 |
 | R-OUT-10 | `/diagnostics` | Topic / `diagnostic_msgs/msg/DiagnosticArray` | RT-Control → 外部/本地入口 | `Q_DIAGNOSTIC`；不替代 Action Result、readiness 或硬安全链 |
+
+### 5.6 Navigation 提供
+
+| ID | ROS 名称 | 形式 / 类型 | 方向 | 关键约束 |
+| --- | --- | --- | --- | --- |
+| P-NAV-01 | `/odom` | Topic / `nav_msgs/msg/Odometry` | Navigation → Perception、Autonomy | Navigation 发布融合里程计；50 Hz；最大年龄 200 ms；Perception 可用于定位/视觉时空对齐；**最终停稳证据** |
+| P-NAV-02 | `/tf` | Topic / `tf2_msgs/msg/TFMessage` | Navigation → Perception、Autonomy | map→odom 定位边唯一发布者为 Navigation；/tf 按坐标边判唯一性 |
+| N-01 | `/navigation/navigate_to_pose` | Action / `robot_navigation_interfaces/action/NavigateToPoseTask` | Autonomy ⇄ Navigation | `target_name + map_version` 由 Navigation 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次；SUCCEEDED 必须同时满足位置和朝向到位、定位有效、实际运动反馈确认已停稳，不以零速指令或 Nav2 自身成功代替；CANCELED 必须对应车已停止，无法确认时返回失败；目标与当前位置 XY 相同时原地旋转；受理时固定目标位姿 |
+| N-04 | `/rt/base/cmd_vel` | Topic / `geometry_msgs/msg/Twist` | Navigation → RT-Control | 底盘速度入口，仅在 R-IN-23 为 VELOCITY_READY（使能后默认）时生效，FJT_READY 时不被接受；20～50 Hz；500 ms 本地接收超时；不与旧 `/cmd_vel_safe` 或未来第二 writer 并行生效；台架调试时 RT-Control 操作网页可替代 Navigation 发送，与 Navigation 互斥，同一时间只允许一个发送方 |
+| N-05 | `/navigation/localization/status` | Topic / `robot_navigation_interfaces/msg/LocalizationStatus` | Navigation → Autonomy | 发布者唯一；10～20 Hz；最大年龄 200 ms |
+| N-10 | `/navigation/semanticmap/landmark_array` | Topic / `robot_navigation_interfaces/msg/LandmarkArray` | Navigation → Perception、Autonomy、外部/本地入口 | 当前语义地图地标列表；按 map_version 区分地图版本 |
+| N-11 | `/navigation/semanticmap/add_landmark` | Service / `robot_navigation_interfaces/srv/AddLandmark` | Perception、外部/本地入口 ⇄ Navigation | 按指定位姿新增语义地标；返回 used_map_version 与最终地标 |
+| N-12 | `/navigation/semanticmap/add_current_landmark` | Service / `robot_navigation_interfaces/srv/AddCurrentLandmark` | Perception、外部/本地入口 ⇄ Navigation | 以当前 base_footprint 位姿新增语义地标；返回 used_map_version 与最终地标 |
+| N-13 | `/navigation/semanticmap/update_landmark` | Service / `robot_navigation_interfaces/srv/UpdateLandmark` | Perception、外部/本地入口 ⇄ Navigation | 更新语义地标属性和位姿；返回 used_map_version 与最终地标 |
+| N-14 | `/navigation/semanticmap/remove_landmark` | Service / `robot_navigation_interfaces/srv/RemoveLandmark` | Perception、外部/本地入口 ⇄ Navigation | 按 name 删除指定 map_version 内的语义地标 |
+| N-15 | `/navigation/semanticmap/get_landmark` | Service / `robot_navigation_interfaces/srv/GetLandmark` | Perception、Autonomy、外部/本地入口 ⇄ Navigation | 按 target_name 查询语义地标；N-01 服务端用它解析导航目标 |
+| N-16 | `/navigation/semanticmap/get_map` | Service / `robot_navigation_interfaces/srv/GetSemanticMap` | Perception、Autonomy、外部/本地入口 ⇄ Navigation | 查询指定 map_version 下全部语义地标 |
+| N-17 | `/navigation/mapping/set_turn_state` | Service / `robot_navigation_interfaces/srv/SetMappingTurnState` | Autonomy、外部/本地入口 ⇄ Navigation | 转台运动前 BEGIN_TURN 必须先暂停 FAST-LIO 到底盘的融合输入；停稳后同 caller_id、turn_sequence 的 TURN_COMPLETE 仅在实时 base_footprint←LiDAR TF 新鲜且连续稳定满配置窗口时切换固定外参，丢弃切换前排队里程计并恢复融合；乱序、并发事务或调用者不一致必须拒绝 |
+| N-06 | `/navigation/readiness` | Topic / `robot_system_interfaces/msg/DomainReadiness` | Navigation → Autonomy | 导航执行能力准入；变化立即发；稳定 1 Hz |
+| N-IF-16 | `/navigation/detect_dropped_boxes` | Action / `robot_navigation_interfaces/action/DetectDroppedBoxes` | Autonomy ⇄ Navigation | 一个 Goal 执行一轮检测，不常驻监听；必须能检出请求发出前已经落地的箱子；Autonomy 判定掉箱后先取消在途导航与运控动作再立即发起；reference_valid=true 时 reference_stamp 是掉箱前仍在吸附的时刻再提前 1 s（电控压力消息头时钟），导航须保留至少 5 s 的点云/高度图历史以便回看该时刻（导航已确认）；导航 Goal 被取消时先停车再以 CANCELED 结束（见 N-01）；reference_valid=false 时按无基准方式检测，不得拒绝；同时只接受一个 Goal；有效完成且有候选：SUCCEEDED/ok=true/detected=true；有效完成无候选：SUCCEEDED/ok=true/detected=false；点云不可用、TF 失败或超时：ABORTED/ok=false，不能当作现场无箱；取消：CANCELED，只停检测，不发停车指令；超时计时独立于点云回调；结果只在 Result 里一次返回；候选为 odom 下粗定位，数量不限于 2 |
