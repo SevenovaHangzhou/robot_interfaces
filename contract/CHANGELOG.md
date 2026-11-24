@@ -44,6 +44,27 @@
 - **提出人**：@kkozia188（autonomy）
 - **影响域**：导航服务端、Autonomy、视觉、外部地标工具和仪表盘需同步切换依赖与导入。ROS 名称和业务字段保持原约定，类型全名改变，混跑时同名端点无法匹配。各方在同一窗口重新编译并切换，回滚时一起恢复到 `c7d53ac`。详见[导航包迁移](../docs/navigation-package-migration.md)。
 
+### 新增：导航末端旋转租约与固定 91 字段执行反馈
+
+- **接口**：N-07 `/rt/base/terminal_rotation_request`、R-OUT-30
+  `/rt/base/terminal_rotation_active` 使用 `std_msgs/msg/Bool`；R-OUT-31
+  `/rt/base/execution_state` 及用户指定的同快照兼容出口 R-OUT-31C
+  `/rt_control/chassis/execution_state` 使用 `std_msgs/msg/Float64MultiArray`；
+  R-OUT-32 `/rt_control/chassis/joint_states` 使用 `sensor_msgs/msg/JointState`。
+  `navigation-execution-v1.md` 定义 v1 的 31+4×15=91 固定字段、NaN 无效语义、
+  有效动态限值、物理接线 module1..4 次序及 θ=-q 归一化实测转向角；执行数组轮速 m/s，
+  JointState 轮速 rad/s。请求/active 50 Hz；执行反馈/JointState 100 Hz。
+- **原因**：导航需要受控的末端旋转意图与可判读的执行状态，而不能用指令回显冒充实测；
+  设计归档于 [robot_driver#334](https://github.com/SevenovaHangzhou/robot_driver/issues/334)。
+  无可用导航参考源码，故明确自有 v1，不声称旧参考字节或索引兼容。请求使用 RT 本地单调
+  时钟 <=300 ms 租约，失能/故障/生命周期退出/模式离开后清除且必须收到新请求。
+- **提出人**：@kkozia（rt_control / motion）
+- **影响域**：RT-Control、Navigation、Autonomy，统一接口 SHA 原子升级；标准外部
+  类型不新增 IDL 或依赖包装。兼容出口来自同一快照，禁止重复融合。现有 cmd_vel、odom、
+  wheel_observations、模型、映射与标定不变。接口评审发布后生产者与消费者同窗升级，联调
+  验证后另行授权部署；回滚所有受影响域至各自上一组协同 SHA 并停止使用新出口。
+  GitHub-only 追踪由用户明确授权至 Linear 恢复；本地实现不授权提交、推送或部署。
+
 ### 破坏性：纠正 Rolling 的三代机双七轴语义与轴身份
 
 - **接口**：M-09 `RollingJointPoint/RollingJointTargetBatch`、R-IN-07
