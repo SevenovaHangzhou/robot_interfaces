@@ -148,6 +148,19 @@ endpoints:
     note: "由 navigation 域发送；Twist 无 header，看门狗只使用 RT 本地接收间隔；后续 Motion 接管底盘另立协议"
     constraint: "底盘速度入口，仅在 R-IN-23 为 VELOCITY_READY（使能后默认）时生效，FJT_READY 时不被接受；20～50 Hz；500 ms 本地接收超时；不与旧 `/cmd_vel_safe` 或未来第二 writer 并行生效；台架调试时 RT-Control 操作网页可替代 Navigation 发送，与 Navigation 互斥，同一时间只允许一个发送方"
 
+  - id: N-07
+    ros_name: /rt/base/terminal_rotation_request
+    kind: topic
+    type: std_msgs/msg/Bool
+    producer: navigation
+    consumers: [rt_control]
+    qos: Q_CONTROL
+    rate_hz: [50, 50]
+    watchdog_ms: 300
+    external_type: true
+    note: "Navigation provides this request, as for N-04; design robot_driver#334"
+    constraint: "Only a terminal-rotation intent, never enable or velocity authority; true renews a local monotonic lease valid through age <=300 ms, expired at >300 ms; false clears on the next core tick without waiting for lease expiry; inactive lifecycle, disable, fault, or leaving VELOCITY_READY clears and requires a new request; no retained/replayed request; see contract/navigation-execution-v1.md"
+
 
   - id: N-05
     ros_name: /navigation/localization/status
@@ -691,6 +704,54 @@ endpoints:
     rate_hz: [100, 100]
     note: "逐轮观测，供导航逐轮融合；与 R-OUT-02 同源，导航不得把两者同时作为独立观测"
     constraint: "只发硬件实测反馈，不发指令或融合速度；四轮固定 FL/FR/RL/RR 且带 wheel_id；行走位置与速度同一样本；两路转向角分开、无效不互相填补；逐通道采样时间、时间来源、样本序号与连续性代号，重复样本不刷新时间和序号；底盘失能时照常发布"
+
+  - id: R-OUT-30
+    ros_name: /rt/base/terminal_rotation_active
+    kind: topic
+    type: std_msgs/msg/Bool
+    producer: rt_control
+    consumers: [navigation, autonomy]
+    qos: Q_FAST_STATE
+    rate_hz: [50, 50]
+    max_age_ms: 300
+    external_type: true
+    constraint: "Actual accepted terminal-rotation execution state, not an echo or completion signal; false on expired request, disable, fault, inactive lifecycle, or non-VELOCITY_READY; publish false while publisher is alive even when execution is disabled; absence is unknown, never active; see contract/navigation-execution-v1.md"
+
+  - id: R-OUT-31
+    ros_name: /rt/base/execution_state
+    kind: topic
+    type: std_msgs/msg/Float64MultiArray
+    producer: rt_control
+    consumers: [navigation, autonomy]
+    qos: Q_FAST_STATE
+    rate_hz: [100, 100]
+    max_age_ms: 300
+    external_type: true
+    constraint: "Exactly 91 fields, v1 layout and NaN invalid semantics defined by contract/navigation-execution-v1.md; 31 header + four 15-field modules in physical wiring module1..4 order, not wheel_observations order; wheel speeds m/s; calibrated external encoder heading theta; coherent snapshot; unavailable feedback never replaced with commands; does not prove arrival or stopping"
+
+  - id: R-OUT-31C
+    ros_name: /rt_control/chassis/execution_state
+    kind: topic
+    type: std_msgs/msg/Float64MultiArray
+    producer: rt_control
+    consumers: [navigation, autonomy]
+    qos: Q_FAST_STATE
+    rate_hz: [100, 100]
+    max_age_ms: 300
+    external_type: true
+    constraint: "User-requested compatibility endpoint: identical layout, data, sequence and timestamp from the same snapshot as R-OUT-31, not a second estimate; consumers select one endpoint, never fuse both; no byte/index compatibility claimed with unavailable navigation reference"
+
+  - id: R-OUT-32
+    ros_name: /rt_control/chassis/joint_states
+    kind: topic
+    type: sensor_msgs/msg/JointState
+    producer: rt_control
+    consumers: [navigation, autonomy]
+    qos: Q_FAST_STATE
+    rate_hz: [100, 100]
+    max_age_ms: 300
+    external_type: true
+    constraint: "Normalized navigation feedback, not URDF /joint_states: names [module_1_steering, module_1_wheel, module_2_steering, module_2_wheel, module_3_steering, module_3_wheel, module_4_steering, module_4_wheel], interleaved physical wiring order1..4; steering position is calibrated external encoder heading theta=-q, steering velocity NaN because measured rate unavailable; actual wheel position rad and velocity rad/s; NaN unavailable; effort empty; frame_id=base_footprint; same snapshot time as R-OUT-31; no robot_state_publisher/TF use or model/calibration/mapping changes; see contract/navigation-execution-v1.md"
 
 
   - id: R-OUT-20
