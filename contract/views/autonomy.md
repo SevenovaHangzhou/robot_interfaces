@@ -15,7 +15,7 @@
 | --- | --- | --- | --- | --- | --- |
 | G-01 | `/autonomy/execute_demo_task` | Action | `robot_autonomy_interfaces/action/ExecuteDemoTask` | 外部/本地入口 | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 Demo schema；不能直接用于 V3 任务；V3 Autonomy 仅按注册表调用泵/LED/保护复位，不直接控制阀/运动 |
 
-## 本域消费（55 条）
+## 本域消费（59 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -53,6 +53,10 @@
 | R-OUT-19G | `/rt/ultrasonic/channel7/range` | Topic | `sensor_msgs/msg/Range` | RT-Control | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
 | R-OUT-19H | `/rt/ultrasonic/channel8/range` | Topic | `sensor_msgs/msg/Range` | RT-Control | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
 | R-OUT-29 | `/rt/base/wheel_observations` | Topic | `robot_rt_control_interfaces/msg/WheelObservationArray` | RT-Control | Q_FAST_STATE；100 Hz；逐轮观测，供导航（autonomy 域）逐轮融合；与 R-OUT-02 同源，导航不得把两者同时作为独立观测 |
+| R-OUT-30 | `/rt/base/terminal_rotation_active` | Topic | `std_msgs/msg/Bool` | RT-Control | Q_FAST_STATE；50 Hz；最大年龄 300 ms；ROS 标准类型 |
+| R-OUT-31 | `/rt/base/execution_state` | Topic | `std_msgs/msg/Float64MultiArray` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 300 ms；ROS 标准类型 |
+| R-OUT-31C | `/rt_control/chassis/execution_state` | Topic | `std_msgs/msg/Float64MultiArray` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 300 ms；ROS 标准类型 |
+| R-OUT-32 | `/rt_control/chassis/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 300 ms；ROS 标准类型 |
 | R-OUT-20 | `/rt/sensors/state` | Topic | `robot_rt_control_interfaces/msg/SensorStatusArray` | RT-Control | Q_STATE |
 | R-OUT-21 | `/rt/infrared/state` | Topic | `robot_rt_control_interfaces/msg/DigitalInputStateArray` | RT-Control | Q_STATE |
 | R-OUT-09 | `/rt/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | RT-Control | Q_LATCHED；1 Hz |

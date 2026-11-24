@@ -9,7 +9,7 @@
 本文只列 RT-Control 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（45 条）
+## 本域提供（49 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -49,6 +49,10 @@
 | R-OUT-19G | `/rt/ultrasonic/channel7/range` | Topic | `sensor_msgs/msg/Range` | Autonomy | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
 | R-OUT-19H | `/rt/ultrasonic/channel8/range` | Topic | `sensor_msgs/msg/Range` | Autonomy | Q_FAST_STATE；最大年龄 2500 ms；ROS 标准类型 |
 | R-OUT-29 | `/rt/base/wheel_observations` | Topic | `robot_rt_control_interfaces/msg/WheelObservationArray` | Autonomy | Q_FAST_STATE；100 Hz；逐轮观测，供导航（autonomy 域）逐轮融合；与 R-OUT-02 同源，导航不得把两者同时作为独立观测 |
+| R-OUT-30 | `/rt/base/terminal_rotation_active` | Topic | `std_msgs/msg/Bool` | Motion、Autonomy | Q_FAST_STATE；50 Hz；最大年龄 300 ms；ROS 标准类型 |
+| R-OUT-31 | `/rt/base/execution_state` | Topic | `std_msgs/msg/Float64MultiArray` | Motion、Autonomy | Q_FAST_STATE；100 Hz；最大年龄 300 ms；ROS 标准类型 |
+| R-OUT-31C | `/rt_control/chassis/execution_state` | Topic | `std_msgs/msg/Float64MultiArray` | Motion、Autonomy | Q_FAST_STATE；100 Hz；最大年龄 300 ms；ROS 标准类型 |
+| R-OUT-32 | `/rt_control/chassis/joint_states` | Topic | `sensor_msgs/msg/JointState` | Motion、Autonomy | Q_FAST_STATE；100 Hz；最大年龄 300 ms；ROS 标准类型 |
 | R-OUT-20 | `/rt/sensors/state` | Topic | `robot_rt_control_interfaces/msg/SensorStatusArray` | Motion、Autonomy | Q_STATE |
 | R-OUT-21 | `/rt/infrared/state` | Topic | `robot_rt_control_interfaces/msg/DigitalInputStateArray` | Autonomy | Q_STATE |
 | R-OUT-22 | `/rt/imu/data` | Topic | `sensor_msgs/msg/Imu` | Motion | Q_FAST_STATE；ROS 标准类型 |
@@ -59,11 +63,12 @@
 | R-OUT-28 | `/rt/capabilities` | Topic | `std_msgs/msg/String` | 外部/本地入口 | Q_LATCHED；ROS 标准类型 |
 | R-OUT-10 | `/diagnostics` | Topic | `diagnostic_msgs/msg/DiagnosticArray` | 外部/本地入口 | Q_DIAGNOSTIC；ROS 标准类型；不得替代 Action Result 或 readiness 证据 |
 
-## 本域消费（2 条）
+## 本域消费（3 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
 | N-04 | `/rt/base/cmd_vel` | Topic | `geometry_msgs/msg/Twist` | Motion | Q_CONTROL；20～50 Hz；看门狗 500 ms；ROS 标准类型；当前 Navigation 职责由 motion 域承载；Twist 无 header，看门狗只使用 RT 本地接收间隔；后续 Motion 接管底盘另立协议 |
+| N-07 | `/rt/base/terminal_rotation_request` | Topic | `std_msgs/msg/Bool` | Motion | Q_CONTROL；50 Hz；看门狗 300 ms；ROS 标准类型；Navigation is carried by motion, as for N-04; design robot_driver#334 |
 | M-09 | `/rt/arms/rolling/target_batch` | Topic | `robot_motion_interfaces/msg/RollingJointTargetBatch` | Motion | Q_ROLLING_COMMAND；30 Hz；三代双七轴：right_joint1..7 后接 left_joint1..7；全部 rad/rad/s；从 replace_from 起替换缓冲轨迹，非运动臂仍须包含 |
 
 ## 已删除的 endpoint
