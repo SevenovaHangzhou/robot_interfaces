@@ -37,6 +37,44 @@
 
 ## [Unreleased]
 
+### 破坏性：运控终止与复位拆成两步，回 Home 空载准入归 Autonomy
+
+- **接口**：M-IF-06 `/motion/terminate_task`（`robot_motion_interfaces/srv/TerminateTask`）响应改为
+  `accepted`、`stopped`、`stop_confirmation_valid`、`final_state`、`context`、`error`，只停止并确认停稳，
+  不再清任务记录；新增 M-IF-07 `/motion/reset_task`（`srv/ResetTask`）清理已结束任务的上下文。
+  M-IF-04 `/motion/move_to_posture` 不再按压力拒绝，空载判断由调用方在发 Goal 前完成。
+- **原因**：现场运控（`interfaces_motiondev@29775c1`，研华工控机 `releases/90235ae8`）已按两步实现：
+  终止必须匹配活动任务的 `attempt_id`，停稳证据与“已受理”分开返回，清记录要等 RT 终态确认。
+  中央 `main` 的一步式 `terminated` 与现场字段布局不同，Autonomy 按 `main` 编译后调用不通。
+  回 Home 前的空载判断需要操作员确认和泵阀回读，这些只有 Autonomy 掌握。
+- **提出人**：@231055558（motion）、@kkozia188（autonomy）
+- **影响域**：Motion、Autonomy 同批升级。`TerminateTask` 字段布局改变，新旧混跑时调用失败或解析错位。
+  Autonomy 重置流程改为：有活动任务才终止，确认 `stopped && stop_confirmation_valid` 后调用复位；
+  空闲且无旧上下文时两步都跳过。回滚时两域一起回到 `7e409ab`。取代 #21。
+
+### 非破坏性：抓取请求携带后续组与箱墙快照，运控结果增加警告
+
+- **接口**：M-IF-02 `action/PickAndCarry` Goal 增加 `next[]`、`wall_map`，Result/Feedback 增加 `warnings[]`、
+  `next_plan_states`、`next_plan_errors`，Result 增加 `used_precomputed_plan`；M-IF-03 `action/PlaceCarriedBoxes`、
+  M-IF-04 `action/MoveToPosture` 的 Result/Feedback 与 M-IF-05 `msg/ManipulationState` 增加 `warnings[]`；
+  `robot_system_interfaces/msg/ErrorCode` 增加 `MOTION_WALL_MAP_OVERLAP=3141`、`MOTION_WALL_MAP_UNAVAILABLE=3142`。
+  `robot_motion_interfaces` 新增对 `robot_perception_interfaces` 的依赖（`WallMap`）。
+- **原因**：视觉箱墙快照只有 Autonomy 能取，原 Goal 只有快照引用，运控拿不到快照内容建碰撞场景；
+  运控利用上一组执行时间预规划下一组；压力未达标等不阻断执行的情况需要与任务级 `error` 分开上报。
+- **提出人**：@231055558（motion）
+- **影响域**：Motion、Autonomy，以及直接发送抓取 Goal 的视觉联调台。已有类型增加字段，
+  各方须锁同一 SHA 重新编译；混跑时 Action 无法匹配。`next[]` 中的组只预规划，执行必须另发 Goal。
+
+### 新增：历史末端位姿查询与两个调试到位接口
+
+- **接口**：M-IF-08 `/motion/get_end_effector_pose_at_time`（`srv/GetEndEffectorPoseAtTime`）、
+  M-IF-09 `/motion/move_joints`（`action/MoveJoints`）、M-IF-10 `/motion/move_tcp`（`action/MoveDualTcp`）；
+  R-OUT-09 `/rt/readiness` 的消费方增加 motion。
+- **原因**：三个接口现场运控已提供并被视觉联调台使用，中央仓库没有登记；运控实际订阅 `/rt/readiness`
+  作为执行前准入，注册表只写了 Autonomy。
+- **提出人**：@231055558（motion）
+- **影响域**：无（新增独立类型；R-OUT-09 类型与 QoS 不变）。M-IF-09/10 不做碰撞检测，仅供调试和人工操作。
+
 ### 破坏性：导航公共类型从运控包迁入独立导航包
 
 - **接口**：N-01、N-05、N-10～N-17、N-IF-16 的自定义类型从 `robot_motion_interfaces` 迁至 `robot_navigation_interfaces`，涵盖 2 个 Action、7 个 Service 和 4 个消息。注册表增加 `navigation` 域，N-04、N-06、P-NAV-01、P-NAV-02 随导航提供方归档，沿用原标准或共享类型。

@@ -9,7 +9,7 @@
 本文只列 Motion 域**提供**与**消费**的跨域 endpoint，用于分域阅读。
 语义约束、成功判定、重试规则和错误码以权威契约为准，本文不重复。
 
-## 本域提供（8 条）
+## 本域提供（12 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 消费方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -21,8 +21,12 @@
 | M-IF-05 | `/motion/state` | Topic | `robot_motion_interfaces/msg/ManipulationState` | Autonomy | Q_STATE；10 Hz |
 | M-IF-04 | `/motion/move_to_posture` | Action | `robot_motion_interfaces/action/MoveToPosture` | Autonomy | — |
 | M-IF-06 | `/motion/terminate_task` | Service | `robot_motion_interfaces/srv/TerminateTask` | Autonomy | — |
+| M-IF-07 | `/motion/reset_task` | Service | `robot_motion_interfaces/srv/ResetTask` | Autonomy | — |
+| M-IF-08 | `/motion/get_end_effector_pose_at_time` | Service | `robot_motion_interfaces/srv/GetEndEffectorPoseAtTime` | Autonomy | — |
+| M-IF-09 | `/motion/move_joints` | Action | `robot_motion_interfaces/action/MoveJoints` | Autonomy、外部/本地入口 | — |
+| M-IF-10 | `/motion/move_tcp` | Action | `robot_motion_interfaces/action/MoveDualTcp` | Autonomy、外部/本地入口 | — |
 
-## 本域消费（22 条）
+## 本域消费（23 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -48,6 +52,7 @@
 | R-OUT-23L | `/rt/force_torque/left_wrist/wrench` | Topic | `geometry_msgs/msg/WrenchStamped` | RT-Control | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-23R | `/rt/force_torque/right_wrist/wrench` | Topic | `geometry_msgs/msg/WrenchStamped` | RT-Control | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-07 | `/rt/arms/rolling/state` | Topic | `robot_rt_control_interfaces/msg/RollingJointControlState` | RT-Control | Q_ROLLING_STATE；50 Hz；最大年龄 200 ms；rolling 控制器激活期间发布；5 个字段：epoch、state、last_sequence、last_result、stop_reason |
+| R-OUT-09 | `/rt/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | RT-Control | Q_LATCHED；1 Hz |
 
 ## 本域禁止的通信边
 

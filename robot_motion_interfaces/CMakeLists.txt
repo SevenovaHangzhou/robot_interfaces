@@ -8,6 +8,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(unique_identifier_msgs REQUIRED)
 find_package(robot_system_interfaces REQUIRED)
+find_package(robot_perception_interfaces REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/ExecuteMotionStage.action"
@@ -23,12 +24,17 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/PlaceCarriedBoxes.action"
   "action/MoveToPosture.action"
   "srv/TerminateTask.srv"
+  "srv/ResetTask.srv"
+  "srv/GetEndEffectorPoseAtTime.srv"
+  "action/MoveJoints.action"
+  "action/MoveDualTcp.action"
   DEPENDENCIES
     builtin_interfaces
     geometry_msgs
     std_msgs
     unique_identifier_msgs
     robot_system_interfaces
+    robot_perception_interfaces
 )
 
 ament_package()

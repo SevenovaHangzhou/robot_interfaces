@@ -15,7 +15,7 @@
 | --- | --- | --- | --- | --- | --- |
 | G-01 | `/autonomy/execute_demo_task` | Action | `robot_autonomy_interfaces/action/ExecuteDemoTask` | 外部/本地入口 | **Legacy V2，仅保留迁移；非 V3 工作流**；Legacy V2 Demo schema；不能直接用于 V3 任务；V3 Autonomy 仅按注册表调用泵/LED/保护复位，不直接控制阀/运动 |
 
-## 本域消费（58 条）
+## 本域消费（62 条）
 
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
@@ -72,6 +72,10 @@
 | P-IF-08 | `/perception/update_wall_map` | Action | `robot_perception_interfaces/action/UpdateWallMap` | Perception | — |
 | M-IF-04 | `/motion/move_to_posture` | Action | `robot_motion_interfaces/action/MoveToPosture` | Motion | — |
 | M-IF-06 | `/motion/terminate_task` | Service | `robot_motion_interfaces/srv/TerminateTask` | Motion | — |
+| M-IF-07 | `/motion/reset_task` | Service | `robot_motion_interfaces/srv/ResetTask` | Motion | — |
+| M-IF-08 | `/motion/get_end_effector_pose_at_time` | Service | `robot_motion_interfaces/srv/GetEndEffectorPoseAtTime` | Motion | — |
+| M-IF-09 | `/motion/move_joints` | Action | `robot_motion_interfaces/action/MoveJoints` | Motion | — |
+| M-IF-10 | `/motion/move_tcp` | Action | `robot_motion_interfaces/action/MoveDualTcp` | Motion | — |
 | P-IF-09 | `/perception/camera/head/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | Q_SENSOR；ROS 标准类型 |
 | P-IF-10 | `/perception/camera/chest/color/image_rect/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | Q_SENSOR；ROS 标准类型 |
 | P-IF-11 | `/perception/boxes/head/image_annotated/compressed` | Topic | `sensor_msgs/msg/CompressedImage` | Perception | Q_SENSOR；ROS 标准类型 |
