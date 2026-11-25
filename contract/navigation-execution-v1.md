@@ -1,11 +1,12 @@
 # Navigation execution contract v1
 
 Design authority: [robot_driver#334](https://github.com/SevenovaHangzhou/robot_driver/issues/334).
+Correction decision: [robot_driver#339](https://github.com/SevenovaHangzhou/robot_driver/issues/339).
 Endpoint registration and QoS authority: `endpoints.yaml` (N-07, R-OUT-30,
 R-OUT-31, R-OUT-31C, R-OUT-32). This document defines their application schema.
-This is our documented v1, not a reconstruction of unavailable navigation source;
-no byte/index compatibility with that reference is claimed. All messages use ROS
-standard types; there is no custom wrapper or changed robot model.
+This v1 is the existing published Navigation v3.0.4 / simulation v.1.0 protocol,
+27 header fields plus four 16-field modules. PR24's undeployed conflicting
+31+4×15 interpretation is withdrawn by explicit user decision; see release below.
 
 ## Request, active state and lifecycle
 
@@ -27,14 +28,20 @@ or restore old intent. Expiry/false releases terminal intent and its alignment
 state, but does not independently refresh or override the unchanged cmd_vel
 watchdog. Acceptance requires a fresh cmd_vel and all ordinary safety conditions.
 
-`/rt/base/terminal_rotation_active` is `std_msgs/msg/Bool`, Q_FAST_STATE, 50 Hz.
-True means the execution core actually accepted terminal rotation, including its
-alignment phase; it is not an echo of the request and does not mean arrival or
-stopping. Publish false when intent expires, execution is disabled/faulted, mode
-is ineligible, or lifecycle is inactive while the publisher is alive. If the
-publisher is absent consumers must treat state as unknown, never active. Consumer
-freshness uses local receipt age <=300 ms, not ROS time. A true active value alone
-is never permission to command motion.
+`/rt/base/terminal_rotation_active` is `std_msgs/msg/Bool`, Q_CONTROL, 50 Hz
+(reliable, volatile, depth 1, compatible with Navigation's reliable subscriber).
+True means the execution core granted terminal rotation, never an echo or arrival.
+First admission requires a fresh zero vx/vy/wz command, valid feedback, active
+fault-free execution, every measured wheel speed <=0.01 m/s, and zero drive
+output continuously for 0.05 s. The 300 ms lease is not an admission delay.
+Once granted, rotating wheels do not trigger repeated standstill admission.
+Translation intent, false/expired request, invalid feedback, fault, disable or
+inactive lifecycle revoke authority; reactivation requires a new request.
+Publish false while the publisher is alive when unavailable; absence is unknown.
+Consumer receipt freshness is <=300 ms. Authorized pure rotation permits
+1.5 rad/s and 1.5 rad/s²; ordinary motion permits 0.8 rad/s and π/8 rad/s².
+Normal revocation uses controlled braking before translation, not a velocity
+jump; emergency safety stopping remains authoritative.
 
 ## Execution array
 
@@ -44,64 +51,63 @@ at 100 Hz, Q_FAST_STATE. They publish the same coherent captured snapshot, with
 identical layout/data/sequence/time; they are not independent measurements. A
 consumer selects one endpoint, never fuses or counts both as independent evidence.
 
-`data` contains exactly **91** doubles: 31 header fields and four 15-field module
-blocks. `layout.data_offset=0`; `layout.dim` contains exactly one dimension with
-`label="rt_base_execution_state_v1"`, `size=91`, `stride=91`. Reject unknown
-versions, dimension labels, offsets, lengths, or out-of-range enum/boolean values.
-All integer-valued fields are exactly representable doubles. Sequence starts at
-zero per publisher process and increases once per captured snapshot; both aliases
-share it. Restart resets sequence; consumers discard old continuity assumptions.
-Sequence wraps to zero after 2^53-1. Neither sequence nor publication time proves
-that hardware measurements are fresh.
+`data` contains exactly **91** doubles: **27** header fields and four **16**-field
+module blocks. `layout.data_offset=0`; one dimension uses
+`label="rt_base_execution_state_v1"`, `size=91`, `stride=91`. The released
+consumer decodes data indexes, not layout labels: changing a label cannot
+disambiguate the withdrawn conflicting layout. Machine-readable indexes and
+acceptance policy are registered under `navigation_execution_v1` in endpoints.yaml.
+Sequence is an exactly representable nonnegative integer (0..2^53-1), advances
+once per captured snapshot and is identical on both aliases. Restart/wrap resets
+continuity; neither sequence nor publication time proves hardware freshness.
 
-All vectors are body-frame `base_footprint`, +x forward, +y left, +z up; positive
-yaw is counterclockwise. SI units apply. Boolean fields are exactly 0 or 1.
-Numeric values that are unavailable, stale, unsupported, or not applicable are
-quiet NaN, never infinity or a plausible zero and never substituted with a
-reference/command. Boolean validity is false when its prerequisites are invalid.
-Enums retain their explicitly defined unavailable value. Consumers check validity
-and finite values before use. Disabled constraints represented internally by
-infinity are NaN on the wire; consumers must not treat that NaN as a finite limit
-or as valid feedback. Disabled snapshots continue while the publisher is
-alive; they must not claim ready or active. Receipt age >300 ms invalidates the
-whole snapshot. Snapshot ROS time is publication/capture time, not an invented
-hardware timestamp. No arrival/stopped decision may rely on this array alone.
+An accepted snapshot requires ready=1, status in {1,2,3}, and **all 91 values
+finite**. Boolean values are exactly 0 or 1. Snapshot ROS age must be <=0.1 s
+and future offset <=0.01 s; accepted stamps must advance. ROS time, not local
+monotonic lease time, is transmitted. All parties use the same ROS clock.
+Ready means active, fresh valid feedback and no execution-blocking latched fault.
+Status 3 permits state recovery but never overrides the command watchdog.
+Feedback failure must protect/stop and invalidate ready. Unknown or stale values
+remain quiet NaN, never zero, command/reference substitutions or stale samples
+restamped to appear fresh. A ready=0 or nonfinite snapshot is intentionally
+rejected. Active=false and ready=false are different states.
+
+Vectors use body-frame base_footprint, +x forward, +y left, +z up, positive yaw
+counterclockwise. SI units apply. Capture once at the control update consistency
+boundary and publish that snapshot on both aliases; no unsynchronized reads of
+mutating real-time state. No stopped/arrival decision relies on this array alone.
 
 ### Header: absolute indexes
 
 | Index | Name | Unit / meaning |
 | --- | --- | --- |
 | 0 | schema_version | Exactly 1 |
-| 1 | sequence | Snapshot sequence, exact nonnegative integer |
-| 2 | snapshot_ros_time | Seconds in ROS clock, NaN if unavailable |
-| 3 | ready | Boolean: velocity execution eligible under mode/lifecycle/feedback/safety gates |
+| 1 | snapshot_ros_time | s, ROS snapshot timestamp |
+| 2 | sequence | Exact nonnegative integer |
+| 3 | ready | Boolean: active, feedback valid, no blocking latched fault |
 | 4 | status | CoreStatus enumeration below |
-| 5 | gated | Boolean: drive output suppressed by steering alignment gate |
-| 6 | waiting_for_alignment | Boolean: body shaper waiting for wheel alignment, not terminal-only |
-| 7 | terminal_rotation_active | Boolean: same execution state as R-OUT-30 |
-| 8 | terminal_request_fresh | Boolean: currently eligible true request with live lease |
-| 9 | reference_vx | m/s |
-| 10 | reference_vy | m/s |
-| 11 | reference_wz | rad/s |
-| 12 | reference_ax | m/s² |
-| 13 | reference_ay | m/s² |
-| 14 | reference_alpha | rad/s² |
-| 15 | measured_vx | m/s, from actual feedback, not commanded motion |
-| 16 | measured_vy | m/s, from actual feedback |
-| 17 | measured_wz | rad/s, from actual feedback |
-| 18 | max_translation_speed | m/s, effective body translation magnitude limit |
-| 19 | max_yaw_speed | rad/s, effective absolute yaw speed limit |
-| 20 | max_translation_acceleration | m/s², effective body translation magnitude limit |
-| 21 | max_yaw_acceleration | rad/s², effective absolute yaw acceleration limit |
-| 22 | max_steering_rate | rad/s, effective absolute steering rate limit |
-| 23 | max_steering_acceleration | rad/s², effective absolute steering acceleration limit |
-| 24 | max_steering_jerk | rad/s³, effective absolute steering jerk limit |
-| 25 | max_wheel_speed | m/s, effective absolute wheel surface speed limit |
-| 26 | max_wheel_acceleration | m/s², effective absolute wheel surface acceleration limit |
-| 27 | max_body_jerk | m/s³, effective combined (vx, vy, wz*R) jerk norm limit; R is the execution core's configured body characteristic radius |
-| 28 | enabled | Boolean: current execution enable state |
-| 29 | feedback_valid | Boolean: all required module observations valid and fresh |
-| 30 | command_fresh | Boolean: unchanged cmd_vel freshness predicate |
+| 5 | gated | Boolean, actual core steering gate |
+| 6 | waiting_for_alignment | Boolean, actual body alignment waiting state |
+| 7 | translation_branch | -1 unset, 0 forward, 1 reversed; whole-translation lock |
+| 8 | reference_vx | m/s, internal shaped reference |
+| 9 | reference_vy | m/s |
+| 10 | reference_wz | rad/s, restore angular axis from R*wz |
+| 11 | reference_ax | m/s² |
+| 12 | reference_ay | m/s² |
+| 13 | reference_alpha | rad/s², restore angular axis from equivalent radius |
+| 14 | measured_vx | m/s, actual feedback solution |
+| 15 | measured_vy | m/s |
+| 16 | measured_wz | rad/s |
+| 17 | max_steering_rate | rad/s, π/2 |
+| 18 | max_steering_acceleration | rad/s², π |
+| 19 | max_steering_jerk | rad/s³, 1.7453292519943295 |
+| 20 | max_translation_acceleration | m/s², 1.0 |
+| 21 | max_body_jerk | Core shaping parameter 4.0; angular axis uses core equivalent radius |
+| 22 | max_wheel_acceleration | m/s², 2.0 |
+| 23 | max_wheel_speed | m/s, 2.0 |
+| 24 | gate | rad, effective gate threshold, continuous mode π/2 |
+| 25 | release | rad, effective release threshold, continuous mode π/2 |
+| 26 | flip_hysteresis | rad, π/60 |
 
 CoreStatus values: `0=inactive`, `1=running`, `2=alignment_gated`,
 `3=command_timeout`, `4=feedback_fault`, `5=invalid_command`, `6=steering_limit`,
@@ -113,30 +119,48 @@ reference, not a separately reconstructed planner output.
 
 ### Modules: relative offsets
 
-Module m (zero-based m=0..3) begins at `31 + 15*m`. Thus module1 is 31..45,
-module2 46..60, module3 61..75, module4 76..90. Order is **physical wiring
-module1..4 from the driver mapping**, not guessed FR/RR/FL/RL and not the
-FL/FR/RL/RR order of wheel_observations. Existing driver mapping and calibration
-remain authoritative and unchanged. x/y identify actual configured placement;
-unknown geometry is NaN, never a guessed placement.
+Module m (zero-based m=0..3) begins at `27 + 16*m`: blocks 27..42,
+43..58, 59..74, 75..90. Each carries a unique physical module ID in {1,2,3,4}.
+Consumers match by ID and accept valid block reordering; duplicate/missing IDs
+are invalid. Preferred order is physical wiring module1..4 from our driver
+mapping, not guessed FR/RR/FL/RL and not wheel_observations order.
+Our hardware, model, geometry and calibration remain authoritative. Handoff
+mapping examples must not overwrite them. Publish real effective x/y/radius and
+limits; unknown geometry is NaN, not a guessed value to satisfy the parser.
 
 | Offset | Name | Unit / meaning |
 | --- | --- | --- |
-| 0 | actual_heading | rad, calibrated external encoder body heading θ |
-| 1 | actual_wheel_speed | m/s, measured signed wheel surface speed |
-| 2 | reference_heading | rad, current limited steering reference θ |
-| 3 | reference_heading_rate | rad/s |
-| 4 | reference_heading_acceleration | rad/s² |
-| 5 | final_heading_target | rad, selected equivalent final target θ |
-| 6 | heading_error | rad, final target minus actual heading in the selected bounded heading branch |
-| 7 | branch | -1 reverse rolling branch, 0 unavailable, +1 forward rolling branch |
-| 8 | effective_heading_min | rad, lower bound in θ coordinates |
-| 9 | effective_heading_max | rad, upper bound in θ coordinates |
-| 10 | wheel_radius | m, configured physical wheel radius |
-| 11 | module_x | m, module center in body frame |
-| 12 | module_y | m, module center in body frame |
-| 13 | feedback_valid | Boolean: module steering and wheel observations valid and fresh |
-| 14 | reference_wheel_speed | m/s, signed final limited/gated drive reference |
+| 0 | module_id | Integer physical identity 1..4 |
+| 1 | actual_heading | rad, calibrated measured body heading θ |
+| 2 | actual_wheel_speed | m/s, actual signed wheel surface speed |
+| 3 | reference_heading | rad, limited steering trajectory |
+| 4 | reference_heading_rate | rad/s, reference not measured rate |
+| 5 | reference_heading_acceleration | rad/s² |
+| 6 | reference_wheel_speed | m/s, actual core limited/gated wheel reference |
+| 7 | reversed | Boolean, selected equivalent reversed rolling branch |
+| 8 | holding | Boolean, actual per-module internal holding state |
+| 9 | final_heading_target | rad, branch-selected goal before steering shaping |
+| 10 | heading_error | rad, generator's optimized selected-branch error using motor steering_position; not goal minus external encoder actual_heading |
+| 11 | effective_heading_min | rad, effective lower bound |
+| 12 | effective_heading_max | rad, effective upper bound |
+| 13 | wheel_radius | m, actual configured radius |
+| 14 | module_x | m, actual module center in body frame |
+| 15 | module_y | m, actual module center in body frame |
+
+Holding cannot be inferred from zero wheel speed. TranslationBranch cannot be
+inferred from individual Reversed flags. Goal and ReferenceAngle must remain
+distinct. Gate/Release/FlipHysteresis come from the executing core, not nominal
+configuration. Continuous mode uses π/2 gate/release and cosine compensation
+max(0, cos(goal-actual)); explicit align-first mode may use 5°/3° and is not
+selected during ordinary navigation. The published consumer checks effective
+limits and geometry with absolute tolerance 1e-5. Its reference setup uses
+±120° effective steering limits and 0.1 m wheels. Report any actual geometry,
+mapping or limit incompatibility for joint configuration review; never hide it
+with fabricated values. Numeric layout compatibility alone does not prove
+prediction equivalence: replay the same feedback, initial state, commands, dt
+and authorization through driver and released predictor, comparing every step's
+body reference, goal/reference angles/rates/accelerations, wheel reference,
+branches, Holding and gates. Preserve safety and report incompatible semantics.
 
 Heading is calibrated external encoder θ, not a raw count and not a motor
 position substituted for an unavailable external encoder. It is the normalized
@@ -152,16 +176,46 @@ from successful command publication.
 
 `/rt_control/chassis/joint_states` publishes `sensor_msgs/msg/JointState` at
 100 Hz with Q_FAST_STATE from the same captured snapshot. `header.frame_id` is
-`base_footprint`; `header.stamp` is the same ROS snapshot time. `name` is exactly
+`base_footprint`; `header.stamp` is the same ROS snapshot time. Preferred `name` order is
 `[module_1_steering, module_1_wheel, module_2_steering, module_2_wheel,
 module_3_steering, module_3_wheel, module_4_steering, module_4_wheel]`.
-Both position and velocity have eight entries in this interleaved physical wiring
-module order; effort is empty. Steering positions are calibrated external encoder
-θ=-q radians. Steering velocities are NaN because measured steering rate is not
-available. Wheel positions are actual wheel radians and wheel velocities
-actual signed rad/s, **not** the execution array's m/s. Individual unsupported or
-invalid numeric entries are NaN; never synthesize wheel position by integrating
-commands. Consumer receipt freshness is <=300 ms.
+Both position and velocity have eight entries matched by name (valid reorderings
+are accepted); effort is empty. Steering positions are measured normalized θ,
+using our authoritative model conversion. Steering velocity is a valid hardware
+measurement, or an observation from at least two consecutive fresh actual encoder
+samples: (theta_k-theta_prev)/(sample_time_k-sample_time_prev). Use an advancing
+hardware sequence and sample timestamp when available. Current hw_canopen exposes
+position, feedback_age_ms and ready, not a device sequence or timestamp. Its
+supported host-receive observer identifies a new sample by a strict receive-age
+fall, observed at 1 kHz against 4 ms SYNC, and reconstructs local monotonic receive
+time from observation time minus receive age. This is host reception provenance,
+not device sampling time; never invent a hardware sequence or device timestamp.
+Require advancing reconstructed receive time and a reasonable interval. Repeated
+cached observations are not samples and must not enter the difference calculation.
+Age quantization, missed updates and receive-age resets can make continuity
+ambiguous: invalidate/reset history rather than claiming distinct hardware samples.
+This observer cannot identify hidden device resets or prove device-time sampling;
+retain that limitation in integration evidence. Explicit reset, activation,
+dropout, clock reversal and calibration/mapping changes clear history. Until two
+valid observations establish continuity, publish NaN, never fallback 0, command
+rate or reference rate. Conversion must preserve the physical bounded branch
+(unwrap raw encoders before conversion where required). Any filter requires
+measured latency proving moving steering cannot appear stopped.
+
+The array's actual_heading remains external-encoder feedback; heading_error is
+the actual production generator's optimized branch-selection error based on motor
+steering_position. These are distinct observation paths, not an identity that
+permits recomputing error as goal minus external heading. Preserve the executing
+core's control/safety behavior and disclose this distinction in predictor replay.
+
+Wheel position is measured radians; wheel velocity is measured signed rad/s,
+**not** execution-array m/s. Unknown entries stay NaN; do not integrate commands
+to fabricate position. Current stopped checks require positive ROS stamps,
+age <=0.2 s and future offset <=0.05 s for odom and JointState, odom child frame
+base_footprint, body translation/yaw <=0.008 m/s and <=0.008 rad/s, each wheel
+<=0.08 rad/s and each steering rate <=0.01 rad/s, with finite steering angles.
+The stopped window is continuous 0.2 s, timeout 8 s. These are consumer checks,
+not extra admission delays on every ordinary command.
 
 This topic uses neutral module names for navigation-normalized feedback. It
 must not feed robot_state_publisher, overwrite `/joint_states`, or redefine URDF
@@ -172,12 +226,25 @@ sample provenance. Neither compatibility output creates a second hardware source
 
 ## Compatibility and release
 
-These are additive endpoints. RT-Control, Navigation, and Autonomy
-consumers upgrade to one reviewed robot_interfaces SHA in the same release
-window; do not pin unpublished work or mix schema versions. Review is shared by
-RT-Control and the consuming domains. Release interface authority first, then
-producer/consumer changes together, then cross-domain smoke checks before any
-separately authorized deployment. Rollback returns all affected domains to their
-previous coordinated SHAs and removes use of the new endpoints; never translate
-unknown old 91-field indexes by assumption. No pending model or hardware-mapping
-change is implicitly merged by this contract.
+The user explicitly confirmed that no running downstream consumers adopted
+PR24's 31+4×15 layout and approved withdrawing it as an **undeployed invalid
+contract**, despite PR24 being merged. Thus this correction retains v1 and 91
+fields to match the already published Navigation v3.0.4
+(`3f09209babca43a716d842f58fe30a5e1fbe48a2`) and simulation v.1.0
+(`e48feba61073c02bec666f052e55f1fc547257cf`), which remain unchanged.
+This is not permission to reinterpret a deployed schema or mix publishers.
+If any consumer of the withdrawn layout is discovered, stop rollout and arrange
+a separately identified migration; never alternate layouts on the same topic.
+
+RT-Control, Navigation and Autonomy review the corrected interface SHA; driver
+PR336 pins that reviewed SHA. Release the correction first, then integrate the
+producer against unchanged published consumers with actual parser/stopped-check
+tests and stepwise predictor replay; verify DDS QoS (SensorDataQoS consumers for
+execution/JointState, reliable consumer for rotation_active). One publisher per
+endpoint, both execution aliases from one snapshot. No hardware deployment is
+authorized here. Rollback removes this adaptation and restores the last approved
+**pre-adaptation** driver/interface combination, stopping use of the new outputs;
+never roll back to PR24's conflicting 31+4×15 layout or revert unrelated user
+changes on main. Preserve the independent Navigation domain and all existing
+hardware/model/calibration ownership. Cross-domain and hardware smoke acceptance
+remain separate from offline contract tests.

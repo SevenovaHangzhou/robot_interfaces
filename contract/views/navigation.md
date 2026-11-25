@@ -38,10 +38,10 @@
 | R-OUT-01S | `/tf_static` | Topic | `tf2_msgs/msg/TFMessage` | RT-Control | Q_LATCHED；ROS 标准类型；robot_state_publisher 发布本体固定坐标边 |
 | R-OUT-02 | `/rt/base/odom` | Topic | `nav_msgs/msg/Odometry` | RT-Control | Q_FAST_STATE；50 Hz；最大年龄 200 ms；ROS 标准类型；frame_id=odom，child_frame_id=base_footprint；rt-control 不发 odom→base_footprint TF |
 | R-OUT-29 | `/rt/base/wheel_observations` | Topic | `robot_rt_control_interfaces/msg/WheelObservationArray` | RT-Control | Q_FAST_STATE；100 Hz；逐轮观测，供导航逐轮融合；与 R-OUT-02 同源，导航不得把两者同时作为独立观测 |
-| R-OUT-30 | `/rt/base/terminal_rotation_active` | Topic | `std_msgs/msg/Bool` | RT-Control | Q_FAST_STATE；50 Hz；最大年龄 300 ms；ROS 标准类型 |
-| R-OUT-31 | `/rt/base/execution_state` | Topic | `std_msgs/msg/Float64MultiArray` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 300 ms；ROS 标准类型 |
-| R-OUT-31C | `/rt_control/chassis/execution_state` | Topic | `std_msgs/msg/Float64MultiArray` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 300 ms；ROS 标准类型 |
-| R-OUT-32 | `/rt_control/chassis/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 300 ms；ROS 标准类型 |
+| R-OUT-30 | `/rt/base/terminal_rotation_active` | Topic | `std_msgs/msg/Bool` | RT-Control | Q_CONTROL；50 Hz；最大年龄 300 ms；ROS 标准类型 |
+| R-OUT-31 | `/rt/base/execution_state` | Topic | `std_msgs/msg/Float64MultiArray` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 100 ms；ROS 标准类型 |
+| R-OUT-31C | `/rt_control/chassis/execution_state` | Topic | `std_msgs/msg/Float64MultiArray` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 100 ms；ROS 标准类型 |
+| R-OUT-32 | `/rt_control/chassis/joint_states` | Topic | `sensor_msgs/msg/JointState` | RT-Control | Q_FAST_STATE；100 Hz；最大年龄 200 ms；ROS 标准类型 |
 | R-OUT-22 | `/rt/imu/data` | Topic | `sensor_msgs/msg/Imu` | RT-Control | Q_FAST_STATE；ROS 标准类型 |
 
 ## 已删除的 endpoint

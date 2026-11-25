@@ -37,6 +37,29 @@
 
 ## [Unreleased]
 
+### 破坏性：撤回未部署的 PR24 布局，恢复已发布导航 v1 消费协议
+
+- **接口**：N-07、R-OUT-30、R-OUT-31、R-OUT-31C、R-OUT-32；标准消息类型不变。
+  execution_state 改正为原有 27+4×16=91：ROS时间索引1、序号2、模块Id、整体平移分支、
+  逐轮Holding及生效Gate/Release/FlipHysteresis。ready=1要求91项有限、status为1/2/3、
+  ROS年龄≤100ms、未来≤10ms；active用可靠Q_CONTROL匹配现有可靠订阅。
+  JointState舵速为真实硬件值或至少两帧新鲜实际角度观测，无效为NaN，不补假0。
+  当前hw_canopen无设备序号/时间戳时，允许1kHz观察4ms SYNC的严格接收年龄下降并重建
+  单调主机接收时间；重复不差分，连续性歧义/复位清历史，至少两帧后才有效，不能声称设备采样时间。
+  heading_error保持生产核心基于电机steering_position的优化分支误差，不由外编码器角重新相减。
+- **原因**：PR24同名v1/91却重排为31+4×15，现有导航解析失败；固定NaN舵速使停稳永远失败，
+  并遗漏预测恢复状态。用户明确确认没有运行中的其他消费者采用PR24，批准作为未部署无效
+  契约撤回，保持已有导航v3.0.4和仿真v.1.0不变，故保留v1/91身份。
+  纠正决策见 [robot_driver#339](https://github.com/SevenovaHangzhou/robot_driver/issues/339)，
+  原设计见 [#334](https://github.com/SevenovaHangzhou/robot_driver/issues/334)。
+- **提出人**：@kkozia（rt_control / navigation）
+- **影响域**：RT-Control、Navigation、Autonomy。接口纠正PR先发布，driver PR336锁定纠正SHA，
+  与已发布消费者做真实解析/停稳集成及逐步预测回放后再审议部署。禁止混合两种91项发布者，
+  否则同类型DDS可连接但字段错位导致拒绝或错误状态恢复。若发现旧错误布局消费者，停止发布
+  并另议独立协议身份。回滚撤销本适配，恢复批准的适配前组合，不回到PR24错误布局；不回退
+  main上无关用户变更或独立Navigation域。硬件/模型/标定/映射以本方为准，附件映射仅示例。
+  详见 [兼容与回滚](navigation-execution-v1.md#compatibility-and-release)。
+
 ### 破坏性：运控终止与复位拆成两步，回 Home 空载准入归 Autonomy
 
 - **接口**：M-IF-06 `/motion/terminate_task`（`robot_motion_interfaces/srv/TerminateTask`）响应改为
@@ -90,12 +113,12 @@
   `/rt/base/execution_state` 及用户指定的同快照兼容出口 R-OUT-31C
   `/rt_control/chassis/execution_state` 使用 `std_msgs/msg/Float64MultiArray`；
   R-OUT-32 `/rt_control/chassis/joint_states` 使用 `sensor_msgs/msg/JointState`。
-  `navigation-execution-v1.md` 定义 v1 的 31+4×15=91 固定字段、NaN 无效语义、
-  有效动态限值、物理接线 module1..4 次序及 θ=-q 归一化实测转向角；执行数组轮速 m/s，
+  原PR24曾定义31+4×15=91；该未部署解释现已撤回，由上方纠正条目替代。
+  当前权威为 `navigation-execution-v1.md` 的27+4×16布局；执行数组轮速 m/s，
   JointState 轮速 rad/s。请求/active 50 Hz；执行反馈/JointState 100 Hz。
 - **原因**：导航需要受控的末端旋转意图与可判读的执行状态，而不能用指令回显冒充实测；
   设计归档于 [robot_driver#334](https://github.com/SevenovaHangzhou/robot_driver/issues/334)。
-  无可用导航参考源码，故明确自有 v1，不声称旧参考字节或索引兼容。请求使用 RT 本地单调
+  当时未取得导航参考源码，采用的自有布局已由上方纠正决策撤回。请求使用 RT 本地单调
   时钟 <=300 ms 租约，失能/故障/生命周期退出/模式离开后清除且必须收到新请求。
 - **提出人**：@kkozia（rt_control / motion）
 - **影响域**：RT-Control、Navigation、Autonomy，统一接口 SHA 原子升级；标准外部
