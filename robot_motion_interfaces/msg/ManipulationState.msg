@@ -16,3 +16,4 @@ builtin_interfaces/Time hold_observed_at
 # Mock 执行时为 true。
 bool simulated
 robot_system_interfaces/ErrorInfo error
+robot_system_interfaces/ErrorInfo[] warnings

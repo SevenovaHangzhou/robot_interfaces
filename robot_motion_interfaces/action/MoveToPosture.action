@@ -1,6 +1,7 @@
 # M-IF-04 /motion/move_to_posture。进入 Motion 配置的命名姿态。
 # 用于联调重置：人工取走箱子后，手臂回 Home。
-# 按两侧实际压力判断空载，不按内部任务记录；不启停泵，不动阀。
+# 是否适合移动由上层判断；本接口不按压力或旧任务记录拒绝。
+# 不启停泵，不动阀。
 robot_system_interfaces/OperationContext context
 # 目前只有 home。
 string posture_id
@@ -9,5 +10,7 @@ robot_system_interfaces/OperationContext context
 bool posture_reached
 ManipulationState final_state
 robot_system_interfaces/ErrorInfo error
+robot_system_interfaces/ErrorInfo[] warnings
 ---
 ManipulationState state
+robot_system_interfaces/ErrorInfo[] warnings

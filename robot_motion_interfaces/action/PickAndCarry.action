@@ -2,6 +2,18 @@
 # 一个 Action 内完成：检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位。
 # Motion 不启停泵。开阀后收到达到吸附阈值的有效新压力样本即抽离，不加固定等待。
 PickPair target
+# 预发送的后续任务，按执行顺序 0–2 个。只用于预规划，不执行；真正执行时另发 Goal，
+# 以 context.operation_id 与预发送项对应。最后一组为空。
+PickPair[] next
+# 箱墙快照，由 Autonomy 随 Goal 下发（Autonomy 负责从视觉取得并管理版本；Motion 不向视觉读取）。
+# target 或 next 中任一组 uses_wall_map=true 时必须填写：reference 必须与这些组的
+# wall_producer_instance_id / wall_map_version / navigation_map_version 完全一致，header.frame_id 为 map。
+# 全部组 uses_wall_map=false 时保持默认空值，Motion 按先验建模。
+# Autonomy 沿用旧版本快照时，可把它已知搬走的箱子在这份副本里标成 REMOVED_CONFIRMED（reference 不变）；
+# 本组和 next 的目标不得被这样标记。
+# Motion 只用本字段建碰撞场景，不缓存跨 Goal 的快照；缺失或版本不一致报 MOTION_WALL_MAP_UNAVAILABLE，
+# 只影响对应的组，不回退到其他版本。
+robot_perception_interfaces/WallMap wall_map
 ---
 uint8 OUTCOME_UNSPECIFIED=0
 uint8 ALL_SUCCEEDED=1
@@ -18,7 +30,22 @@ bool carry_configuration_reached
 bool upper_motion_stopped
 bool stop_confirmation_valid
 robot_system_interfaces/ErrorInfo error
+robot_system_interfaces/ErrorInfo[] warnings
+# 预规划状态，与 Goal.next 同长同序；是状态不是事件，每条 Feedback 与 Result 都带完整值。
+uint8 NEXT_PLAN_NONE=0
+uint8 NEXT_PLAN_RUNNING=1
+uint8 NEXT_PLAN_READY=2
+uint8 NEXT_PLAN_FAILED=3
+uint8[] next_plan_states
+# FAILED 时给出原因（如 3141 重叠超过 40 mm）；其余为空 ErrorInfo。
+robot_system_interfaces/ErrorInfo[] next_plan_errors
+# 本组是否直接使用了之前预规划好的轨迹（只作追溯）。
+bool used_precomputed_plan
 ---
 robot_system_interfaces/OperationContext context
 ArmExecutionState left
 ArmExecutionState right
+robot_system_interfaces/ErrorInfo[] warnings
+# 与 Result 同义。
+uint8[] next_plan_states
+robot_system_interfaces/ErrorInfo[] next_plan_errors

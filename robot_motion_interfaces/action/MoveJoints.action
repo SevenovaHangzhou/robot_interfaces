@@ -1,0 +1,24 @@
+# M-IF-09 /motion/move_joints。15 轴关节目标直接到位，供调试与人工操作使用，不属于节拍流程。
+# 不做任何碰撞检测，路径空间是否安全由调用方负责。不启停泵，不动阀。
+# 从实时实测关节状态出发，关节空间直线插值，按空载时间化后执行；
+# 臂关节速度上限 15 deg/s，升降速度及其余动力学限制沿用 Motion 配置。
+# 目标超出关节位置限位时直接拒绝，不裁剪。
+robot_system_interfaces/OperationContext context
+# 必须恰好包含 arm_carriage、left_joint1..7、right_joint1..7 共 15 个名称，不得重复，顺序任意。
+string[] joint_names
+# 与 joint_names 一一对应；arm_carriage 单位 m，其余 rad；零位与方向同 /joint_states。
+float64[] positions
+---
+robot_system_interfaces/OperationContext context
+# 轨迹执行完成、停稳，且实测与目标偏差在 Motion 到位容差内时为 true。
+bool target_reached
+# 结束时的实测关节位置，顺序与请求 joint_names 一致；没有有效反馈时为空。
+float64[] final_positions
+# 规划轨迹时长 s；未规划成功时为 0。
+float64 planned_duration_s
+ManipulationState final_state
+robot_system_interfaces/ErrorInfo error
+robot_system_interfaces/ErrorInfo[] warnings
+---
+ManipulationState state
+robot_system_interfaces/ErrorInfo[] warnings

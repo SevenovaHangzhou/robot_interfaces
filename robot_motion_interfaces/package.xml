@@ -3,7 +3,7 @@
   <name>robot_motion_interfaces</name>
   <version>0.6.0</version>
   <description>
-    Motion 域提供的跨域公共接口：抓取、放箱、具名姿态、任务终止、分阶段运动与 rolling 关节目标。
+    Motion 域提供的跨域公共接口：抓取、放箱、具名姿态、任务终止与复位、历史末端位姿、调试到位、分阶段运动与 rolling 关节目标。
   </description>
   <maintainer email="kkozia188@gmail.com">kkozia</maintainer>
   <license>Apache-2.0</license>
@@ -16,6 +16,7 @@
   <depend>std_msgs</depend>
   <depend>unique_identifier_msgs</depend>
   <depend>robot_system_interfaces</depend>
+  <depend>robot_perception_interfaces</depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>

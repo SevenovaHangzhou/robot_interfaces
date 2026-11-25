@@ -111,6 +111,10 @@ uint32 MOTION_INTERNAL_ERROR=3090
 uint32 MOTION_STATE_UNAVAILABLE=3130
 # 取箱位姿超过 max_pose_age，重新精定位后可再试。
 uint32 MOTION_POSE_STALE=3140
+# 视觉箱墙快照中涉及本组目标的箱体识别重叠（0–40 mm 为 WARN，>40 mm 为 FAULT 且不规划）；换快照或调整分组可恢复。
+uint32 MOTION_WALL_MAP_OVERLAP=3141
+# 箱墙快照不可用：读取失败、版本不保留、坐标身份不一致、目标不在快照/已移除/缺深度（FAULT）；邻箱缺深度未入场（WARN）。
+uint32 MOTION_WALL_MAP_UNAVAILABLE=3142
 # 规划失败（含 IK 无解）；换目标或重规划可能成功。
 uint32 MOTION_PLANNING_FAILED=3150
 # 碰撞检出，需重规划。

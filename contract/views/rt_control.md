@@ -59,7 +59,7 @@
 | R-OUT-23L | `/rt/force_torque/left_wrist/wrench` | Topic | `geometry_msgs/msg/WrenchStamped` | Motion | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-23R | `/rt/force_torque/right_wrist/wrench` | Topic | `geometry_msgs/msg/WrenchStamped` | Motion | Q_FAST_STATE；ROS 标准类型 |
 | R-OUT-07 | `/rt/arms/rolling/state` | Topic | `robot_rt_control_interfaces/msg/RollingJointControlState` | Motion | Q_ROLLING_STATE；50 Hz；最大年龄 200 ms；rolling 控制器激活期间发布；5 个字段：epoch、state、last_sequence、last_result、stop_reason |
-| R-OUT-09 | `/rt/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy | Q_LATCHED；1 Hz |
+| R-OUT-09 | `/rt/readiness` | Topic | `robot_system_interfaces/msg/DomainReadiness` | Autonomy、Motion | Q_LATCHED；1 Hz |
 | R-OUT-28 | `/rt/capabilities` | Topic | `std_msgs/msg/String` | 外部/本地入口 | Q_LATCHED；ROS 标准类型 |
 | R-OUT-10 | `/diagnostics` | Topic | `diagnostic_msgs/msg/DiagnosticArray` | 外部/本地入口 | Q_DIAGNOSTIC；ROS 标准类型；不得替代 Action Result 或 readiness 证据 |
 

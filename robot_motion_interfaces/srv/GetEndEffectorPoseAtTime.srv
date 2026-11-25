@@ -1,0 +1,18 @@
+# M-IF-08 /motion/get_end_effector_pose_at_time。查询历史关节反馈对应的 TCP。
+# 只返回有前后历史样本支撑的插值结果；不外推，不用当前位姿替代。
+bool has_related_event
+string event_source
+unique_identifier_msgs/UUID event_producer_instance_id
+uint64 event_sequence
+builtin_interfaces/Time query_stamp
+string[] arms
+string reference_frame
+---
+bool request_processed
+builtin_interfaces/Time query_stamp
+geometry_msgs/PoseStamped[] tcp_poses
+bool[] pose_valid
+builtin_interfaces/Time[] support_sample_before
+builtin_interfaces/Time[] support_sample_after
+robot_system_interfaces/ErrorInfo[] per_arm_errors
+robot_system_interfaces/ErrorInfo error
