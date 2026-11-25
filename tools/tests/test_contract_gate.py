@@ -19,6 +19,12 @@ class ContractGateTest(unittest.TestCase):
     def test_repository_contract_is_valid(self) -> None:
         self.assertEqual(contract_gate.validate(self.document), [])
 
+    def test_navigation_success_uses_nav2_and_preserves_cancel_standstill(self) -> None:
+        endpoint = next(e for e in self.document["endpoints"] if e["id"] == "N-01")
+        self.assertIn("SUCCEEDED 以本次内部 Nav2 Action 返回 SUCCEEDED 为准", endpoint["constraint"])
+        self.assertIn("CANCELED 必须对应车已停止，无法确认时返回失败", endpoint["constraint"])
+        self.assertNotIn("SUCCEEDED 必须同时满足", endpoint["constraint"])
+
     def test_rejects_type_owned_by_another_domain(self) -> None:
         document = copy.deepcopy(self.document)
         endpoint = next(e for e in document["endpoints"] if e["id"] == "N-01")

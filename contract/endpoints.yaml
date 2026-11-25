@@ -179,7 +179,7 @@ endpoints:
     producer: navigation
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "`target_name + map_version` 由 Navigation 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次；SUCCEEDED 必须同时满足位置和朝向到位、定位有效、实际运动反馈确认已停稳，不以零速指令或 Nav2 自身成功代替；CANCELED 必须对应车已停止，无法确认时返回失败；目标与当前位置 XY 相同时原地旋转；受理时固定目标位姿"
+    constraint: "`target_name + map_version` 由 Navigation 通过语义地图解析为 Nav2 目标；真实调用 Nav2；最多总调用三次；SUCCEEDED 以本次内部 Nav2 Action 返回 SUCCEEDED 为准；公共适配器不额外以位置/朝向误差、定位有效或实际停稳复核成功，结果中的位姿及误差只作观测；CANCELED 必须对应车已停止，无法确认时返回失败；目标与当前位置 XY 相同时原地旋转；受理时固定目标位姿"
 
 
   - id: N-04
