@@ -37,6 +37,21 @@
 
 ## [Unreleased]
 
+### 破坏性：双臂 FJT 改为含升降的 15 轴，准入限值改为现场加载的逐轴表
+
+- **接口**：R-IN-02 `/rt/arms/follow_joint_trajectory`、R-IN-22 `/rt/arms/joint_trajectory` 的轴集合与 `constraint`；
+  新增 `axis_sets.v3_dual_arm_updown`（right_joint1..7、left_joint1..7、updown）。wire 类型不变。
+  M-09 Rolling 仍是 `v3_dual_arm` 14 轴，R-IN-02L/R、R-IN-22L/R 不变。
+- **原因**：契约写的是双臂 14 轴、30°/s、60°/s²，与现场不符。研华工控机 2026-11-25 运行的 RT-Control
+  （`runtime/generated/advantech_full-real/controllers.yaml` 的 `arms_jtc`）加载 15 个关节（含 `updown`），
+  逐轴上限为 75/100.2/180 °/s 和 373/498.4/895.3 °/s²，updown 0.1666 m/s、0.4 m/s²；运控按含 `updown` 的
+  15 轴下发，加速度按该表的 95% 规划（joint1～3 为 354°/s²）。按契约的 60°/s² 判断，运控的轨迹不合格。
+  本次以现场 RT-Control 加载值与运控一致的取值为准。
+- **提出人**：@231055558（motion）、@kkozia188（autonomy）
+- **影响域**：Motion、RT-Control。只发 14 轴的发送方会被 `allow_partial_joints_goal=false` 拒绝，必须补上 `updown`
+  （不动时填当前位置）。按旧限值规划的轨迹仍然合格，无需重新规划。数值来自现场部署的生成配置，
+  RT-Control 修改 robot_description 或控制器参数时须同步更新本条。
+
 ### 破坏性：撤回未部署的 PR24 布局，恢复已发布导航 v1 消费协议
 
 - **接口**：N-07、R-OUT-30、R-OUT-31、R-OUT-31C、R-OUT-32；标准消息类型不变。

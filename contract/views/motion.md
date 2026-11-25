@@ -31,7 +31,7 @@
 | ID | ROS 名称 | 形式 | 类型 | 提供方 | 约束 |
 | --- | --- | --- | --- | --- | --- |
 | P-03 | `/perception/obstacle_cloud` | Topic | `robot_perception_interfaces/msg/ObstacleCloud` | Perception | Q_STATE；**产品预留，Demo 不部署** |
-| R-IN-02 | `/rt/arms/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | RT-Control | ROS 标准类型；三代双七轴 right_joint1..7,left_joint1..7；完整 14 轴；allow_partial_joints_goal=false |
+| R-IN-02 | `/rt/arms/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | RT-Control | ROS 标准类型；三代双七轴加升降：right_joint1..7、left_joint1..7、updown，完整 15 轴，按 joint_names 匹配、顺序不限；allow_partial_joints_goal=false |
 | R-IN-02L | `/rt/arms/left/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | RT-Control | ROS 标准类型 |
 | R-IN-02R | `/rt/arms/right/follow_joint_trajectory` | Action | `control_msgs/action/FollowJointTrajectory` | RT-Control | ROS 标准类型 |
 | R-IN-22 | `/rt/arms/joint_trajectory` | Topic | `trajectory_msgs/msg/JointTrajectory` | RT-Control | Q_CONTROL；ROS 标准类型；流式下发（遥操作、视觉伺服、在线重规划）；与 R-IN-02 同一控制器，新消息替换尚未执行的轨迹；断流后保持最后目标 |
