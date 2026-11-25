@@ -131,7 +131,7 @@ limits; unknown geometry is NaN, not a guessed value to satisfy the parser.
 | Offset | Name | Unit / meaning |
 | --- | --- | --- |
 | 0 | module_id | Integer physical identity 1..4 |
-| 1 | actual_heading | rad, calibrated measured body heading θ |
+| 1 | actual_heading | rad, motor-derived normalized measured control-axis heading (module.steering_actual), matching the executing core's prediction seed |
 | 2 | actual_wheel_speed | m/s, actual signed wheel surface speed |
 | 3 | reference_heading | rad, limited steering trajectory |
 | 4 | reference_heading_rate | rad/s, reference not measured rate |
@@ -140,7 +140,7 @@ limits; unknown geometry is NaN, not a guessed value to satisfy the parser.
 | 7 | reversed | Boolean, selected equivalent reversed rolling branch |
 | 8 | holding | Boolean, actual per-module internal holding state |
 | 9 | final_heading_target | rad, branch-selected goal before steering shaping |
-| 10 | heading_error | rad, generator's optimized selected-branch error using motor steering_position; not goal minus external encoder actual_heading |
+| 10 | heading_error | rad, actual selected goal.error_rad: goal minus safe-clamped motor steering_position, not external encoder angle |
 | 11 | effective_heading_min | rad, effective lower bound |
 | 12 | effective_heading_max | rad, effective upper bound |
 | 13 | wheel_radius | m, actual configured radius |
@@ -162,9 +162,10 @@ and authorization through driver and released predictor, comparing every step's
 body reference, goal/reference angles/rates/accelerations, wheel reference,
 branches, Holding and gates. Preserve safety and report incompatible semantics.
 
-Heading is calibrated external encoder θ, not a raw count and not a motor
-position substituted for an unavailable external encoder. It is the normalized
-body heading corresponding to θ=-q for the existing model steering joint q.
+Execution-array heading is the motor-derived measured control-axis θ used by the
+executing core, not a command or reference. JointState steering instead uses the
+calibrated external encoder; neither path substitutes for an invalid other path.
+Both use normalized body heading corresponding to θ=-q for the existing model.
 All actual/reference/target/limit angles share this convention; do not wrap a
 bounded angle independently into another branch. The equivalent reverse branch
 changes rolling direction rather than changing module identity. Measured wheel
@@ -192,6 +193,9 @@ time from observation time minus receive age. This is host reception provenance,
 not device sampling time; never invent a hardware sequence or device timestamp.
 Require advancing reconstructed receive time and a reasonable interval. Repeated
 cached observations are not samples and must not enter the difference calculation.
+Unchanged or rising ages never trigger differentiation, and an existing rate
+ages out. Reject out-of-bounds angles and implausible jumps exceeding the maximum
+steering slew times receive interval plus the configured angular tolerance.
 Age quantization, missed updates and receive-age resets can make continuity
 ambiguous: invalidate/reset history rather than claiming distinct hardware samples.
 This observer cannot identify hidden device resets or prove device-time sampling;
@@ -202,11 +206,14 @@ rate or reference rate. Conversion must preserve the physical bounded branch
 (unwrap raw encoders before conversion where required). Any filter requires
 measured latency proving moving steering cannot appear stopped.
 
-The array's actual_heading remains external-encoder feedback; heading_error is
-the actual production generator's optimized branch-selection error based on motor
-steering_position. These are distinct observation paths, not an identity that
-permits recomputing error as goal minus external heading. Preserve the executing
-core's control/safety behavior and disclose this distinction in predictor replay.
+The array's actual_heading uses module.steering_actual, the motor-derived measured
+control-axis state used for prediction initialization. Its heading_error is the
+production generator's selected goal.error_rad, computed from the goal and
+safe-clamped motor steering_position. JointState position/rate instead use the
+external calibrated encoder and the receive observer above. Do not recompute the
+array error from the external angle or assume it always equals goal minus the
+unclamped array angle. Preserve core control/safety behavior and disclose these
+observation and clamp distinctions in predictor replay.
 
 Wheel position is measured radians; wheel velocity is measured signed rad/s,
 **not** execution-array m/s. Unknown entries stay NaN; do not integrate commands
