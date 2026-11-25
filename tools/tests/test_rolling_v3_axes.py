@@ -25,8 +25,13 @@ class V3RollingAxesTest(unittest.TestCase):
 
     def test_trajectory_endpoints_reference_the_same_axis_set(self):
         endpoints = {entry["id"]: entry for entry in self.contract["endpoints"]}
-        for identifier in ("R-IN-02", "R-IN-22", "M-09"):
-            self.assertEqual(endpoints[identifier]["axis_set"], "v3_dual_arm")
+        # Rolling 仍是固定 14 轴数组；FJT 与流式轨迹走 arms_jtc，含升降共 15 轴
+        self.assertEqual(endpoints["M-09"]["axis_set"], "v3_dual_arm")
+        for identifier in ("R-IN-02", "R-IN-22"):
+            self.assertEqual(endpoints[identifier]["axis_set"], "v3_dual_arm_updown")
+        axes = self.contract["axis_sets"]["v3_dual_arm_updown"]
+        self.assertEqual(axes["joint_names"], NAMES + ["updown"])
+        self.assertEqual(axes["count"], 15)
 
     def test_gate_rejects_unknown_axis_reference(self):
         document = copy.deepcopy(self.contract)
