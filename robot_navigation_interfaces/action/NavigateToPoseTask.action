@@ -1,3 +1,6 @@
+# N-01 succeeds when its internal Nav2 action returns SUCCEEDED.
+# Result pose/errors are observations, not an independent physical-stop guarantee.
+# Cancellation still requires confirmed standstill; otherwise abort.
 string target_name
 string map_version
 ---
