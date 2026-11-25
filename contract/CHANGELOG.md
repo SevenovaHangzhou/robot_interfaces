@@ -40,12 +40,26 @@
 ### 破坏性：N-01 公共成功终态以 Nav2 成功为准
 
 - **接口**：N-01 `/navigation/navigate_to_pose`，`robot_navigation_interfaces/action/NavigateToPoseTask`。IDL 不变。
-- **原因**：本次用户明确要求公共导航 Action 按内部 Nav2 的 `SUCCEEDED` 返回成功，取消额外的定位、误差和实际停稳成功复核，与现有导航适配器行为一致。
+- **原因**：现有导航适配器在 Nav2 返回 `SUCCEEDED` 后直接返回成功，没有独立的定位、误差和实际停稳复核，与原契约不符。项目负责人 2026-11-25 决定本阶段按适配器现状定义成功，导航和 Autonomy 都不补停稳复核。
 - **提出人**：@Carbine-P（Navigation，修改人 Codex）。
 - **影响域**：Navigation、Autonomy。成功仅证明 Nav2 报告成功，不额外承诺公共层已验证物理停稳；位姿及误差为观测数据。取消仍要求实际停止，无法确认则失败。
   本地设计决策由本次用户请求给定。部署前由两域负责人确认消费口径、在同一窗口升级到包含本改动的统一接口 SHA，并运行成功与取消 smoke test。
   未同步时，Autonomy 可能把新的 SUCCEEDED 误解为独立停稳证明。回滚时恢复接口 SHA `76082540f9642c1c7e7b86e16f9b7902ce93da64`，并部署满足旧成功判据的导航实现，不能只回滚契约文本。
   当前仅本地修改，未执行评审、发布或部署。
+### 破坏性：双臂 FJT 改为含升降的 15 轴，准入限值改为现场加载的逐轴表
+
+- **接口**：R-IN-02 `/rt/arms/follow_joint_trajectory`、R-IN-22 `/rt/arms/joint_trajectory` 的轴集合与 `constraint`；
+  新增 `axis_sets.v3_dual_arm_updown`（right_joint1..7、left_joint1..7、updown）。wire 类型不变。
+  M-09 Rolling 仍是 `v3_dual_arm` 14 轴，R-IN-02L/R、R-IN-22L/R 不变。
+- **原因**：契约写的是双臂 14 轴、30°/s、60°/s²，与现场不符。研华工控机 2026-11-25 运行的 RT-Control
+  （`runtime/generated/advantech_full-real/controllers.yaml` 的 `arms_jtc`）加载 15 个关节（含 `updown`），
+  逐轴上限为 75/100.2/180 °/s 和 373/498.4/895.3 °/s²，updown 0.1666 m/s、0.4 m/s²；运控按含 `updown` 的
+  15 轴下发，加速度按该表的 95% 规划（joint1～3 为 354°/s²）。按契约的 60°/s² 判断，运控的轨迹不合格。
+  本次以现场 RT-Control 加载值与运控一致的取值为准。
+- **提出人**：@231055558（motion）、@kkozia188（autonomy）
+- **影响域**：Motion、RT-Control。只发 14 轴的发送方会被 `allow_partial_joints_goal=false` 拒绝，必须补上 `updown`
+  （不动时填当前位置）。按旧限值规划的轨迹仍然合格，无需重新规划。数值来自现场部署的生成配置，
+  RT-Control 修改 robot_description 或控制器参数时须同步更新本条。
 
 ### 破坏性：撤回未部署的 PR24 布局，恢复已发布导航 v1 消费协议
 
