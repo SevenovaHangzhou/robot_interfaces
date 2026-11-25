@@ -40,6 +40,44 @@ axis_sets:
     position_unit: rad
     velocity_unit: rad/s
 
+# Application schema for the standard Float64MultiArray, not a new IDL type.
+navigation_execution_v1:
+  version: 1
+  size: 91
+  header: [schema_version, snapshot_ros_time, sequence, ready, status, gated,
+           waiting_for_alignment, translation_branch, reference_vx, reference_vy,
+           reference_wz, reference_ax, reference_ay, reference_alpha, measured_vx,
+           measured_vy, measured_wz, max_steering_rate, max_steering_acceleration,
+           max_steering_jerk, max_translation_acceleration, max_body_jerk,
+           max_wheel_acceleration, max_wheel_speed, gate, release, flip_hysteresis]
+  module: [module_id, actual_heading, actual_wheel_speed, reference_heading,
+           reference_heading_rate, reference_heading_acceleration, reference_wheel_speed,
+           reversed, holding, final_heading_target, heading_error, effective_heading_min,
+           effective_heading_max, wheel_radius, module_x, module_y]
+  module_ids: [1, 2, 3, 4]
+  accepted_ready: 1
+  accepted_statuses: [1, 2, 3]
+  all_fields_finite: true
+  max_age_ms: 100
+  max_future_ms: 10
+  stamp_must_advance: true
+  sequence_range: [0, 9007199254740991]
+  header_booleans: [ready, gated, waiting_for_alignment]
+  module_booleans: [reversed, holding]
+  translation_branches: [-1, 0, 1]
+  configuration_absolute_tolerance: 0.00001
+  observed_steering_rate:
+    minimum_actual_samples: 2
+    provenance: [hardware_sequence_and_sample_time, host_receive_age_fall]
+    require_advancing_observation_time: true
+    host_observer_hz: 1000
+    host_sync_period_ms: 4
+    host_receive_age_strict_fall: true
+    ambiguous_continuity_resets_history: true
+    device_timestamp_claimed_for_host_observer: false
+    invalid_value: NaN
+    zero_fallback: false
+
 endpoints:
   - id: G-01
     legacy_only: true
@@ -711,7 +749,7 @@ endpoints:
     type: std_msgs/msg/Bool
     producer: rt_control
     consumers: [navigation, autonomy]
-    qos: Q_FAST_STATE
+    qos: Q_CONTROL
     rate_hz: [50, 50]
     max_age_ms: 300
     external_type: true
@@ -725,9 +763,9 @@ endpoints:
     consumers: [navigation, autonomy]
     qos: Q_FAST_STATE
     rate_hz: [100, 100]
-    max_age_ms: 300
+    max_age_ms: 100
     external_type: true
-    constraint: "Exactly 91 fields, v1 layout and NaN invalid semantics defined by contract/navigation-execution-v1.md; 31 header + four 15-field modules in physical wiring module1..4 order, not wheel_observations order; wheel speeds m/s; calibrated external encoder heading theta; coherent snapshot; unavailable feedback never replaced with commands; does not prove arrival or stopping"
+    constraint: "Exactly 91 fields: v1 27 header + four 16-field modules; timestamp index1, sequence index2; unique physical module IDs1..4 permit block reorder; ready=1 requires all91 finite, status1/2/3, ROS age<=100ms and future<=10ms with advancing stamps; actual core TranslationBranch, Holding, Gate, Release and FlipHysteresis; wheel speed m/s; unavailable feedback stays NaN and invalid, never commands or stale data restamped; authoritative driver mapping/calibration unchanged; see contract/navigation-execution-v1.md"
 
   - id: R-OUT-31C
     ros_name: /rt_control/chassis/execution_state
@@ -737,9 +775,9 @@ endpoints:
     consumers: [navigation, autonomy]
     qos: Q_FAST_STATE
     rate_hz: [100, 100]
-    max_age_ms: 300
+    max_age_ms: 100
     external_type: true
-    constraint: "User-requested compatibility endpoint: identical layout, data, sequence and timestamp from the same snapshot as R-OUT-31, not a second estimate; consumers select one endpoint, never fuse both; no byte/index compatibility claimed with unavailable navigation reference"
+    constraint: "Published Navigation v3.0.4 compatibility endpoint: identical v1 27+4x16 layout/data/sequence/ROS timestamp from the same captured snapshot as R-OUT-31; select one alias, never fuse both; SensorDataQoS-compatible; withdrawn undeployed PR24 layout must never be published or mixed on this endpoint"
 
   - id: R-OUT-32
     ros_name: /rt_control/chassis/joint_states
@@ -749,9 +787,9 @@ endpoints:
     consumers: [navigation, autonomy]
     qos: Q_FAST_STATE
     rate_hz: [100, 100]
-    max_age_ms: 300
+    max_age_ms: 200
     external_type: true
-    constraint: "Normalized navigation feedback, not URDF /joint_states: names [module_1_steering, module_1_wheel, module_2_steering, module_2_wheel, module_3_steering, module_3_wheel, module_4_steering, module_4_wheel], interleaved physical wiring order1..4; steering position is calibrated external encoder heading theta=-q, steering velocity NaN because measured rate unavailable; actual wheel position rad and velocity rad/s; NaN unavailable; effort empty; frame_id=base_footprint; same snapshot time as R-OUT-31; no robot_state_publisher/TF use or model/calibration/mapping changes; see contract/navigation-execution-v1.md"
+    constraint: "Normalized measured feedback, not URDF /joint_states: module_1_steering/module_1_wheel through module_4_steering/module_4_wheel, matched by name; measured body heading rad, measured wheel position rad and velocity rad/s; steering velocity from valid hardware or >=2 fresh actual angle observations: advancing hardware sequence/time when available, otherwise supported strict host receive-age fall at1kHz versus4ms SYNC with advancing reconstructed local receive time; duplicates never differenced, ambiguous/reset continuity clears history; no invented device timestamp/sequence; invalid rate NaN, never fallback0 or reference rate; effort empty; frame_id=base_footprint; ROS age<=200ms future<=50ms; SensorDataQoS-compatible; preserve authoritative model/calibration/mapping; see contract/navigation-execution-v1.md"
 
 
   - id: R-OUT-20
