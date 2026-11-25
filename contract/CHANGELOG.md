@@ -50,7 +50,8 @@
 - **提出人**：@231055558（motion）、@kkozia188（autonomy）
 - **影响域**：Motion、Autonomy 同批升级。`TerminateTask` 字段布局改变，新旧混跑时调用失败或解析错位。
   Autonomy 重置流程改为：有活动任务才终止，确认 `stopped && stop_confirmation_valid` 后调用复位；
-  空闲且无旧上下文时两步都跳过。回滚时两域一起回到 `7e409ab`。取代 #21。
+  空闲且无旧上下文时两步都跳过。运控任一 Action 失败或被取消后拒绝新 Goal，Autonomy 在动作未成功后自动调用复位。
+  回滚时两域一起回到 `7e409ab`。取代 #21。
 
 ### 非破坏性：抓取请求携带后续组与箱墙快照，运控结果增加警告
 

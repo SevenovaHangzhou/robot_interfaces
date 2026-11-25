@@ -862,7 +862,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "一个 Action 内完成检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位，不设独立可行性接口；tcp_target 为 base_link 下 TCP，Motion 不再叠加工具偏移；uses_wall_map=true 时 navigation_map_version、wall_producer_instance_id、wall_map_version 取自换算 TCP 所用的同一份视觉快照引用，其中 navigation_map_version 是视觉的物理地图身份，不是导航语义地图版本；Motion 不启停泵；开阀后收到参与侧 p<=-60 kPa 的有效新压力样本即抽离，不加固定延时或多帧稳定等待，抽离不需要 Autonomy 批准；source_observed_at 只作记录，不作为拒绝条件；分臂给出成功/失败/取消/未知，一侧成功一侧失败时 overall=PARTIAL 并以 ABORTED 返回，保留成功侧事实；同时只接受一个 Goal，忙时拒绝；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不自动松阀、不关泵、不回 Home；purpose=DROPPED_BOX_RECOVERY 使用地面回收场景配置；Goal.next 为按执行顺序预发送的 0–2 组后续 PickPair，只预规划不执行，真正执行时另发 Goal 并以 context.operation_id 对应，内容、前序结果、起点、TCP（≤2 mm/0.5°）或邻箱场景（≤2 mm）任一不符即现场重规划；next_plan_states/next_plan_errors 与 next 同长同序，是状态不是事件，每条 Feedback 与 Result 都带完整值；used_precomputed_plan 只作追溯；M-IF-06/M-IF-07 清空预规划缓存；箱墙快照由 Autonomy 放在 Goal.wall_map 随请求下发，Motion 不读视觉的 P-IF-03/04；uses_wall_map=true 的组要求 wall_map.reference 与其三项快照引用完全一致，缺失或不一致报 MOTION_WALL_MAP_UNAVAILABLE 且不回退到其他版本（预规划组只把该组判 FAILED），坐标用 PickPair.base_pose_at_target_generation 从 map 换算；uses_wall_map 全为 false 时 wall_map 留空，按先验建模；目标相关箱体重叠报 MOTION_WALL_MAP_OVERLAP（>40 mm 为 FAULT 且不规划）；warnings[] 报告不阻断执行的业务警告；经 M-IF-06 终止时 Action 以 ABORTED 结束、业务结果为取消"
+    constraint: "一个 Action 内完成检查、规划、接近、贴近、开阀、等吸附、抽离、进入运输位，不设独立可行性接口；tcp_target 为 base_link 下 TCP，Motion 不再叠加工具偏移；uses_wall_map=true 时 navigation_map_version、wall_producer_instance_id、wall_map_version 取自换算 TCP 所用的同一份视觉快照引用，其中 navigation_map_version 是视觉的物理地图身份，不是导航语义地图版本；Motion 不启停泵；开阀后收到参与侧 p<=-60 kPa 的有效新压力样本即抽离，不加固定延时或多帧稳定等待，抽离不需要 Autonomy 批准；source_observed_at 只作记录，不作为拒绝条件；分臂给出成功/失败/取消/未知，一侧成功一侧失败时 overall=PARTIAL 并以 ABORTED 返回，保留成功侧事实；同时只接受一个 Goal，忙时拒绝；取消时手臂原地停下并确认停稳，以 CANCELED 返回，不自动松阀、不关泵、不回 Home；purpose=DROPPED_BOX_RECOVERY 使用地面回收场景配置；Goal.next 为按执行顺序预发送的 0–2 组后续 PickPair，只预规划不执行，真正执行时另发 Goal 并以 context.operation_id 对应，内容、前序结果、起点、TCP（≤2 mm/0.5°）或邻箱场景（≤2 mm）任一不符即现场重规划；next_plan_states/next_plan_errors 与 next 同长同序，是状态不是事件，每条 Feedback 与 Result 都带完整值；used_precomputed_plan 只作追溯；M-IF-06/M-IF-07 清空预规划缓存；箱墙快照由 Autonomy 放在 Goal.wall_map 随请求下发，Motion 不读视觉的 P-IF-03/04；uses_wall_map=true 的组要求 wall_map.reference 与其三项快照引用完全一致，缺失或不一致报 MOTION_WALL_MAP_UNAVAILABLE 且不回退到其他版本（预规划组只把该组判 FAILED），坐标用 PickPair.base_pose_at_target_generation 从 map 换算；uses_wall_map 全为 false 时 wall_map 留空，按先验建模；Autonomy 沿用旧版本快照时，可在下发的副本里把它已知搬走的箱子（已抓走、人工标记搬走）的 lifecycle_state 置为 REMOVED_CONFIRMED，reference 与其余内容不变，Motion 按契约丢弃已确认移除的箱子，本组和 next 的目标不得被这样标记；目标相关箱体重叠报 MOTION_WALL_MAP_OVERLAP（>40 mm 为 FAULT 且不规划）；warnings[] 报告不阻断执行的业务警告；经 M-IF-06 终止时 Action 以 ABORTED 结束、业务结果为取消"
 
   - id: M-IF-03
     ros_name: /motion/place_carried_boxes
@@ -983,7 +983,7 @@ endpoints:
     producer: motion
     consumers: [autonomy]
     qos: Q_DEFAULT
-    constraint: "context.attempt_id 必须等于最近一次任务（已结束或已被 M-IF-06 停稳）的 attempt_id，不匹配时 accepted=false；只要求没有执行中任务、没有受理中或终态未确认的 RT 目标；清理目标集合、持箱记录和任务锁；不移动、不松阀、不关泵、不清 RT 故障、不清 attempt 去重记录；不检查压力或额外停稳窗口；现场负载处置由上层负责"
+    constraint: "context.attempt_id 必须等于最近一次任务（已结束或已被 M-IF-06 停稳）的 attempt_id，不匹配时 accepted=false；只要求没有执行中任务、没有受理中或终态未确认的 RT 目标；清理目标集合、持箱记录和任务锁；不移动、不松阀、不关泵、不清 RT 故障、不清 attempt 去重记录；不检查压力或额外停稳窗口；现场负载处置由上层负责；M-IF-02/03/04/09/10 任一 Action 失败或被取消后，Motion 拒绝新的 Goal 并在 M-06 的 blockers 中给出 reset_required，直到本接口清理成功；Autonomy 在运控动作未成功后自动调用本接口"
 
   - id: M-IF-08
     ros_name: /motion/get_end_effector_pose_at_time
